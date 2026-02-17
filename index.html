@@ -1,130 +1,158 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!doctype html>
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal do Cliente</title>
-
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f6f9;
-      text-align: center;
-      padding: 30px;
-    }
-
-    h1 {
-      color: #1e40af;
-    }
-
-    .box {
-      max-width: 500px;
-      margin: 30px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 14px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-      text-align: left;
-    }
-
-    .contract {
-      background: #f9fafb;
-      padding: 12px;
-      border-radius: 10px;
-      margin-top: 12px;
-    }
-
-    button {
-      background: #111827;
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-weight: bold;
-      cursor: pointer;
-      float: right;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; text-align: center; padding: 40px; }
+    h1 { color: #1e40af; margin-bottom: 18px; }
+    .card { max-width: 720px; margin: 0 auto; background: #fff; padding: 22px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .btn { border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; cursor: pointer; }
+    .btn-dark { background: #111827; color: #fff; }
+    .status { margin-top: 10px; font-size: 14px; color: #6b7280; text-align: left; }
+    .err { color: #b91c1c; }
+    .contracts { margin-top: 16px; text-align: left; display: grid; gap: 12px; }
+    .item { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
+    .row { margin: 6px 0; }
+    .label { font-weight: 800; }
+    .muted { color: #6b7280; }
   </style>
 </head>
-
 <body>
   <h1>Portal do Cliente</h1>
 
-  <div class="box">
-    <button onclick="logout()">Sair</button>
-    <p id="status">Carregando...</p>
-    <div id="contracts"></div>
+  <div class="card">
+    <div class="top">
+      <div class="muted" id="hello">Carregando...</div>
+      <button class="btn btn-dark" id="logoutBtn">Sair</button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="contracts" id="contracts"></div>
   </div>
 
-  <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // =========================
+    // COLE SUAS CHAVES AQUI
+    // =========================
+    const SUPABASE_URL = "https://occxmqvoyvmxvaoaxecw.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
+    // =========================
 
-    // SUAS CHAVES
-    const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const $ = (id) => document.getElementById(id);
 
-    async function logout() {
-      await supabase.auth.signOut();
-      window.location.href = "./login.html";
+    function setStatus(text, isError=false) {
+      $("status").textContent = text || "";
+      $("status").className = "status" + (isError ? " err" : "");
     }
 
-    async function load() {
-      const { data: userData } = await supabase.auth.getUser();
+    function escapeHtml(s) {
+      return String(s ?? "").replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+      }[m]));
+    }
 
-      if (!userData?.user) {
-        window.location.href = "./login.html";
-        return;
+    async function requireSession() {
+      // Pega a sessão
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        setStatus("Erro ao ler sessão: " + error.message, true);
+        return null;
       }
+      if (!session) {
+        window.location.replace("./login.html");
+        return null;
+      }
+      return session;
+    }
 
-      const userId = userData.user.id;
+    async function loadContracts() {
+      setStatus("Buscando seus contratos...");
+      $("contracts").innerHTML = "";
 
-      // busca cliente
-      const { data: client } = await supabase
+      const session = await requireSession();
+      if (!session) return;
+
+      // user.id do auth
+      const userId = session.user.id;
+      $("hello").textContent = session.user.email || "Cliente";
+
+      // Busca o client pelo user_id
+      const { data: client, error: clientErr } = await supabase
         .from("clients")
-        .select("*")
+        .select("id, full_name")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (!client) {
-        document.getElementById("status").innerText = "Cliente não encontrado.";
+      if (clientErr) {
+        setStatus("Erro ao buscar cliente: " + clientErr.message, true);
         return;
       }
 
-      document.getElementById("status").innerText = "Seus contratos:";
+      if (!client?.id) {
+        setStatus("Seu cadastro de cliente ainda não foi criado (clients).", true);
+        return;
+      }
 
-      // busca contratos
-      const { data: contracts } = await supabase
+      // Busca contratos vinculados ao client_id
+      const { data: contracts, error: contractsErr } = await supabase
         .from("contracts")
-        .select("*")
-        .eq("client_id", client.id);
+        .select("amount_paid, installments_remaining, due_date, notes")
+        .eq("client_id", client.id)
+        .order("due_date", { ascending: true });
 
-      const container = document.getElementById("contracts");
+      if (contractsErr) {
+        setStatus("Erro ao buscar contratos: " + contractsErr.message, true);
+        return;
+      }
 
       if (!contracts || contracts.length === 0) {
-        container.innerHTML = "<p>Nenhum contrato encontrado.</p>";
+        setStatus("Nenhum contrato encontrado para este cliente.");
+        $("contracts").innerHTML = `<div class="item"><div class="muted">Você ainda não tem contratos cadastrados.</div></div>`;
         return;
       }
 
-      let html = "";
+      setStatus("Seus contratos:");
 
-      contracts.forEach(c => {
-        html += `
-          <div class="contract">
-            <p><strong>Valor pago:</strong> R$ ${c.amount_paid}</p>
-            <p><strong>Parcelas restantes:</strong> ${c.installments_remaining}</p>
-            <p><strong>Vencimento:</strong> ${c.due_date}</p>
-            <p><strong>Observações:</strong> ${c.notes}</p>
-          </div>
-        `;
-      });
-
-      container.innerHTML = html;
+      $("contracts").innerHTML = contracts.map(c => `
+        <div class="item">
+          <div class="row"><span class="label">Valor pago:</span> R$ ${escapeHtml(c.amount_paid)}</div>
+          <div class="row"><span class="label">Parcelas restantes:</span> ${escapeHtml(c.installments_remaining)}</div>
+          <div class="row"><span class="label">Vencimento:</span> ${escapeHtml(c.due_date)}</div>
+          <div class="row"><span class="label">Observações:</span> ${escapeHtml(c.notes)}</div>
+        </div>
+      `).join("");
     }
 
-    load();
+    async function logout() {
+      setStatus("Saindo...");
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        setStatus("Erro ao sair: " + error.message, true);
+        return;
+      }
+
+      // força sair SEM ficar preso no histórico
+      window.location.replace("./login.html");
+    }
+
+    $("logoutBtn").addEventListener("click", logout);
+
+    // Se deslogar em outra aba, aqui cai fora também
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        window.location.replace("./login.html");
+      }
+    });
+
+    loadContracts();
   </script>
 </body>
 </html>

@@ -2,180 +2,121 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portal do Cliente • Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal do Cliente — Login</title>
 
-  <style>
-    :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --brand:#1d4ed8;
-      --brand2:#0ea5e9;
-      --ring:rgba(29,78,216,.25);
-      --border:rgba(15,23,42,.08);
-      --shadow:0 18px 50px rgba(2,6,23,.12);
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 800px at 20% -10%, rgba(14,165,233,.18), transparent 55%),
-        radial-gradient(1000px 700px at 100% 0%, rgba(29,78,216,.14), transparent 55%),
-        var(--bg);
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-    }
-    .wrap{width:min(440px,100%)}
-    .brand{
-      display:flex;align-items:center;gap:12px;margin-bottom:16px;
-    }
-    .logo{
-      width:40px;height:40px;border-radius:12px;
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      box-shadow: 0 12px 24px rgba(29,78,216,.22);
-    }
-    h1{margin:0;font-size:28px;letter-spacing:-.02em}
-    .sub{margin:4px 0 0;color:var(--muted);font-size:14px}
-    .card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:22px;
-      overflow:hidden;
-      position:relative;
-    }
-    .card:before{
-      content:"";
-      position:absolute; inset:-2px -2px auto -2px;
-      height:6px;
-      background: linear-gradient(90deg, var(--brand), var(--brand2));
-    }
-    label{display:block;font-weight:700;margin:14px 0 8px}
-    input{
-      width:100%;
-      padding:14px 14px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      outline:none;
-      font-size:16px;
-      background:#fff;
-      transition:.15s;
-    }
-    input:focus{
-      border-color: rgba(29,78,216,.45);
-      box-shadow:0 0 0 5px var(--ring);
-    }
-    .btn{
-      width:100%;
-      margin-top:16px;
-      padding:14px 16px;
-      border:none;
-      border-radius:14px;
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      color:#fff;
-      font-weight:800;
-      font-size:16px;
-      cursor:pointer;
-      box-shadow: 0 14px 28px rgba(29,78,216,.22);
-      transition:.15s;
-    }
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-    .hint{
-      margin-top:12px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.35;
-      text-align:center;
-    }
-    .msg{
-      margin-top:12px;
-      padding:12px 12px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      background: rgba(15,23,42,.03);
-      font-size:14px;
-      display:none;
-    }
-    .msg.err{border-color: rgba(239,68,68,.28); background: rgba(239,68,68,.06)}
-    .msg.ok{border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.06)}
-  </style>
-
+  <link rel="stylesheet" href="./app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="brand">
-      <div class="logo"></div>
-      <div>
-        <h1>Acessar Portal</h1>
-        <div class="sub">Entre com seu e-mail e senha.</div>
-      </div>
-    </div>
-
+  <div class="shell">
     <div class="card">
-      <form id="form">
-        <label for="email">Email</label>
-        <input id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="email" required />
-
-        <label for="pass">Senha</label>
-        <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password" required />
-
-        <button id="btn" class="btn" type="submit">Entrar</button>
-        <div id="msg" class="msg"></div>
-
-        <div class="hint">
-          Dica: se der <b>Invalid login credentials</b>, confira email/senha e se o usuário está confirmado no Supabase.
+      <div class="topbar">
+        <div class="brand">
+          <img id="logoImg" src="" alt="Logo">
+          <div class="title">
+            <strong id="companyName">Portal do Cliente</strong>
+            <span id="companyTagline">Acesso seguro</span>
+          </div>
         </div>
-      </form>
+
+        <div class="actions">
+          <button class="btn" id="btnSupport">Suporte</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="grid">
+          <div class="panel">
+            <div class="badge"><span class="dot"></span> Ambiente seguro • Login Supabase</div>
+            <div class="hr"></div>
+
+            <h1 class="h1">Entrar</h1>
+            <p class="sub">Use seu email e senha para acessar seus contratos.</p>
+
+            <div class="label">Email</div>
+            <input class="input" id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="email">
+
+            <div class="label">Senha</div>
+            <input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+
+            <div class="hr"></div>
+
+            <button class="btn btnPrimary" id="btnLogin" style="width:100%;">Entrar</button>
+            <div id="msg"></div>
+
+            <p class="small" style="margin-top:12px;">
+              Se aparecer <b>Invalid login credentials</b>, confira email/senha e se o usuário está confirmado no Supabase.
+            </p>
+          </div>
+
+          <div class="panel">
+            <h1 class="h1">Dicas rápidas</h1>
+            <p class="sub">Para uma experiência de fintech: clareza e zero fricção.</p>
+
+            <div class="kv">
+              <div class="kvRow"><b>Velocidade</b><span>⚡</span></div>
+              <div class="kvRow"><b>Segurança</b><span>🔒</span></div>
+              <div class="kvRow"><b>Design</b><span>✨</span></div>
+            </div>
+
+            <div class="hr"></div>
+            <p class="small">
+              Você pode adicionar status do contrato, histórico de pagamentos e botão de WhatsApp com 1 clique.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script>
-    const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG || {};
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<script>
+  const cfg = window.APP_CONFIG || {};
+  const supabaseUrl = cfg.SUPABASE_URL;
+  const supabaseKey = cfg.SUPABASE_ANON_KEY;
 
-    const form = document.getElementById("form");
-    const btn  = document.getElementById("btn");
-    const msg  = document.getElementById("msg");
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    function showMsg(text, type){
-      msg.textContent = text;
-      msg.className = "msg " + (type || "");
-      msg.style.display = "block";
+  // Brand
+  document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
+  document.getElementById("companyTagline").textContent = cfg.COMPANY_TAGLINE || "Acesso seguro";
+  document.getElementById("logoImg").src = cfg.LOGO_URL || "";
+
+  // Support
+  document.getElementById("btnSupport").onclick = () => {
+    const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g,'');
+    const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
+    if (!phone) return alert("Configure SUPPORT_WHATSAPP no config.js");
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  };
+
+  function showError(html){
+    const msg = document.getElementById("msg");
+    msg.innerHTML = `<div class="err">${html}</div>`;
+  }
+  function clearMsg(){ document.getElementById("msg").innerHTML = ""; }
+
+  // Se já estiver logado, manda pro portal
+  (async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) window.location.href = "./index.html";
+  })();
+
+  document.getElementById("btnLogin").onclick = async () => {
+    clearMsg();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    if(!email || !password){
+      return showError("Preencha email e senha.");
     }
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      msg.style.display = "none";
-      btn.disabled = true;
-      btn.textContent = "Entrando...";
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return showError(`Erro no login: <b>${error.message}</b>`);
 
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("pass").value;
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        showMsg("Erro: " + error.message, "err");
-        btn.disabled = false;
-        btn.textContent = "Entrar";
-        return;
-      }
-
-      showMsg("Login OK. Redirecionando...", "ok");
-      setTimeout(() => location.href = "./index.html", 300);
-    });
-  </script>
+    window.location.href = "./index.html";
+  };
+</script>
 </body>
 </html>

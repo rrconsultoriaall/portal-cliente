@@ -5,14 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Portal do Cliente — Login</title>
 
-  <!-- CSS com cache-buster -->
-  <link rel="stylesheet" href="./app.css?v=7" />
-
-  <!-- Supabase UMD (carrega antes do nosso script) -->
+  <link rel="stylesheet" href="./app.css?v=99" />
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Config (SUAS CHAVES) com cache-buster -->
-  <script defer src="./config.js?v=7"></script>
+  <script defer src="./config.js?v=99"></script>
 </head>
 
 <body>
@@ -47,81 +42,63 @@
             <button class="btn primary" id="btnLogin" type="submit">Entrar</button>
           </form>
 
-          <p class="muted" style="margin-top:12px">
-            Se der “Invalid login credentials”, confira email/senha e se o usuário está confirmado no Supabase.
-          </p>
-
-          <div id="msg" class="msg" style="display:none"></div>
+          <div id="msg" class="msg" style="display:none;margin-top:12px"></div>
         </div>
 
-        <div class="panel" style="margin-top:16px">
-          <div class="badge"><span class="dot"></span> Acesso seguro</div>
-          <p class="muted" style="margin-top:10px">
-            Você acessa seu painel com contratos, próximos vencimentos e status.
-          </p>
-          <p class="muted">
-            <strong>Status</strong> —<br />
-            <strong>Próximo vencimento</strong> —<br />
-            <strong>Parcelas</strong> —
-          </p>
-        </div>
       </div>
 
       <div class="footer">
         <small>© <span id="footerCompany">Sua empresa</span></small>
       </div>
+
     </div>
   </div>
 
   <script>
-    // Tudo só roda depois de carregar Supabase + config.js
     window.addEventListener("load", () => {
       const msg = document.getElementById("msg");
-
-      const showMsg = (text, type = "error") => {
+      const showMsg = (text, type="error") => {
         msg.style.display = "block";
         msg.className = "msg " + type;
         msg.textContent = text;
       };
 
+      // 🔥 Limpa lixo antigo SEMPRE ao abrir login
+      try {
+        localStorage.removeItem("supabase.auth.token");
+        sessionStorage.clear();
+      } catch (_) {}
+
       const cfg = window.APP_CONFIG;
       if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
-        showMsg("Config não carregou. Verifique o arquivo config.js e o cache do navegador.", "error");
+        showMsg("Config não carregou. Verifique config.js.", "error");
         return;
       }
 
-      // Branding
       document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
       document.getElementById("companyTagline").textContent = cfg.COMPANY_TAGLINE || "Acesse seus contratos";
       document.getElementById("footerCompany").textContent = cfg.COMPANY_NAME || "Sua empresa";
-      document.getElementById("logoImg").src = (cfg.LOGO_URL || "./Logo.png") + "?v=7";
+      document.getElementById("logoImg").src = (cfg.LOGO_URL || "./Logo.png") + "?v=99";
 
-      // Supabase client
       const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
-      // Suporte (WhatsApp)
       document.getElementById("btnSupport").addEventListener("click", (e) => {
         e.preventDefault();
         const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
         const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o portal.");
-        if (!phone) {
-          showMsg("WhatsApp de suporte não configurado no config.js", "error");
-          return;
-        }
+        if (!phone) return showMsg("WhatsApp não configurado no config.js", "error");
         window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
       });
 
-      // Se já estiver logado, manda pro index
-      supabase.auth.getSession().then(({ data, error }) => {
-        if (!error && data?.session) {
-          window.location.href = "./index.html";
+      // ✅ Se já tiver sessão, vai pro index (mas força refresh)
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session) {
+          window.location.replace("./index.html?v=99");
         }
       });
 
-      // Login
-      const form = document.getElementById("loginForm");
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault(); // NÃO deixa recarregar a página
+      document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
         msg.style.display = "none";
 
         const email = document.getElementById("email").value.trim();
@@ -136,7 +113,8 @@
           if (error) throw error;
           if (!data?.session) throw new Error("Sessão não criada.");
 
-          window.location.href = "./index.html";
+          // ✅ Vai pro portal com cache-buster
+          window.location.replace("./index.html?v=99");
         } catch (err) {
           showMsg(err.message || "Erro no login.", "error");
         } finally {

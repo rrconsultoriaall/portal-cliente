@@ -1,176 +1,190 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal do Cliente</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f9;
-      text-align: center;
-      padding: 40px;
-    }
-    h1 { color: #1e40af; }
-    .box {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-top: 30px;
-      max-width: 520px;
-      margin-left: auto;
-      margin-right: auto;
-      text-align: left;
-    }
-    .topbar{
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-    button{
-      background:#1e40af;
-      color:#fff;
-      border:none;
-      padding:10px 14px;
-      border-radius:10px;
-      cursor:pointer;
-    }
-    button.secondary{
-      background:#e5e7eb;
-      color:#111827;
-    }
-    .contract {
-      border-top: 1px solid #eee;
-      padding: 12px 0;
-    }
-    .muted{ color:#6b7280; font-size: 14px; }
-    .err{ color:#b91c1c; font-size: 14px; }
-    code{ background:#f3f4f6; padding:2px 6px; border-radius:6px; }
+    body{font-family:Arial,sans-serif;background:#f4f6f9;text-align:center;padding:40px}
+    h1{color:#1e40af;margin:0 0 18px}
+    .wrap{max-width:760px;margin:0 auto}
+    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.08);text-align:left}
+    .top{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .pill{display:inline-block;background:#f3f4f6;padding:6px 10px;border-radius:999px;font-size:12px;color:#111827}
+    .btn{border:0;border-radius:10px;background:#111827;color:#fff;padding:10px 12px;cursor:pointer;font-weight:700}
+    .muted{color:#6b7280;font-size:13px}
+    .err{color:#b91c1c;font-size:13px;margin-top:10px}
+    .list{margin-top:12px;display:grid;gap:10px}
+    .item{border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+    .row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .k{font-size:12px;color:#6b7280}
+    .v{font-size:14px;color:#111827;font-weight:700}
+    .loading{display:inline-block;background:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <h1>Portal do Cliente</h1>
 
-<h1>Portal do Cliente</h1>
-
-<div class="box" id="content">
-  Carregando...
-</div>
-
-<script>
-  const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-  function render(html){ document.getElementById("content").innerHTML = html; }
-
-  async function logout(){
-    await supabase.auth.signOut();
-    location.href = "./login.html";
-  }
-
-  async function loadContracts() {
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-
-    if (userErr) {
-      render(`<div class="err">Erro ao ler usuário: ${userErr.message}</div>`);
-      return;
-    }
-
-    if (!userData?.user) {
-      // Se não tiver sessão, manda pro login
-      location.href = "./login.html";
-      return;
-    }
-
-    const uid = userData.user.id;
-
-    // Busca o client vinculado ao usuário
-    const { data: client, error: clientErr } = await supabase
-      .from("clients")
-      .select("id, full_name")
-      .eq("user_id", uid)
-      .single();
-
-    if (clientErr) {
-      render(`
-        <div class="topbar">
-          <div><strong>Olá!</strong> <span class="muted">(uid: <code>${uid}</code>)</span></div>
-          <button class="secondary" onclick="logout()">Sair</button>
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="pill" id="who">Carregando…</div>
+          <div class="muted" id="subtitle">Buscando seus contratos…</div>
         </div>
-        <div class="err">Erro buscando cliente: ${clientErr.message}</div>
-        <div class="muted">Se aparecer “permission denied”, é RLS/policy faltando.</div>
-      `);
-      return;
-    }
-
-    if (!client) {
-      render(`
-        <div class="topbar">
-          <div><strong>Olá!</strong> <span class="muted">(uid: <code>${uid}</code>)</span></div>
-          <button class="secondary" onclick="logout()">Sair</button>
-        </div>
-        <div class="err">Cliente não encontrado para esse usuário.</div>
-      `);
-      return;
-    }
-
-    // Busca contratos do client
-    const { data: contracts, error: contractsErr } = await supabase
-      .from("contracts")
-      .select("id, created_at, amount_paid, installment, due_date, notes")
-      .eq("client_id", client.id)
-      .order("created_at", { ascending: false });
-
-    if (contractsErr) {
-      render(`
-        <div class="topbar">
-          <div><strong>${client.full_name || "Cliente"}</strong></div>
-          <button class="secondary" onclick="logout()">Sair</button>
-        </div>
-        <div class="err">Erro buscando contratos: ${contractsErr.message}</div>
-      `);
-      return;
-    }
-
-    if (!contracts || contracts.length === 0) {
-      render(`
-        <div class="topbar">
-          <div><strong>${client.full_name || "Cliente"}</strong></div>
-          <button class="secondary" onclick="logout()">Sair</button>
-        </div>
-        <div class="muted">Nenhum contrato encontrado.</div>
-      `);
-      return;
-    }
-
-    let html = `
-      <div class="topbar">
-        <div><strong>${client.full_name || "Cliente"}</strong><div class="muted">Seus contratos</div></div>
-        <button class="secondary" onclick="logout()">Sair</button>
+        <button class="btn" id="logoutBtn">Sair</button>
       </div>
-    `;
 
-    contracts.forEach(c => {
-      html += `
-        <div class="contract">
-          <div><strong>Contrato:</strong> <code>${c.id}</code></div>
-          <div class="muted">Criado: ${new Date(c.created_at).toLocaleString()}</div>
-          <div><strong>Valor pago:</strong> ${c.amount_paid ?? 0}</div>
-          <div><strong>Parcela:</strong> ${c.installment ?? ""}</div>
-          <div><strong>Vencimento:</strong> ${c.due_date ? new Date(c.due_date).toLocaleDateString() : ""}</div>
-          <div><strong>Obs:</strong> ${c.notes ?? ""}</div>
+      <div id="content">
+        <span class="loading">Carregando…</span>
+      </div>
+
+      <div id="error" class="err"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ✅ Coloque suas chaves aqui
+    const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
+    const supabaseKey = "SUA_ANON_KEY_AQUI";
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const $ = (id) => document.getElementById(id);
+    const setErr = (t) => $("error").textContent = t || "";
+
+    function money(v){
+      if (v === null || v === undefined || v === "") return "-";
+      const n = Number(v);
+      if (Number.isNaN(n)) return String(v);
+      return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+    }
+
+    function fmtDate(d){
+      if (!d) return "-";
+      try {
+        const dt = new Date(d);
+        return dt.toLocaleDateString("pt-BR");
+      } catch {
+        return String(d);
+      }
+    }
+
+    async function logout(){
+      await supabase.auth.signOut();
+      location.href = "./login.html";
+    }
+
+    $("logoutBtn").addEventListener("click", logout);
+
+    async function loadPortal(){
+      setErr("");
+
+      // 1) Sessão
+      const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+      if (sessErr) {
+        setErr("Erro sessão: " + sessErr.message);
+        return;
+      }
+      if (!session) {
+        location.href = "./login.html";
+        return;
+      }
+
+      // 2) Usuário
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr) {
+        setErr("Erro ao ler usuário: " + userErr.message);
+        return;
+      }
+      if (!user) {
+        location.href = "./login.html";
+        return;
+      }
+
+      $("who").textContent = user.email || "Usuário logado";
+
+      // 3) Pega o client do usuário (public.clients.user_id = auth.users.id)
+      const { data: client, error: clientErr } = await supabase
+        .from("clients")
+        .select("id, full_name, user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (clientErr) {
+        setErr("Erro ao buscar cliente: " + clientErr.message);
+        return;
+      }
+
+      if (!client) {
+        $("subtitle").textContent = "Seu cadastro de cliente ainda não foi criado.";
+        $("content").innerHTML = "<div class='muted'>Nenhum registro em <b>clients</b> para este usuário.</div>";
+        return;
+      }
+
+      $("who").textContent = (client.full_name && client.full_name.trim())
+        ? client.full_name
+        : (user.email || "Cliente");
+
+      $("subtitle").textContent = "Cliente ID: " + client.id;
+
+      // 4) Busca contratos do cliente
+      const { data: contracts, error: conErr } = await supabase
+        .from("contracts")
+        .select("id, created_at, client_id, amount_paid, installment, due_date, notes")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: false });
+
+      if (conErr) {
+        setErr("Erro ao buscar contratos: " + conErr.message);
+        return;
+      }
+
+      if (!contracts || contracts.length === 0) {
+        $("content").innerHTML = "<div class='muted'>Nenhum contrato encontrado para este cliente.</div>";
+        return;
+      }
+
+      // 5) Render
+      const html = `
+        <div class="list">
+          ${contracts.map(c => `
+            <div class="item">
+              <div class="row">
+                <div>
+                  <div class="k">Contrato</div>
+                  <div class="v">${c.id}</div>
+                </div>
+                <div>
+                  <div class="k">Vencimento</div>
+                  <div class="v">${fmtDate(c.due_date)}</div>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px">
+                <div>
+                  <div class="k">Valor pago</div>
+                  <div class="v">${money(c.amount_paid)}</div>
+                </div>
+                <div>
+                  <div class="k">Parcela</div>
+                  <div class="v">${(c.installment ?? "-")}</div>
+                </div>
+              </div>
+
+              <div style="margin-top:10px">
+                <div class="k">Observações</div>
+                <div class="v" style="font-weight:400">${c.notes ? c.notes : "-"}</div>
+              </div>
+            </div>
+          `).join("")}
         </div>
       `;
-    });
 
-    render(html);
-  }
+      $("content").innerHTML = html;
+    }
 
-  loadContracts();
-</script>
-
+    loadPortal();
+  </script>
 </body>
-</html>
+  </html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin - Portal</title>
+
+<style>
+:root{
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --primary:#1e40af;
+  --danger:#b91c1c;
+  --shadow:0 12px 30px rgba(15,23,42,.10);
+  --radius:18px;
+}
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:var(--bg);
+  padding:20px;
+}
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  max-width:1000px;
+  margin:0 auto 20px;
+}
+h1{margin:0;color:var(--primary)}
+button{
+  border:none;
+  padding:10px 14px;
+  border-radius:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn-dark{background:#111;color:#fff}
+.btn-primary{background:var(--primary);color:#fff}
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  max-width:1000px;
+  margin:0 auto 16px;
+}
+input, select{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  margin-bottom:8px;
+  width:100%;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+th, td{
+  padding:8px;
+  border-bottom:1px solid #eee;
+  font-size:13px;
+}
+th{background:#fafafa}
+.err{color:var(--danger);font-size:13px}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="top">
+  <h1>Painel Admin</h1>
+  <button class="btn-dark" onclick="logout()">Sair</button>
+</div>
+
+<div id="error" class="err"></div>
+
+<div class="card">
+  <h3>Criar Contrato</h3>
+  <select id="clientSelect"></select>
+  <input type="number" id="amount" placeholder="Valor pago">
+  <input type="number" id="installments" placeholder="Parcelas restantes">
+  <input type="date" id="dueDate">
+  <select id="status">
+    <option value="ativo">ativo</option>
+    <option value="pendente">pendente</option>
+    <option value="atrasado">atrasado</option>
+    <option value="finalizado">finalizado</option>
+  </select>
+  <input type="text" id="notes" placeholder="Observações">
+  <button class="btn-primary" onclick="createContract()">Salvar</button>
+</div>
+
+<div class="card">
+  <h3>Contratos</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Cliente</th>
+        <th>Valor</th>
+        <th>Parcelas</th>
+        <th>Vencimento</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="contractsTable"></tbody>
+  </table>
+</div>
+
+<script>
+
+// 🔐 COLE SUA URL E ANON KEY
+const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
+
+const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+async function logout(){
+  await supabase.auth.signOut();
+  window.location.href = "./login.html";
+}
+
+function showError(msg){
+  document.getElementById("error").innerText = msg;
+}
+
+async function checkAdmin(){
+  const { data: session } = await supabase.auth.getSession();
+  if(!session.session){
+    window.location.href = "./login.html";
+    return false;
+  }
+
+  const userId = session.session.user.id;
+
+  const { data } = await supabase
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if(!data){
+    showError("Acesso negado. Você não é admin.");
+    return false;
+  }
+
+  return true;
+}
+
+async function loadClients(){
+  const { data } = await supabase
+    .from("clients")
+    .select("id, full_name");
+
+  const select = document.getElementById("clientSelect");
+  select.innerHTML = data.map(c =>
+    `<option value="${c.id}">${c.full_name || c.id}</option>`
+  ).join("");
+}
+
+async function loadContracts(){
+  const { data } = await supabase
+    .from("contracts")
+    .select("*")
+    .order("created_at", { ascending:false });
+
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, full_name");
+
+  const nameMap = {};
+  clients.forEach(c => nameMap[c.id] = c.full_name || c.id);
+
+  document.getElementById("contractsTable").innerHTML =
+    data.map(c => `
+      <tr>
+        <td>${c.status}</td>
+        <td>${nameMap[c.client_id] || c.client_id}</td>
+        <td>R$ ${Number(c.amount_paid || 0).toLocaleString("pt-BR")}</td>
+        <td>${c.installments_remaining || "-"}</td>
+        <td>${c.due_date || "-"}</td>
+        <td>
+          <button onclick="deleteContract('${c.id}')">Excluir</button>
+        </td>
+      </tr>
+    `).join("");
+}
+
+async function createContract(){
+  const client_id = document.getElementById("clientSelect").value;
+  const amount_paid = Number(document.getElementById("amount").value);
+  const installments_remaining = Number(document.getElementById("installments").value);
+  const due_date = document.getElementById("dueDate").value;
+  const status = document.getElementById("status").value;
+  const notes = document.getElementById("notes").value;
+
+  const { error } = await supabase.from("contracts").insert({
+    client_id,
+    amount_paid,
+    installments_remaining,
+    due_date,
+    status,
+    notes
+  });
+
+  if(error) showError(error.message);
+  else{
+    loadContracts();
+  }
+}
+
+async function deleteContract(id){
+  await supabase.from("contracts").delete().eq("id", id);
+  loadContracts();
+}
+
+(async () => {
+  const ok = await checkAdmin();
+  if(!ok) return;
+
+  await loadClients();
+  await loadContracts();
+})();
+</script>
+
+</body>
+</html>

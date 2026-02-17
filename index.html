@@ -22,8 +22,8 @@
         </div>
 
         <div class="actions">
-          <button class="btn" id="btnSupport">Suporte</button>
-          <button class="btn btnDanger" id="btnLogout">Sair</button>
+          <button class="btn" id="btnSupport" type="button">Suporte</button>
+<button class="btn danger" id="btnLogout" type="button">Sair</button>
         </div>
       </div>
 
@@ -192,5 +192,34 @@
 
   load();
 </script>
+  <script>
+  // --- AÇÃO: SUPORTE (troque o link pelo seu WhatsApp) ---
+  const btnSupport = document.getElementById("btnSupport");
+  if (btnSupport) {
+    btnSupport.addEventListener("click", () => {
+      // Exemplo: WhatsApp
+      const phone = "5511971952500"; // coloque seu número com DDI (55) + DDD + número
+      const msg = encodeURIComponent("Olá! Preciso de suporte no Portal do Cliente.");
+      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    });
+  }
+
+  // --- AÇÃO: SAIR ---
+  const btnLogout = document.getElementById("btnLogout");
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      try {
+        if (window.supabase && window.supabaseClient) {
+          await window.supabaseClient.auth.signOut();
+        }
+      } catch (e) {
+        console.log("Erro ao sair:", e);
+      } finally {
+        // sempre volta pro login mesmo se der erro
+        window.location.href = "./login.html";
+      }
+    });
+  }
+  </script>
 </body>
 </html>

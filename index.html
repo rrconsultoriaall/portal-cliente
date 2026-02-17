@@ -14,16 +14,16 @@
     <div class="card">
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" src="" alt="Logo">
+          <img id="logoImg" src="" alt="Logo" />
           <div class="title">
             <strong id="companyName">Portal do Cliente</strong>
-            <span id="userLine">Carregando sessão…</span>
+            <span id="sessionLine">Carregando sessão...</span>
           </div>
         </div>
 
         <div class="actions">
           <button class="btn" id="btnSupport" type="button">Suporte</button>
-<button class="btn danger" id="btnLogout" type="button">Sair</button>
+          <button class="btn danger" id="btnLogout" type="button">Sair</button>
         </div>
       </div>
 
@@ -32,194 +32,199 @@
           <div class="panel">
             <div class="badge"><span class="dot"></span> Seus contratos</div>
             <div class="hr"></div>
-
-            <div id="contractsArea">
-              <p class="sub">Carregando seus contratos…</p>
+            <div id="contractsBox" class="list">
+              <div class="muted">Carregando seus contratos...</div>
             </div>
+            <p class="err" id="errBox" style="display:none;"></p>
           </div>
 
-          <div class="panel">
-            <h1 class="h1">Resumo</h1>
-            <p class="sub">Visão rápida em estilo fintech.</p>
+          <div class="panel subtle">
+            <h2 class="h2">Resumo</h2>
+            <p class="muted">Visão rápida em estilo fintech.</p>
 
-            <div class="kv" id="summary">
-              <div class="kvRow"><b>Status</b><span>—</span></div>
-              <div class="kvRow"><b>Próximo vencimento</b><span>—</span></div>
-              <div class="kvRow"><b>Parcelas restantes</b><span>—</span></div>
+            <div class="mini">
+              <div class="miniRow">
+                <span>Status</span>
+                <strong id="sumStatus">—</strong>
+              </div>
+              <div class="miniRow">
+                <span>Próximo vencimento</span>
+                <strong id="sumDue">—</strong>
+              </div>
+              <div class="miniRow">
+                <span>Parcelas restantes</span>
+                <strong id="sumInst">—</strong>
+              </div>
             </div>
 
             <div class="hr"></div>
-            <p class="small">
-              Dica: você pode exibir “Em dia / Atrasado / Quitado” com base no vencimento.
-            </p>
+            <p class="muted small">Dica: você pode exibir “Em dia / Atrasado / Quitado” com base no vencimento.</p>
           </div>
         </div>
       </div>
     </div>
+
+    <p class="footer">© <span id="footerCompany">Sua empresa</span></p>
   </div>
 
-<script>
-  const cfg = window.APP_CONFIG || {};
-  const supabaseUrl = cfg.SUPABASE_URL;
-  const supabaseKey = cfg.SUPABASE_ANON_KEY;
-
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-  // Brand
-  document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
-  document.getElementById("logoImg").src = cfg.LOGO_URL || "";
-
-  // Support
-  document.getElementById("btnSupport").onclick = () => {
-    const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g,'');
-    const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
-    if (!phone) return alert("Configure SUPPORT_WHATSAPP no config.js");
-    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
-  };
-
-  document.getElementById("btnLogout").onclick = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "./login.html";
-  };
-
-  function fmtMoney(v){
-    const n = Number(v || 0);
-    return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
-  }
-
-  function statusFromDue(due){
-    if(!due) return "Sem data";
-    const today = new Date(); today.setHours(0,0,0,0);
-    const dd = new Date(due + "T00:00:00");
-    const diff = (dd - today) / 86400000;
-    if (diff < 0) return "Atrasado";
-    if (diff <= 5) return "Vence em breve";
-    return "Em dia";
-  }
-
-  function statusBadge(status){
-    const map = {
-      "Em dia": "✅ Em dia",
-      "Vence em breve": "⚠️ Vence em breve",
-      "Atrasado": "⛔ Atrasado",
-      "Quitado": "🏁 Quitado"
-    };
-    return map[status] || status;
-  }
-
-  function setSummary(status, due, remaining){
-    const el = document.getElementById("summary");
-    el.innerHTML = `
-      <div class="kvRow"><b>Status</b><span>${statusBadge(status)}</span></div>
-      <div class="kvRow"><b>Próximo vencimento</b><span>${due || "—"}</span></div>
-      <div class="kvRow"><b>Parcelas restantes</b><span>${(remaining ?? "—")}</span></div>
-    `;
-  }
-
-  async function load(){
-    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
-    if (sessionErr) {
-      document.getElementById("contractsArea").innerHTML = `<div class="err">Erro: ${sessionErr.message}</div>`;
-      return;
-    }
-    const session = sessionData?.session;
-    if (!session) {
-      window.location.href = "./login.html";
-      return;
-    }
-
-    const email = session.user.email || "usuário";
-    document.getElementById("userLine").textContent = `Logado como: ${email}`;
-
-    // 1) acha o client do usuário
-    const { data: clientRows, error: clientErr } = await supabase
-      .from("clients")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .limit(1);
-
-    if (clientErr) {
-      document.getElementById("contractsArea").innerHTML = `<div class="err">Erro ao buscar cliente: ${clientErr.message}</div>`;
-      return;
-    }
-    if (!clientRows || clientRows.length === 0) {
-      document.getElementById("contractsArea").innerHTML = `<div class="err">Nenhum cliente vinculado a este usuário.</div>`;
-      setSummary("—", "—", "—");
-      return;
-    }
-
-    const clientId = clientRows[0].id;
-
-    // 2) busca contratos
-    const { data: contracts, error: cErr } = await supabase
-      .from("contracts")
-      .select("amount_paid, installments_remaining, due_date, notes")
-      .eq("client_id", clientId)
-      .order("created_at", { ascending: false });
-
-    if (cErr) {
-      document.getElementById("contractsArea").innerHTML = `<div class="err">Erro ao buscar contratos: ${cErr.message}</div>`;
-      return;
-    }
-
-    if (!contracts || contracts.length === 0) {
-      document.getElementById("contractsArea").innerHTML = `<p class="sub">Nenhum contrato encontrado.</p>`;
-      setSummary("—", "—", "—");
-      return;
-    }
-
-    const first = contracts[0];
-    const status = statusFromDue(first.due_date);
-    setSummary(status, first.due_date || "—", first.installments_remaining ?? "—");
-
-    document.getElementById("contractsArea").innerHTML = contracts.map(c => {
-      const st = statusFromDue(c.due_date);
-      return `
-        <div class="panel" style="margin-bottom:12px; background:rgba(0,0,0,.10);">
-          <div class="badge"><span class="dot"></span> ${statusBadge(st)}</div>
-          <div class="hr"></div>
-
-          <div class="kv">
-            <div class="kvRow"><b>Valor pago</b><span>${fmtMoney(c.amount_paid)}</span></div>
-            <div class="kvRow"><b>Parcelas restantes</b><span>${c.installments_remaining ?? "—"}</span></div>
-            <div class="kvRow"><b>Vencimento</b><span>${c.due_date || "—"}</span></div>
-            <div class="kvRow"><b>Observações</b><span>${(c.notes || "—")}</span></div>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  load();
-</script>
   <script>
-  // --- AÇÃO: SUPORTE (troque o link pelo seu WhatsApp) ---
-  const btnSupport = document.getElementById("btnSupport");
-  if (btnSupport) {
-    btnSupport.addEventListener("click", () => {
-      // Exemplo: WhatsApp
-      const phone = "5511971952500"; // coloque seu número com DDI (55) + DDD + número
-      const msg = encodeURIComponent("Olá! Preciso de suporte no Portal do Cliente.");
-      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-    });
-  }
+    // ===== Config + Client =====
+    const cfg = window.APP_CONFIG || {};
+    const supabaseUrl = cfg.SUPABASE_URL;
+    const supabaseKey = cfg.SUPABASE_ANON_KEY;
 
-  // --- AÇÃO: SAIR ---
-  const btnLogout = document.getElementById("btnLogout");
-  if (btnLogout) {
-    btnLogout.addEventListener("click", async () => {
-      try {
-        if (window.supabase && window.supabaseClient) {
-          await window.supabaseClient.auth.signOut();
-        }
-      } catch (e) {
-        console.log("Erro ao sair:", e);
-      } finally {
-        // sempre volta pro login mesmo se der erro
+    function applyBrand() {
+      document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
+      document.getElementById("footerCompany").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
+      const logo = document.getElementById("logoImg");
+      logo.src = cfg.LOGO_URL || "";
+      logo.style.display = (logo.src && logo.src !== location.href) ? "block" : "none";
+    }
+
+    function showErr(msg) {
+      const el = document.getElementById("errBox");
+      el.style.display = "block";
+      el.textContent = msg;
+    }
+
+    function openWhatsApp() {
+      const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const msg = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o Portal do Cliente.");
+      if (!phone) return showErr("Configure SUPPORT_WHATSAPP no config.js");
+      const url = `https://wa.me/${phone}?text=${msg}`;
+      window.open(url, "_blank");
+    }
+
+    applyBrand();
+
+    if (!supabaseUrl || !supabaseKey) {
+      showErr("Config não carregou. Verifique ./config.js (APP_CONFIG).");
+    }
+
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // ===== Helpers =====
+    function fmtBRL(n) {
+      const v = Number(n || 0);
+      return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+    function fmtDate(iso) {
+      if (!iso) return "—";
+      // iso pode vir 'YYYY-MM-DD'
+      return iso;
+    }
+    function statusFromDue(due) {
+      if (!due) return "—";
+      const today = new Date();
+      const d = new Date(due + "T00:00:00");
+      const diff = d.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+      if (diff < 0) return "Atrasado";
+      if (diff === 0) return "Vence hoje";
+      return "Em dia";
+    }
+
+    async function requireSession() {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+
+      const session = data?.session;
+      if (!session) {
         window.location.href = "./login.html";
+        return null;
       }
-    });
-  }
+      return session;
+    }
+
+    async function loadContracts(userId) {
+      // Busca contratos do cliente logado (assumindo que contracts.client_id = auth.user.id)
+      const { data, error } = await supabase
+        .from("contracts")
+        .select("id, amount_paid, installments_remaining, due_date, notes")
+        .eq("client_id", userId)
+        .order("due_date", { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    }
+
+    function renderContracts(list) {
+      const box = document.getElementById("contractsBox");
+      box.innerHTML = "";
+
+      if (!list.length) {
+        box.innerHTML = `<div class="muted">Nenhum contrato encontrado para este usuário.</div>`;
+        document.getElementById("sumStatus").textContent = "—";
+        document.getElementById("sumDue").textContent = "—";
+        document.getElementById("sumInst").textContent = "—";
+        return;
+      }
+
+      // Resumo baseado no primeiro (mais próximo)
+      const first = list[0];
+      document.getElementById("sumStatus").textContent = statusFromDue(first.due_date);
+      document.getElementById("sumDue").textContent = fmtDate(first.due_date);
+      document.getElementById("sumInst").textContent = (first.installments_remaining ?? "—");
+
+      for (const c of list) {
+        const status = statusFromDue(c.due_date);
+        const html = `
+          <div class="contract">
+            <div class="contractHead">
+              <div class="chip">${status}</div>
+              <div class="muted small">ID: ${c.id}</div>
+            </div>
+
+            <div class="kv">
+              <div><span>Valor pago</span><strong>${fmtBRL(c.amount_paid)}</strong></div>
+              <div><span>Parcelas restantes</span><strong>${c.installments_remaining ?? "—"}</strong></div>
+              <div><span>Vencimento</span><strong>${fmtDate(c.due_date)}</strong></div>
+            </div>
+
+            <div class="notes">
+              <span>Observações</span>
+              <div class="noteBox">${(c.notes || "—").toString()}</div>
+            </div>
+          </div>
+        `;
+        box.insertAdjacentHTML("beforeend", html);
+      }
+    }
+
+    async function doLogout() {
+      document.getElementById("btnLogout").disabled = true;
+      document.getElementById("btnLogout").textContent = "Saindo...";
+
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+
+        window.location.href = "./login.html";
+      } catch (err) {
+        showErr(err?.message || "Erro ao sair.");
+      } finally {
+        document.getElementById("btnLogout").disabled = false;
+        document.getElementById("btnLogout").textContent = "Sair";
+      }
+    }
+
+    document.getElementById("btnSupport").addEventListener("click", openWhatsApp);
+    document.getElementById("btnLogout").addEventListener("click", doLogout);
+
+    // ===== Boot =====
+    (async () => {
+      try {
+        const session = await requireSession();
+        if (!session) return;
+
+        const email = session.user?.email || "—";
+        document.getElementById("sessionLine").textContent = `Logado como: ${email}`;
+
+        const contracts = await loadContracts(session.user.id);
+        renderContracts(contracts);
+      } catch (err) {
+        showErr(err?.message || "Erro ao carregar portal.");
+      }
+    })();
   </script>
 </body>
 </html>

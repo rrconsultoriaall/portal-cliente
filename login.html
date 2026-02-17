@@ -14,109 +14,149 @@
     <div class="card">
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" src="./Logo.png" alt="RRconsultoria">
+          <img id="logoImg" src="" alt="Logo" />
           <div class="title">
             <strong id="companyName">Portal do Cliente</strong>
-            <span id="companyTagline">Acesso seguro</span>
+            <span id="companyTagline">Acesse seus contratos</span>
           </div>
         </div>
 
         <div class="actions">
-          <button class="btn" id="btnSupport">Suporte</button>
+          <button class="btn" id="btnSupport" type="button">Suporte</button>
         </div>
       </div>
 
       <div class="content">
+        <h1 class="h1">Entrar</h1>
+
         <div class="grid">
           <div class="panel">
-            <div class="badge"><span class="dot"></span> Ambiente seguro • Login Supabase</div>
-            <div class="hr"></div>
+            <label class="label" for="email">Email</label>
+            <input class="input" id="email" type="email" autocomplete="email" placeholder="seuemail@dominio.com" />
 
-            <h1 class="h1">Entrar</h1>
-            <p class="sub">Use seu email e senha para acessar seus contratos.</p>
+            <label class="label" for="password">Senha</label>
+            <input class="input" id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
 
-            <div class="label">Email</div>
-            <input class="input" id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="email">
+            <button class="btn primary" id="btnLogin" type="button">Entrar</button>
 
-            <div class="label">Senha</div>
-            <input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password">
-
-            <div class="hr"></div>
-
-            <button class="btn btnPrimary" id="btnLogin" style="width:100%;">Entrar</button>
-            <div id="msg"></div>
-
-            <p class="small" style="margin-top:12px;">
-              Se aparecer <b>Invalid login credentials</b>, confira email/senha e se o usuário está confirmado no Supabase.
+            <p class="hint">
+              Se der “Invalid login credentials”, confira email/senha e se o usuário está confirmado no Supabase.
             </p>
+
+            <p class="err" id="errBox" style="display:none;"></p>
+            <p class="ok" id="okBox" style="display:none;"></p>
           </div>
 
-          <div class="panel">
-            <h1 class="h1">Dicas rápidas</h1>
-            <p class="sub">Para uma experiência de fintech: clareza e zero fricção.</p>
-
-            <div class="kv">
-              <div class="kvRow"><b>Velocidade</b><span>⚡</span></div>
-              <div class="kvRow"><b>Segurança</b><span>🔒</span></div>
-              <div class="kvRow"><b>Design</b><span>✨</span></div>
-            </div>
-
+          <div class="panel subtle">
+            <div class="badge"><span class="dot"></span> Acesso seguro</div>
             <div class="hr"></div>
-            <p class="small">
-              Você pode adicionar status do contrato, histórico de pagamentos e botão de WhatsApp com 1 clique.
+            <p class="muted">
+              Você acessa seu painel com contratos, próximos vencimentos e status.
             </p>
+            <div class="mini">
+              <div class="miniRow"><span>Status</span><strong id="miniStatus">—</strong></div>
+              <div class="miniRow"><span>Próximo vencimento</span><strong id="miniDue">—</strong></div>
+              <div class="miniRow"><span>Parcelas</span><strong id="miniInst">—</strong></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <p class="footer">© <span id="footerCompany">Sua empresa</span></p>
   </div>
 
-<script>
-  const cfg = window.APP_CONFIG || {};
-  const supabaseUrl = cfg.SUPABASE_URL;
-  const supabaseKey = cfg.SUPABASE_ANON_KEY;
+  <script>
+    // ===== Config + Client =====
+    const cfg = window.APP_CONFIG || {};
+    const supabaseUrl = cfg.SUPABASE_URL;
+    const supabaseKey = cfg.SUPABASE_ANON_KEY;
 
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-  // Brand
-  document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
-  document.getElementById("companyTagline").textContent = cfg.COMPANY_TAGLINE || "Acesso seguro";
-  document.getElementById("logoImg").src = cfg.LOGO_URL || "";
-
-  // Support
-  document.getElementById("btnSupport").onclick = () => {
-    const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g,'');
-    const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
-    if (!phone) return alert("Configure SUPPORT_WHATSAPP no config.js");
-    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
-  };
-
-  function showError(html){
-    const msg = document.getElementById("msg");
-    msg.innerHTML = `<div class="err">${html}</div>`;
-  }
-  function clearMsg(){ document.getElementById("msg").innerHTML = ""; }
-
-  // Se já estiver logado, manda pro portal
-  (async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session) window.location.href = "./index.html";
-  })();
-
-  document.getElementById("btnLogin").onclick = async () => {
-    clearMsg();
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-
-    if(!email || !password){
-      return showError("Preencha email e senha.");
+    function showErr(msg) {
+      const el = document.getElementById("errBox");
+      el.style.display = "block";
+      el.textContent = msg;
+      document.getElementById("okBox").style.display = "none";
+    }
+    function showOk(msg) {
+      const el = document.getElementById("okBox");
+      el.style.display = "block";
+      el.textContent = msg;
+      document.getElementById("errBox").style.display = "none";
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return showError(`Erro no login: <b>${error.message}</b>`);
+    function applyBrand() {
+      document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
+      document.getElementById("companyTagline").textContent = cfg.COMPANY_TAGLINE || "Acesse seus contratos";
+      document.getElementById("footerCompany").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
+      const logo = document.getElementById("logoImg");
+      logo.src = cfg.LOGO_URL || "";
+      logo.style.display = (logo.src && logo.src !== location.href) ? "block" : "none";
+    }
 
-    window.location.href = "./index.html";
-  };
-</script>
+    function openWhatsApp() {
+      const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const msg = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o Portal do Cliente.");
+      if (!phone) return showErr("Configure SUPPORT_WHATSAPP no config.js");
+      const url = `https://wa.me/${phone}?text=${msg}`;
+      window.open(url, "_blank");
+    }
+
+    applyBrand();
+
+    if (!supabaseUrl || !supabaseKey) {
+      showErr("Config não carregou. Verifique se ./config.js está publicado e contém SUPABASE_URL e SUPABASE_ANON_KEY dentro de APP_CONFIG.");
+    }
+
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // ===== UX: Enter para logar =====
+    function bindEnter() {
+      const email = document.getElementById("email");
+      const pass = document.getElementById("password");
+      [email, pass].forEach(el => {
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") doLogin();
+        });
+      });
+    }
+
+    async function doLogin() {
+      document.getElementById("btnLogin").disabled = true;
+      document.getElementById("btnLogin").textContent = "Entrando...";
+
+      try {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        if (!email || !password) {
+          showErr("Preencha email e senha.");
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        showOk("Login ok! Indo para o portal...");
+        // Pequeno delay só pra feedback
+        setTimeout(() => (window.location.href = "./index.html"), 400);
+      } catch (err) {
+        showErr(err?.message || "Erro ao logar.");
+      } finally {
+        document.getElementById("btnLogin").disabled = false;
+        document.getElementById("btnLogin").textContent = "Entrar";
+      }
+    }
+
+    document.getElementById("btnLogin").addEventListener("click", doLogin);
+    document.getElementById("btnSupport").addEventListener("click", openWhatsApp);
+    bindEnter();
+
+    // Se já estiver logado, manda direto pro index
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) window.location.href = "./index.html";
+    })();
+  </script>
 </body>
 </html>

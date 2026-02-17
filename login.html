@@ -1,20 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Acessar Portal</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f9; text-align: center; padding: 40px; }
-    .card { max-width: 520px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
-    h1 { margin: 0 0 16px; color: #1e40af; }
-    label { display: block; text-align: left; margin: 12px 0 6px; font-weight: 600; }
-    input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 16px; }
-    button { width: 100%; margin-top: 14px; padding: 12px; border: 0; border-radius: 10px; background: #1e40af; color: #fff; font-size: 16px; font-weight: 700; }
-    .hint { margin-top: 14px; color: #6b7280; font-size: 14px; }
-    .msg { margin-top: 12px; font-size: 14px; }
-    .err { color: #b91c1c; }
-    .ok { color: #047857; }
+    body { font-family: Arial, sans-serif; background:#f4f6f9; padding: 40px; text-align:center; }
+    .card { max-width: 520px; margin: 0 auto; background:#fff; padding: 24px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); text-align:left; }
+    h1 { margin: 0 0 14px; text-align:center; }
+    label { display:block; margin: 14px 0 6px; font-weight:600; }
+    input { width:100%; padding: 12px; border:1px solid #d9dfe7; border-radius: 10px; font-size:16px; }
+    button { width:100%; margin-top: 16px; padding: 12px; border:0; border-radius: 10px; background:#1e40af; color:#fff; font-weight:700; font-size:16px; cursor:pointer; }
+    .msg { margin-top: 12px; padding: 10px; border-radius: 10px; display:none; }
+    .msg.ok { display:block; background:#ecfdf5; color:#065f46; }
+    .msg.err { display:block; background:#fef2f2; color:#991b1b; }
+    .hint { margin-top: 10px; color:#6b7280; font-size: 13px; text-align:center; }
   </style>
 </head>
 <body>
@@ -32,40 +32,45 @@
     <div id="msg" class="msg"></div>
 
     <div class="hint">
-      Dica: se você ainda não tem usuário, crie no Supabase (Auth → Users → Add user).
+      Se der “Invalid login credentials”, confira email/senha e se o usuário está confirmado no Supabase.
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // =========================
-    // COLE SUAS CHAVES AQUI
-    // =========================
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // ✅ Cole suas chaves aqui:
     const SUPABASE_URL = "https://occxmqvoyvmxvaoaxecw.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
-    // =========================
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Base path robusto pra GitHub Pages /portal-cliente/
+    const BASE = location.pathname.includes("/portal-cliente/") ? "/portal-cliente/" : "/";
 
     const $ = (id) => document.getElementById(id);
-    function setMsg(text, ok=false) {
-      $("msg").textContent = text || "";
-      $("msg").className = "msg " + (ok ? "ok" : "err");
+    const msgBox = $("msg");
+
+    function showMsg(text, ok=false){
+      msgBox.textContent = text;
+      msgBox.className = "msg " + (ok ? "ok" : "err");
+      msgBox.style.display = "block";
     }
 
-    async function redirectIfLogged() {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) return; // não trava a tela
-      if (session) window.location.replace("./index.html");
+    async function goIfAlreadyLogged(){
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) location.href = BASE + "index.html";
     }
+    goIfAlreadyLogged();
 
-    async function login() {
-      setMsg("");
+    $("btn").addEventListener("click", async () => {
+      msgBox.style.display = "none";
+
       const email = $("email").value.trim();
       const password = $("password").value;
 
-      if (!email || !password) {
-        setMsg("Preencha email e senha.");
+      if(!email || !password){
+        showMsg("Preencha email e senha.");
         return;
       }
 
@@ -77,24 +82,19 @@
       $("btn").disabled = false;
       $("btn").textContent = "Entrar";
 
-      if (error) {
-        setMsg("Erro: " + error.message);
+      if(error){
+        showMsg(error.message);
         return;
       }
 
-      if (data?.session) {
-        window.location.replace("./index.html");
-      } else {
-        setMsg("Não foi possível iniciar sessão.");
+      if(!data?.session){
+        showMsg("Não veio sessão. Verifique configurações do Auth no Supabase.");
+        return;
       }
-    }
 
-    $("btn").addEventListener("click", login);
-    $("password").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") login();
+      showMsg("Login OK! Indo pro portal…", true);
+      setTimeout(() => location.href = BASE + "index.html", 400);
     });
-
-    redirectIfLogged();
   </script>
 </body>
 </html>

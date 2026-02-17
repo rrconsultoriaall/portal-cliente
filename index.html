@@ -1,158 +1,162 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Portal do Cliente</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f9; text-align: center; padding: 40px; }
-    h1 { color: #1e40af; margin-bottom: 18px; }
-    .card { max-width: 720px; margin: 0 auto; background: #fff; padding: 22px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
-    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .btn { border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; cursor: pointer; }
-    .btn-dark { background: #111827; color: #fff; }
-    .status { margin-top: 10px; font-size: 14px; color: #6b7280; text-align: left; }
-    .err { color: #b91c1c; }
-    .contracts { margin-top: 16px; text-align: left; display: grid; gap: 12px; }
-    .item { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
-    .row { margin: 6px 0; }
-    .label { font-weight: 800; }
-    .muted { color: #6b7280; }
+    body { font-family: Arial, sans-serif; background:#f4f6f9; padding: 40px; text-align:center; }
+    h1 { color:#1e40af; margin-bottom: 16px; }
+    .card { max-width: 720px; margin: 0 auto; background:#fff; padding: 22px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); text-align:left; position: relative; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+    .btn { padding: 10px 14px; border:0; border-radius: 12px; cursor:pointer; font-weight:700; }
+    .btn-logout { background:#111827; color:#fff; }
+    .muted { color:#6b7280; }
+    .err { margin-top: 12px; background:#fef2f2; color:#991b1b; padding: 10px; border-radius: 12px; }
+    .ok  { margin-top: 12px; background:#ecfdf5; color:#065f46; padding: 10px; border-radius: 12px; }
+    .contract { margin-top: 14px; background:#f8fafc; padding: 14px; border-radius: 12px; }
+    .contract b { display:inline-block; min-width: 160px; }
   </style>
 </head>
 <body>
   <h1>Portal do Cliente</h1>
 
   <div class="card">
-    <div class="top">
-      <div class="muted" id="hello">Carregando...</div>
-      <button class="btn btn-dark" id="logoutBtn">Sair</button>
+    <div class="topbar">
+      <div>
+        <div class="muted" id="who">Carregando sessão…</div>
+      </div>
+      <button class="btn btn-logout" id="logoutBtn">Sair</button>
     </div>
 
-    <div class="status" id="status"></div>
-
-    <div class="contracts" id="contracts"></div>
+    <div id="status" class="muted" style="margin-top:12px;">Carregando…</div>
+    <div id="list"></div>
+    <div id="msg"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // =========================
-    // COLE SUAS CHAVES AQUI
-    // =========================
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // ✅ Cole suas chaves aqui:
     const SUPABASE_URL = "https://occxmqvoyvmxvaoaxecw.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
-    // =========================
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const $ = (id) => document.getElementById(id);
+    // Base path robusto pra GitHub Pages /portal-cliente/
+    const BASE = location.pathname.includes("/portal-cliente/") ? "/portal-cliente/" : "/";
 
-    function setStatus(text, isError=false) {
-      $("status").textContent = text || "";
-      $("status").className = "status" + (isError ? " err" : "");
+    const who = document.getElementById("who");
+    const status = document.getElementById("status");
+    const list = document.getElementById("list");
+    const msg = document.getElementById("msg");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    function showError(text){
+      msg.className = "err";
+      msg.textContent = text;
     }
 
-    function escapeHtml(s) {
-      return String(s ?? "").replace(/[&<>"']/g, (m) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
-      }[m]));
+    function showOk(text){
+      msg.className = "ok";
+      msg.textContent = text;
     }
 
-    async function requireSession() {
-      // Pega a sessão
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        setStatus("Erro ao ler sessão: " + error.message, true);
+    function renderContracts(rows){
+      list.innerHTML = "";
+      if(!rows || rows.length === 0){
+        status.textContent = "Nenhum contrato encontrado.";
+        return;
+      }
+      status.textContent = "";
+      rows.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "contract";
+        div.innerHTML = `
+          <div><b>Valor pago:</b> R$ ${Number(r.amount_paid ?? 0).toLocaleString("pt-BR")}</div>
+          <div><b>Parcelas restantes:</b> ${r.installments_remaining ?? "-"}</div>
+          <div><b>Vencimento:</b> ${r.due_date ?? "-"}</div>
+          <div><b>Observações:</b> ${r.notes ?? ""}</div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    async function requireUser(){
+      const { data, error } = await supabase.auth.getUser();
+      if(error){
+        // Se falhar aqui, geralmente é sessão inexistente
+        location.href = BASE + "login.html";
         return null;
       }
-      if (!session) {
-        window.location.replace("./login.html");
+      if(!data?.user){
+        location.href = BASE + "login.html";
         return null;
       }
-      return session;
+      return data.user;
     }
 
-    async function loadContracts() {
-      setStatus("Buscando seus contratos...");
-      $("contracts").innerHTML = "";
+    async function load(){
+      msg.textContent = "";
+      status.textContent = "Buscando seus contratos…";
 
-      const session = await requireSession();
-      if (!session) return;
+      const user = await requireUser();
+      if(!user) return;
 
-      // user.id do auth
-      const userId = session.user.id;
-      $("hello").textContent = session.user.email || "Cliente";
+      who.textContent = `Logado como: ${user.email ?? user.id}`;
 
-      // Busca o client pelo user_id
+      // 1) pega o client pelo user_id
       const { data: client, error: clientErr } = await supabase
         .from("clients")
-        .select("id, full_name")
-        .eq("user_id", userId)
+        .select("id, user_id, full_name")
+        .eq("user_id", user.id)
         .maybeSingle();
 
-      if (clientErr) {
-        setStatus("Erro ao buscar cliente: " + clientErr.message, true);
+      if(clientErr){
+        showError("Erro lendo clients: " + clientErr.message);
+        status.textContent = "";
         return;
       }
 
-      if (!client?.id) {
-        setStatus("Seu cadastro de cliente ainda não foi criado (clients).", true);
+      if(!client){
+        showError("Não achei seu cadastro em clients. (Trigger pode não ter inserido.)");
+        status.textContent = "";
         return;
       }
 
-      // Busca contratos vinculados ao client_id
+      // 2) busca contracts pelo client_id
       const { data: contracts, error: contractsErr } = await supabase
         .from("contracts")
-        .select("amount_paid, installments_remaining, due_date, notes")
+        .select("amount_paid, installments_remaining, due_date, notes, client_id")
         .eq("client_id", client.id)
-        .order("due_date", { ascending: true });
+        .order("created_at", { ascending: false });
 
-      if (contractsErr) {
-        setStatus("Erro ao buscar contratos: " + contractsErr.message, true);
+      if(contractsErr){
+        // Se RLS/policy estiver bloqueando, o erro aparece aqui, e não fica “carregando” infinito.
+        showError("Erro lendo contracts: " + contractsErr.message);
+        status.textContent = "";
         return;
       }
 
-      if (!contracts || contracts.length === 0) {
-        setStatus("Nenhum contrato encontrado para este cliente.");
-        $("contracts").innerHTML = `<div class="item"><div class="muted">Você ainda não tem contratos cadastrados.</div></div>`;
-        return;
-      }
-
-      setStatus("Seus contratos:");
-
-      $("contracts").innerHTML = contracts.map(c => `
-        <div class="item">
-          <div class="row"><span class="label">Valor pago:</span> R$ ${escapeHtml(c.amount_paid)}</div>
-          <div class="row"><span class="label">Parcelas restantes:</span> ${escapeHtml(c.installments_remaining)}</div>
-          <div class="row"><span class="label">Vencimento:</span> ${escapeHtml(c.due_date)}</div>
-          <div class="row"><span class="label">Observações:</span> ${escapeHtml(c.notes)}</div>
-        </div>
-      `).join("");
+      renderContracts(contracts);
     }
 
-    async function logout() {
-      setStatus("Saindo...");
-      const { error } = await supabase.auth.signOut();
+    logoutBtn.addEventListener("click", async () => {
+      logoutBtn.disabled = true;
+      logoutBtn.textContent = "Saindo…";
+      await supabase.auth.signOut();
 
-      if (error) {
-        setStatus("Erro ao sair: " + error.message, true);
-        return;
-      }
-
-      // força sair SEM ficar preso no histórico
-      window.location.replace("./login.html");
-    }
-
-    $("logoutBtn").addEventListener("click", logout);
-
-    // Se deslogar em outra aba, aqui cai fora também
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        window.location.replace("./login.html");
-      }
+      // força ir pro login com caminho certo no Pages
+      location.href = BASE + "login.html";
     });
 
-    loadContracts();
+    // Carrega e também reage a mudanças de login (evita travar quando a sessão muda)
+    supabase.auth.onAuthStateChange((_event, _session) => {
+      // Se deslogou, volta pro login
+      if(!_session) location.href = BASE + "login.html";
+    });
+
+    load();
   </script>
 </body>
 </html>

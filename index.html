@@ -1,313 +1,324 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente</title>
-    <style>
-  :root{
-    --bg:#f6f7fb;
-    --card:#ffffff;
-    --text:#0f172a;
-    --muted:#64748b;
-    --border: rgba(15,23,42,.10);
-    --shadow: 0 12px 30px rgba(15,23,42,.10);
-    --radius: 18px;
-    --primary:#1e40af;
 
-    --ok-bg: rgba(22,163,74,.12);
-    --ok-tx: #166534;
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --brand:#1d4ed8;
+      --brand2:#0ea5e9;
+      --ring:rgba(29,78,216,.25);
+      --border:rgba(15,23,42,.08);
+      --shadow:0 18px 50px rgba(2,6,23,.12);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 20% -10%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 700px at 100% 0%, rgba(29,78,216,.14), transparent 55%),
+        var(--bg);
+      min-height:100vh;
+      padding:24px;
+    }
+    .container{width:min(820px,100%); margin:0 auto}
+    .top{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+      margin-top:10px;
+    }
+    h1{
+      margin:0;
+      font-size:44px;
+      letter-spacing:-.03em;
+      line-height:1.05;
+    }
+    .sub{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .btn{
+      border:none;
+      border-radius:999px;
+      padding:12px 16px;
+      font-weight:800;
+      cursor:pointer;
+      background: rgba(15,23,42,.06);
+      color: var(--text);
+      transition:.15s;
+    }
+    .btn:hover{transform: translateY(-1px)}
+    .btn:active{transform: translateY(0px)}
+    .card{
+      margin-top:18px;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      overflow:hidden;
+      position:relative;
+    }
+    .card:before{
+      content:"";
+      position:absolute; inset:-2px -2px auto -2px;
+      height:6px;
+      background: linear-gradient(90deg, var(--brand), var(--brand2));
+    }
+    .row{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.03);
+      color: var(--muted);
+      font-size:13px;
+      font-weight:700;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .item{
+      padding:14px 14px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.7);
+    }
+    .k{color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em}
+    .v{font-size:18px; font-weight:900; margin-top:6px}
+    .progress{
+      margin-top:14px;
+      height:10px;
+      border-radius:999px;
+      background: rgba(15,23,42,.08);
+      overflow:hidden;
+    }
+    .bar{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--brand), var(--brand2));
+      border-radius:999px;
+      transition: width .4s ease;
+    }
+    .muted{color:var(--muted)}
+    .loading{
+      display:flex; align-items:center; gap:10px; color:var(--muted); font-weight:700;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow:0 10px 18px rgba(29,78,216,.22);
+      animation: pulse 1s infinite ease-in-out;
+    }
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 
-    --warn-bg: rgba(245,158,11,.14);
-    --warn-tx: #92400e;
+    @media (min-width: 720px){
+      .grid{grid-template-columns: 1fr 1fr}
+    }
+  </style>
 
-    --bad-bg: rgba(239,68,68,.12);
-    --bad-tx: #991b1b;
-  }
-
-  *{ box-sizing:border-box; }
-  body{
-    margin:0;
-    font-family: Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 22px;
-  }
-
-  .container{
-    max-width: 880px;
-    margin: 0 auto;
-  }
-
-  .topbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom: 14px;
-  }
-
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-  }
-  .brand img{
-    height:42px;
-    width:auto;
-    display:block;
-  }
-  .brand-title{
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-  }
-  .brand-title h1{
-    margin:0;
-    font-size: 20px;
-    letter-spacing:.2px;
-    color: var(--primary);
-  }
-  .brand-title div{
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .btn{
-    border:none;
-    border-radius: 14px;
-    padding: 10px 14px;
-    font-weight: 800;
-    cursor:pointer;
-  }
-  .btn-dark{ background:#0b1220; color:#fff; }
-
-  .panel{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 16px;
-  }
-
-  .statusline{
-    font-size: 13px;
-    color: var(--muted);
-    background: rgba(15,23,42,.04);
-    border: 1px solid rgba(15,23,42,.06);
-    padding: 10px 12px;
-    border-radius: 14px;
-    display:inline-block;
-  }
-
-  .error{
-    margin-top: 10px;
-    color: #991b1b;
-    background: rgba(239,68,68,.10);
-    border: 1px solid rgba(239,68,68,.20);
-    padding: 10px 12px;
-    border-radius: 14px;
-    display:none;
-    font-size: 13px;
-  }
-
-  .list{
-    margin-top: 14px;
-    display:grid;
-    gap: 12px;
-  }
-
-  .card-contract{
-    border-radius: 18px;
-    border: 1px solid rgba(15,23,42,.10);
-    background: rgba(15,23,42,.02);
-    padding: 14px;
-  }
-
-  .row{
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    flex-wrap: wrap;
-  }
-
-  .label{
-    color: var(--muted);
-    font-size: 12px;
-    margin-bottom: 2px;
-  }
-  .value{
-    font-size: 15px;
-    font-weight: 800;
-  }
-
-  .pill{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing:.2px;
-  }
-  .pill.ok{ background: var(--ok-bg); color: var(--ok-tx); }
-  .pill.warn{ background: var(--warn-bg); color: var(--warn-tx); }
-  .pill.bad{ background: var(--bad-bg); color: var(--bad-tx); }
-
-  .support{
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    background: var(--primary);
-    color:#fff;
-    text-decoration:none;
-    font-weight: 900;
-    padding: 12px 14px;
-    border-radius: 999px;
-    box-shadow: var(--shadow);
-  }
-</style> 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
 </head>
-<body>
-  <h1>Portal do Cliente</h1>
 
-  <div class="card">
-    <div class="topbar">
+<body>
+  <div class="container">
+    <div class="top">
       <div>
-        <div class="muted" id="who">Carregando sessão…</div>
+        <h1>Portal do Cliente</h1>
+        <div class="sub" id="who">Carregando sessão…</div>
       </div>
-      <button class="btn btn-logout" id="logoutBtn">Sair</button>
+      <button class="btn" id="logoutBtn">Sair</button>
     </div>
 
-    <div id="status" class="muted" style="margin-top:12px;">Carregando…</div>
-    <div id="list"></div>
-    <div id="msg"></div>
+    <div class="card" id="card">
+      <div class="loading" id="loading">
+        <div class="dot"></div>
+        <div>Buscando seus contratos…</div>
+      </div>
+
+      <div id="content" style="display:none;">
+        <div class="row">
+          <div class="pill" id="statusPill">Status: —</div>
+          <div class="pill" id="duePill">Vencimento: —</div>
+        </div>
+
+        <div class="progress" title="Progresso de pagamento">
+          <div class="bar" id="bar"></div>
+        </div>
+        <div class="sub muted" id="progressText" style="margin-top:8px;">—</div>
+
+        <div class="grid" id="contractsGrid" style="margin-top:14px;"></div>
+      </div>
+
+      <div id="empty" style="display:none;">
+        <div style="font-weight:900; font-size:18px; margin-top:6px;">Nenhum contrato encontrado</div>
+        <div class="sub">Se você acha que isso é um erro, fale com o suporte.</div>
+      </div>
+
+      <div id="err" style="display:none;">
+        <div style="font-weight:900; font-size:18px; margin-top:6px;">Erro ao carregar</div>
+        <div class="sub" id="errText"></div>
+      </div>
+    </div>
   </div>
 
-  <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-    // ✅ Cole suas chaves aqui:
-    const SUPABASE_URL = "https://occxmqvoyvmxvaoaxecw.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Base path robusto pra GitHub Pages /portal-cliente/
-    const BASE = location.pathname.includes("/portal-cliente/") ? "/portal-cliente/" : "/";
+  <script>
+    const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG || {};
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const who = document.getElementById("who");
-    const status = document.getElementById("status");
-    const list = document.getElementById("list");
-    const msg = document.getElementById("msg");
-    const logoutBtn = document.getElementById("logoutBtn");
+    const loading = document.getElementById("loading");
+    const content = document.getElementById("content");
+    const empty = document.getElementById("empty");
+    const err = document.getElementById("err");
+    const errText = document.getElementById("errText");
 
-    function showError(text){
-      msg.className = "err";
-      msg.textContent = text;
+    const statusPill = document.getElementById("statusPill");
+    const duePill = document.getElementById("duePill");
+    const bar = document.getElementById("bar");
+    const progressText = document.getElementById("progressText");
+    const contractsGrid = document.getElementById("contractsGrid");
+
+    function moneyBR(v){
+      try { return (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+      catch { return "R$ " + (v ?? 0); }
     }
 
-    function showOk(text){
-      msg.className = "ok";
-      msg.textContent = text;
+    function setView(mode){
+      loading.style.display = (mode==="loading") ? "flex" : "none";
+      content.style.display = (mode==="content") ? "block" : "none";
+      empty.style.display = (mode==="empty") ? "block" : "none";
+      err.style.display = (mode==="err") ? "block" : "none";
     }
 
-    function renderContracts(rows){
-      list.innerHTML = "";
-      if(!rows || rows.length === 0){
-        status.textContent = "Nenhum contrato encontrado.";
-        return;
-      }
-      status.textContent = "";
-      rows.forEach(r => {
-        const div = document.createElement("div");
-        div.className = "contract";
-        div.innerHTML = `
-          <div><b>Valor pago:</b> R$ ${Number(r.amount_paid ?? 0).toLocaleString("pt-BR")}</div>
-          <div><b>Parcelas restantes:</b> ${r.installments_remaining ?? "-"}</div>
-          <div><b>Vencimento:</b> ${r.due_date ?? "-"}</div>
-          <div><b>Observações:</b> ${r.notes ?? ""}</div>
-        `;
-        list.appendChild(div);
-      });
+    async function logout(){
+      await supabase.auth.signOut();
+      // importante: forçar troca de página mesmo se o browser cachear
+      location.replace("./login.html");
     }
 
-    async function requireUser(){
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    async function requireSession(){
       const { data, error } = await supabase.auth.getUser();
-      if(error){
-        // Se falhar aqui, geralmente é sessão inexistente
-        location.href = BASE + "login.html";
+      if (error || !data?.user){
+        location.replace("./login.html");
         return null;
       }
-      if(!data?.user){
-        location.href = BASE + "login.html";
-        return null;
-      }
+      who.textContent = "Logado como: " + (data.user.email || data.user.id);
       return data.user;
     }
 
-    async function load(){
-      msg.textContent = "";
-      status.textContent = "Buscando seus contratos…";
+    function renderContracts(rows){
+      contractsGrid.innerHTML = "";
 
-      const user = await requireUser();
-      if(!user) return;
+      rows.forEach((c) => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="k">Valor pago</div>
+          <div class="v">${moneyBR(c.amount_paid)}</div>
 
-      who.textContent = `Logado como: ${user.email ?? user.id}`;
+          <div style="height:10px"></div>
 
-      // 1) pega o client pelo user_id
-      const { data: client, error: clientErr } = await supabase
+          <div class="k">Parcelas restantes</div>
+          <div class="v">${c.installments_remaining ?? "-"}</div>
+
+          <div style="height:10px"></div>
+
+          <div class="k">Vencimento</div>
+          <div class="v">${c.due_date ?? "-"}</div>
+
+          <div style="height:10px"></div>
+
+          <div class="k">Observações</div>
+          <div class="v" style="font-size:16px">${(c.notes || "—")}</div>
+        `;
+        contractsGrid.appendChild(div);
+      });
+
+      // “Resumo” (pegando o primeiro contrato como principal)
+      const main = rows[0];
+      const paid = Number(main.amount_paid || 0);
+      const remaining = Number(main.installments_remaining || 0);
+
+      // regra simples: quanto mais parcelas restantes, menor progresso
+      const total = remaining + 1; // evita 0
+      const pct = Math.max(5, Math.min(100, Math.round((1 / total) * 100)));
+      bar.style.width = pct + "%";
+      progressText.textContent = `Progresso estimado: ${pct}% • Pago: ${moneyBR(paid)} • Restantes: ${remaining}`;
+
+      // Status simples (você pode ligar isso a um campo status depois)
+      statusPill.textContent = remaining === 0 ? "Status: Concluído" : "Status: Ativo";
+      duePill.textContent = "Vencimento: " + (main.due_date ?? "—");
+    }
+
+    async function loadContracts(){
+      setView("loading");
+      const user = await requireSession();
+      if (!user) return;
+
+      // 1) pegar o client_id pelo user_id na tabela clients
+      const { data: clientRow, error: clientErr } = await supabase
         .from("clients")
-        .select("id, user_id, full_name")
+        .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if(clientErr){
-        showError("Erro lendo clients: " + clientErr.message);
-        status.textContent = "";
+      if (clientErr) {
+        setView("err");
+        errText.textContent = "Erro clients: " + clientErr.message;
         return;
       }
 
-      if(!client){
-        showError("Não achei seu cadastro em clients. (Trigger pode não ter inserido.)");
-        status.textContent = "";
+      if (!clientRow?.id) {
+        setView("empty");
         return;
       }
 
-      // 2) busca contracts pelo client_id
+      // 2) buscar contratos do client_id
       const { data: contracts, error: contractsErr } = await supabase
         .from("contracts")
         .select("amount_paid, installments_remaining, due_date, notes, client_id")
-        .eq("client_id", client.id)
+        .eq("client_id", clientRow.id)
         .order("created_at", { ascending: false });
 
-      if(contractsErr){
-        // Se RLS/policy estiver bloqueando, o erro aparece aqui, e não fica “carregando” infinito.
-        showError("Erro lendo contracts: " + contractsErr.message);
-        status.textContent = "";
+      if (contractsErr) {
+        setView("err");
+        errText.textContent = "Erro contracts: " + contractsErr.message;
         return;
       }
 
+      if (!contracts || contracts.length === 0) {
+        setView("empty");
+        return;
+      }
+
+      setView("content");
       renderContracts(contracts);
     }
 
-    logoutBtn.addEventListener("click", async () => {
-      logoutBtn.disabled = true;
-      logoutBtn.textContent = "Saindo…";
-      await supabase.auth.signOut();
-
-      // força ir pro login com caminho certo no Pages
-      location.href = BASE + "login.html";
-    });
-
-    // Carrega e também reage a mudanças de login (evita travar quando a sessão muda)
-    supabase.auth.onAuthStateChange((_event, _session) => {
-      // Se deslogou, volta pro login
-      if(!_session) location.href = BASE + "login.html";
-    });
-
-    load();
+    loadContracts();
   </script>
 </body>
 </html>

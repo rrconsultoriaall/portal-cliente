@@ -4,19 +4,170 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Portal do Cliente</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#f4f6f9; padding: 40px; text-align:center; }
-    h1 { color:#1e40af; margin-bottom: 16px; }
-    .card { max-width: 720px; margin: 0 auto; background:#fff; padding: 22px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); text-align:left; position: relative; }
-    .topbar { display:flex; align-items:center; justify-content:space-between; gap: 10px; }
-    .btn { padding: 10px 14px; border:0; border-radius: 12px; cursor:pointer; font-weight:700; }
-    .btn-logout { background:#111827; color:#fff; }
-    .muted { color:#6b7280; }
-    .err { margin-top: 12px; background:#fef2f2; color:#991b1b; padding: 10px; border-radius: 12px; }
-    .ok  { margin-top: 12px; background:#ecfdf5; color:#065f46; padding: 10px; border-radius: 12px; }
-    .contract { margin-top: 14px; background:#f8fafc; padding: 14px; border-radius: 12px; }
-    .contract b { display:inline-block; min-width: 160px; }
-  </style>
+    <style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --text:#0f172a;
+    --muted:#64748b;
+    --border: rgba(15,23,42,.10);
+    --shadow: 0 12px 30px rgba(15,23,42,.10);
+    --radius: 18px;
+    --primary:#1e40af;
+
+    --ok-bg: rgba(22,163,74,.12);
+    --ok-tx: #166534;
+
+    --warn-bg: rgba(245,158,11,.14);
+    --warn-tx: #92400e;
+
+    --bad-bg: rgba(239,68,68,.12);
+    --bad-tx: #991b1b;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 22px;
+  }
+
+  .container{
+    max-width: 880px;
+    margin: 0 auto;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom: 14px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .brand img{
+    height:42px;
+    width:auto;
+    display:block;
+  }
+  .brand-title{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .brand-title h1{
+    margin:0;
+    font-size: 20px;
+    letter-spacing:.2px;
+    color: var(--primary);
+  }
+  .brand-title div{
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .btn{
+    border:none;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-weight: 800;
+    cursor:pointer;
+  }
+  .btn-dark{ background:#0b1220; color:#fff; }
+
+  .panel{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+  }
+
+  .statusline{
+    font-size: 13px;
+    color: var(--muted);
+    background: rgba(15,23,42,.04);
+    border: 1px solid rgba(15,23,42,.06);
+    padding: 10px 12px;
+    border-radius: 14px;
+    display:inline-block;
+  }
+
+  .error{
+    margin-top: 10px;
+    color: #991b1b;
+    background: rgba(239,68,68,.10);
+    border: 1px solid rgba(239,68,68,.20);
+    padding: 10px 12px;
+    border-radius: 14px;
+    display:none;
+    font-size: 13px;
+  }
+
+  .list{
+    margin-top: 14px;
+    display:grid;
+    gap: 12px;
+  }
+
+  .card-contract{
+    border-radius: 18px;
+    border: 1px solid rgba(15,23,42,.10);
+    background: rgba(15,23,42,.02);
+    padding: 14px;
+  }
+
+  .row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap: wrap;
+  }
+
+  .label{
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+  .value{
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing:.2px;
+  }
+  .pill.ok{ background: var(--ok-bg); color: var(--ok-tx); }
+  .pill.warn{ background: var(--warn-bg); color: var(--warn-tx); }
+  .pill.bad{ background: var(--bad-bg); color: var(--bad-tx); }
+
+  .support{
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    background: var(--primary);
+    color:#fff;
+    text-decoration:none;
+    font-weight: 900;
+    padding: 12px 14px;
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+  }
+</style> 
 </head>
 <body>
   <h1>Portal do Cliente</h1>

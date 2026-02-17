@@ -2,323 +2,195 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal do Cliente</title>
 
-  <style>
-    :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --brand:#1d4ed8;
-      --brand2:#0ea5e9;
-      --ring:rgba(29,78,216,.25);
-      --border:rgba(15,23,42,.08);
-      --shadow:0 18px 50px rgba(2,6,23,.12);
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 800px at 20% -10%, rgba(14,165,233,.18), transparent 55%),
-        radial-gradient(1000px 700px at 100% 0%, rgba(29,78,216,.14), transparent 55%),
-        var(--bg);
-      min-height:100vh;
-      padding:24px;
-    }
-    .container{width:min(820px,100%); margin:0 auto}
-    .top{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
-      margin-top:10px;
-    }
-    h1{
-      margin:0;
-      font-size:44px;
-      letter-spacing:-.03em;
-      line-height:1.05;
-    }
-    .sub{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:14px;
-    }
-    .btn{
-      border:none;
-      border-radius:999px;
-      padding:12px 16px;
-      font-weight:800;
-      cursor:pointer;
-      background: rgba(15,23,42,.06);
-      color: var(--text);
-      transition:.15s;
-    }
-    .btn:hover{transform: translateY(-1px)}
-    .btn:active{transform: translateY(0px)}
-    .card{
-      margin-top:18px;
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:18px;
-      overflow:hidden;
-      position:relative;
-    }
-    .card:before{
-      content:"";
-      position:absolute; inset:-2px -2px auto -2px;
-      height:6px;
-      background: linear-gradient(90deg, var(--brand), var(--brand2));
-    }
-    .row{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      margin-top:8px;
-      flex-wrap:wrap;
-    }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background: rgba(15,23,42,.03);
-      color: var(--muted);
-      font-size:13px;
-      font-weight:700;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:10px;
-      margin-top:12px;
-    }
-    .item{
-      padding:14px 14px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,.7);
-    }
-    .k{color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em}
-    .v{font-size:18px; font-weight:900; margin-top:6px}
-    .progress{
-      margin-top:14px;
-      height:10px;
-      border-radius:999px;
-      background: rgba(15,23,42,.08);
-      overflow:hidden;
-    }
-    .bar{
-      height:100%;
-      width:0%;
-      background: linear-gradient(90deg, var(--brand), var(--brand2));
-      border-radius:999px;
-      transition: width .4s ease;
-    }
-    .muted{color:var(--muted)}
-    .loading{
-      display:flex; align-items:center; gap:10px; color:var(--muted); font-weight:700;
-    }
-    .dot{
-      width:10px;height:10px;border-radius:999px;
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      box-shadow:0 10px 18px rgba(29,78,216,.22);
-      animation: pulse 1s infinite ease-in-out;
-    }
-    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
-
-    @media (min-width: 720px){
-      .grid{grid-template-columns: 1fr 1fr}
-    }
-  </style>
-
+  <link rel="stylesheet" href="./app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
 </head>
-
 <body>
-  <div class="container">
-    <div class="top">
-      <div>
-        <h1>Portal do Cliente</h1>
-        <div class="sub" id="who">Carregando sessão…</div>
-      </div>
-      <button class="btn" id="logoutBtn">Sair</button>
-    </div>
-
-    <div class="card" id="card">
-      <div class="loading" id="loading">
-        <div class="dot"></div>
-        <div>Buscando seus contratos…</div>
-      </div>
-
-      <div id="content" style="display:none;">
-        <div class="row">
-          <div class="pill" id="statusPill">Status: —</div>
-          <div class="pill" id="duePill">Vencimento: —</div>
+  <div class="shell">
+    <div class="card">
+      <div class="topbar">
+        <div class="brand">
+          <img id="logoImg" src="" alt="Logo">
+          <div class="title">
+            <strong id="companyName">Portal do Cliente</strong>
+            <span id="userLine">Carregando sessão…</span>
+          </div>
         </div>
 
-        <div class="progress" title="Progresso de pagamento">
-          <div class="bar" id="bar"></div>
+        <div class="actions">
+          <button class="btn" id="btnSupport">Suporte</button>
+          <button class="btn btnDanger" id="btnLogout">Sair</button>
         </div>
-        <div class="sub muted" id="progressText" style="margin-top:8px;">—</div>
-
-        <div class="grid" id="contractsGrid" style="margin-top:14px;"></div>
       </div>
 
-      <div id="empty" style="display:none;">
-        <div style="font-weight:900; font-size:18px; margin-top:6px;">Nenhum contrato encontrado</div>
-        <div class="sub">Se você acha que isso é um erro, fale com o suporte.</div>
-      </div>
+      <div class="content">
+        <div class="grid">
+          <div class="panel">
+            <div class="badge"><span class="dot"></span> Seus contratos</div>
+            <div class="hr"></div>
 
-      <div id="err" style="display:none;">
-        <div style="font-weight:900; font-size:18px; margin-top:6px;">Erro ao carregar</div>
-        <div class="sub" id="errText"></div>
+            <div id="contractsArea">
+              <p class="sub">Carregando seus contratos…</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h1 class="h1">Resumo</h1>
+            <p class="sub">Visão rápida em estilo fintech.</p>
+
+            <div class="kv" id="summary">
+              <div class="kvRow"><b>Status</b><span>—</span></div>
+              <div class="kvRow"><b>Próximo vencimento</b><span>—</span></div>
+              <div class="kvRow"><b>Parcelas restantes</b><span>—</span></div>
+            </div>
+
+            <div class="hr"></div>
+            <p class="small">
+              Dica: você pode exibir “Em dia / Atrasado / Quitado” com base no vencimento.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <script>
-    const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG || {};
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<script>
+  const cfg = window.APP_CONFIG || {};
+  const supabaseUrl = cfg.SUPABASE_URL;
+  const supabaseKey = cfg.SUPABASE_ANON_KEY;
 
-    const who = document.getElementById("who");
-    const loading = document.getElementById("loading");
-    const content = document.getElementById("content");
-    const empty = document.getElementById("empty");
-    const err = document.getElementById("err");
-    const errText = document.getElementById("errText");
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    const statusPill = document.getElementById("statusPill");
-    const duePill = document.getElementById("duePill");
-    const bar = document.getElementById("bar");
-    const progressText = document.getElementById("progressText");
-    const contractsGrid = document.getElementById("contractsGrid");
+  // Brand
+  document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
+  document.getElementById("logoImg").src = cfg.LOGO_URL || "";
 
-    function moneyBR(v){
-      try { return (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
-      catch { return "R$ " + (v ?? 0); }
+  // Support
+  document.getElementById("btnSupport").onclick = () => {
+    const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g,'');
+    const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
+    if (!phone) return alert("Configure SUPPORT_WHATSAPP no config.js");
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  };
+
+  document.getElementById("btnLogout").onclick = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "./login.html";
+  };
+
+  function fmtMoney(v){
+    const n = Number(v || 0);
+    return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+  }
+
+  function statusFromDue(due){
+    if(!due) return "Sem data";
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dd = new Date(due + "T00:00:00");
+    const diff = (dd - today) / 86400000;
+    if (diff < 0) return "Atrasado";
+    if (diff <= 5) return "Vence em breve";
+    return "Em dia";
+  }
+
+  function statusBadge(status){
+    const map = {
+      "Em dia": "✅ Em dia",
+      "Vence em breve": "⚠️ Vence em breve",
+      "Atrasado": "⛔ Atrasado",
+      "Quitado": "🏁 Quitado"
+    };
+    return map[status] || status;
+  }
+
+  function setSummary(status, due, remaining){
+    const el = document.getElementById("summary");
+    el.innerHTML = `
+      <div class="kvRow"><b>Status</b><span>${statusBadge(status)}</span></div>
+      <div class="kvRow"><b>Próximo vencimento</b><span>${due || "—"}</span></div>
+      <div class="kvRow"><b>Parcelas restantes</b><span>${(remaining ?? "—")}</span></div>
+    `;
+  }
+
+  async function load(){
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+    if (sessionErr) {
+      document.getElementById("contractsArea").innerHTML = `<div class="err">Erro: ${sessionErr.message}</div>`;
+      return;
+    }
+    const session = sessionData?.session;
+    if (!session) {
+      window.location.href = "./login.html";
+      return;
     }
 
-    function setView(mode){
-      loading.style.display = (mode==="loading") ? "flex" : "none";
-      content.style.display = (mode==="content") ? "block" : "none";
-      empty.style.display = (mode==="empty") ? "block" : "none";
-      err.style.display = (mode==="err") ? "block" : "none";
+    const email = session.user.email || "usuário";
+    document.getElementById("userLine").textContent = `Logado como: ${email}`;
+
+    // 1) acha o client do usuário
+    const { data: clientRows, error: clientErr } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .limit(1);
+
+    if (clientErr) {
+      document.getElementById("contractsArea").innerHTML = `<div class="err">Erro ao buscar cliente: ${clientErr.message}</div>`;
+      return;
+    }
+    if (!clientRows || clientRows.length === 0) {
+      document.getElementById("contractsArea").innerHTML = `<div class="err">Nenhum cliente vinculado a este usuário.</div>`;
+      setSummary("—", "—", "—");
+      return;
     }
 
-    async function logout(){
-      await supabase.auth.signOut();
-      // importante: forçar troca de página mesmo se o browser cachear
-      location.replace("./login.html");
+    const clientId = clientRows[0].id;
+
+    // 2) busca contratos
+    const { data: contracts, error: cErr } = await supabase
+      .from("contracts")
+      .select("amount_paid, installments_remaining, due_date, notes")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false });
+
+    if (cErr) {
+      document.getElementById("contractsArea").innerHTML = `<div class="err">Erro ao buscar contratos: ${cErr.message}</div>`;
+      return;
     }
 
-    document.getElementById("logoutBtn").addEventListener("click", logout);
-
-    async function requireSession(){
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data?.user){
-        location.replace("./login.html");
-        return null;
-      }
-      who.textContent = "Logado como: " + (data.user.email || data.user.id);
-      return data.user;
+    if (!contracts || contracts.length === 0) {
+      document.getElementById("contractsArea").innerHTML = `<p class="sub">Nenhum contrato encontrado.</p>`;
+      setSummary("—", "—", "—");
+      return;
     }
 
-    function renderContracts(rows){
-      contractsGrid.innerHTML = "";
+    const first = contracts[0];
+    const status = statusFromDue(first.due_date);
+    setSummary(status, first.due_date || "—", first.installments_remaining ?? "—");
 
-      rows.forEach((c) => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `
-          <div class="k">Valor pago</div>
-          <div class="v">${moneyBR(c.amount_paid)}</div>
+    document.getElementById("contractsArea").innerHTML = contracts.map(c => {
+      const st = statusFromDue(c.due_date);
+      return `
+        <div class="panel" style="margin-bottom:12px; background:rgba(0,0,0,.10);">
+          <div class="badge"><span class="dot"></span> ${statusBadge(st)}</div>
+          <div class="hr"></div>
 
-          <div style="height:10px"></div>
+          <div class="kv">
+            <div class="kvRow"><b>Valor pago</b><span>${fmtMoney(c.amount_paid)}</span></div>
+            <div class="kvRow"><b>Parcelas restantes</b><span>${c.installments_remaining ?? "—"}</span></div>
+            <div class="kvRow"><b>Vencimento</b><span>${c.due_date || "—"}</span></div>
+            <div class="kvRow"><b>Observações</b><span>${(c.notes || "—")}</span></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
 
-          <div class="k">Parcelas restantes</div>
-          <div class="v">${c.installments_remaining ?? "-"}</div>
-
-          <div style="height:10px"></div>
-
-          <div class="k">Vencimento</div>
-          <div class="v">${c.due_date ?? "-"}</div>
-
-          <div style="height:10px"></div>
-
-          <div class="k">Observações</div>
-          <div class="v" style="font-size:16px">${(c.notes || "—")}</div>
-        `;
-        contractsGrid.appendChild(div);
-      });
-
-      // “Resumo” (pegando o primeiro contrato como principal)
-      const main = rows[0];
-      const paid = Number(main.amount_paid || 0);
-      const remaining = Number(main.installments_remaining || 0);
-
-      // regra simples: quanto mais parcelas restantes, menor progresso
-      const total = remaining + 1; // evita 0
-      const pct = Math.max(5, Math.min(100, Math.round((1 / total) * 100)));
-      bar.style.width = pct + "%";
-      progressText.textContent = `Progresso estimado: ${pct}% • Pago: ${moneyBR(paid)} • Restantes: ${remaining}`;
-
-      // Status simples (você pode ligar isso a um campo status depois)
-      statusPill.textContent = remaining === 0 ? "Status: Concluído" : "Status: Ativo";
-      duePill.textContent = "Vencimento: " + (main.due_date ?? "—");
-    }
-
-    async function loadContracts(){
-      setView("loading");
-      const user = await requireSession();
-      if (!user) return;
-
-      // 1) pegar o client_id pelo user_id na tabela clients
-      const { data: clientRow, error: clientErr } = await supabase
-        .from("clients")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (clientErr) {
-        setView("err");
-        errText.textContent = "Erro clients: " + clientErr.message;
-        return;
-      }
-
-      if (!clientRow?.id) {
-        setView("empty");
-        return;
-      }
-
-      // 2) buscar contratos do client_id
-      const { data: contracts, error: contractsErr } = await supabase
-        .from("contracts")
-        .select("amount_paid, installments_remaining, due_date, notes, client_id")
-        .eq("client_id", clientRow.id)
-        .order("created_at", { ascending: false });
-
-      if (contractsErr) {
-        setView("err");
-        errText.textContent = "Erro contracts: " + contractsErr.message;
-        return;
-      }
-
-      if (!contracts || contracts.length === 0) {
-        setView("empty");
-        return;
-      }
-
-      setView("content");
-      renderContracts(contracts);
-    }
-
-    loadContracts();
-  </script>
+  load();
+</script>
 </body>
 </html>

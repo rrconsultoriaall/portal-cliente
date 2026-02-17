@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Portal do Cliente</title>
 
-  <link rel="stylesheet" href="./app.css?v=7" />
+  <link rel="stylesheet" href="./app.css?v=99" />
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="./config.js?v=7"></script>
+  <script defer src="./config.js?v=99"></script>
 </head>
 
 <body>
@@ -33,34 +33,19 @@
         <div class="panel">
           <div class="badge"><span class="dot"></span> Seus contratos</div>
           <div id="contractsBox" class="contracts">
-            <p class="muted" id="loadingText">Carregando seus contratos...</p>
+            <p class="muted" id="loadingText">Carregando...</p>
           </div>
         </div>
 
         <div class="panel" style="margin-top:16px">
           <h2 class="h2">Resumo</h2>
-          <p class="muted">Visão rápida em estilo fintech.</p>
-
           <div class="summary">
-            <div class="row">
-              <span class="k">Status</span>
-              <span class="v" id="sumStatus">—</span>
-            </div>
-            <div class="row">
-              <span class="k">Próximo vencimento</span>
-              <span class="v" id="sumDue">—</span>
-            </div>
-            <div class="row">
-              <span class="k">Parcelas restantes</span>
-              <span class="v" id="sumInst">—</span>
-            </div>
+            <div class="row"><span class="k">Status</span><span class="v" id="sumStatus">—</span></div>
+            <div class="row"><span class="k">Próximo vencimento</span><span class="v" id="sumDue">—</span></div>
+            <div class="row"><span class="k">Parcelas restantes</span><span class="v" id="sumInst">—</span></div>
           </div>
 
-          <p class="muted" style="margin-top:12px">
-            Dica: você pode exibir “Em dia / Atrasado / Quitado” com base no vencimento.
-          </p>
-
-          <div id="msg" class="msg" style="display:none"></div>
+          <div id="msg" class="msg" style="display:none;margin-top:12px"></div>
         </div>
       </div>
 
@@ -74,7 +59,7 @@
   <script>
     window.addEventListener("load", async () => {
       const msg = document.getElementById("msg");
-      const showMsg = (text, type = "error") => {
+      const showMsg = (text, type="error") => {
         msg.style.display = "block";
         msg.className = "msg " + type;
         msg.textContent = text;
@@ -82,48 +67,52 @@
 
       const cfg = window.APP_CONFIG;
       if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
-        showMsg("Config não carregou. Verifique o config.js e limpe cache.", "error");
+        showMsg("❌ Config não carregou (config.js).", "error");
         return;
       }
 
-      // Branding
       document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
       document.getElementById("companyTagline").textContent = cfg.COMPANY_TAGLINE || "Acesse seus contratos";
       document.getElementById("footerCompany").textContent = cfg.COMPANY_NAME || "Sua empresa";
-      document.getElementById("logoImg").src = (cfg.LOGO_URL || "./Logo.png") + "?v=7";
+      document.getElementById("logoImg").src = (cfg.LOGO_URL || "./Logo.png") + "?v=99";
 
       const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
-      // Botão suporte
+      // ✅ Botões (amarrados no load — não falha)
       document.getElementById("btnSupport").addEventListener("click", (e) => {
         e.preventDefault();
         const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
         const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o portal.");
-        if (!phone) return showMsg("WhatsApp de suporte não configurado no config.js", "error");
+        if (!phone) return showMsg("WhatsApp não configurado.", "error");
         window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
       });
 
-      // Logout
       document.getElementById("btnLogout").addEventListener("click", async (e) => {
         e.preventDefault();
-        await supabase.auth.signOut();
-        window.location.href = "./login.html";
+        try { await supabase.auth.signOut(); } catch (_) {}
+        try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}
+        window.location.replace("./login.html?v=99");
       });
 
-      // Sessão
+      // ✅ Sessão
       const { data: sessData, error: sessErr } = await supabase.auth.getSession();
-      if (sessErr || !sessData?.session) {
-        window.location.href = "./login.html";
+      if (sessErr) {
+        showMsg("❌ Erro ao ler sessão: " + sessErr.message, "error");
+        window.location.replace("./login.html?v=99");
+        return;
+      }
+      if (!sessData?.session) {
+        showMsg("⚠️ Sem sessão. Voltando pro login...", "warn");
+        window.location.replace("./login.html?v=99");
         return;
       }
 
       const session = sessData.session;
       const userId = session.user.id;
       const email = session.user.email || "";
+      document.getElementById("companyTagline").textContent = "Logado como: " + email;
 
-      document.getElementById("companyTagline").textContent = `Logado como: ${email}`;
-
-      // 1) achar o client_id pelo user_id
+      // 1) clients pelo user_id
       const { data: client, error: clientErr } = await supabase
         .from("clients")
         .select("id, full_name")
@@ -131,17 +120,17 @@
         .maybeSingle();
 
       if (clientErr) {
-        showMsg(clientErr.message, "error");
+        showMsg("❌ Erro clients: " + clientErr.message, "error");
+        document.getElementById("loadingText").textContent = "Erro ao buscar cliente.";
         return;
       }
-
       if (!client?.id) {
-        document.getElementById("loadingText").textContent =
-          "Nenhum cliente vinculado a este usuário. Verifique a tabela clients.";
+        showMsg("⚠️ Nenhum cliente vinculado a este usuário (clients.user_id).", "warn");
+        document.getElementById("loadingText").textContent = "Nenhum cliente encontrado.";
         return;
       }
 
-      // 2) buscar contratos desse cliente
+      // 2) contracts pelo client_id
       const { data: contracts, error: ctrErr } = await supabase
         .from("contracts")
         .select("id, amount_paid, installments_remaining, due_date, notes, created_at")
@@ -149,7 +138,8 @@
         .order("created_at", { ascending: false });
 
       if (ctrErr) {
-        showMsg(ctrErr.message, "error");
+        showMsg("❌ Erro contracts: " + ctrErr.message, "error");
+        document.getElementById("loadingText").textContent = "Erro ao buscar contratos.";
         return;
       }
 
@@ -161,23 +151,23 @@
         return;
       }
 
-      // Render cards
       for (const c of contracts) {
         const due = c.due_date ? new Date(c.due_date + "T00:00:00") : null;
         const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         let status = "Em dia";
         if (c.installments_remaining === 0) status = "Quitado";
-        else if (due && due < new Date(now.getFullYear(), now.getMonth(), now.getDate())) status = "Atrasado";
+        else if (due && due < today) status = "Atrasado";
 
-        const amount = (c.amount_paid ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const amount = (c.amount_paid ?? 0).toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
 
         const el = document.createElement("div");
         el.className = "contractItem";
         el.innerHTML = `
           <div class="contractTop">
             <div class="pill ${status === "Atrasado" ? "bad" : status === "Quitado" ? "ok" : "warn"}">${status}</div>
-            <div class="muted small">#${c.id.slice(0, 8)}</div>
+            <div class="muted small">#${c.id.slice(0,8)}</div>
           </div>
 
           <div class="contractGrid">
@@ -191,19 +181,19 @@
         box.appendChild(el);
       }
 
-      // Resumo (usa o contrato mais recente)
       const c0 = contracts[0];
-      const due0 = c0.due_date ? new Date(c0.due_date + "T00:00:00") : null;
-      const today = new Date();
-      const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      document.getElementById("sumDue").textContent = c0.due_date || "—";
+      document.getElementById("sumInst").textContent = (c0.installments_remaining ?? "—");
 
+      // status resumo
+      const due0 = c0.due_date ? new Date(c0.due_date + "T00:00:00") : null;
+      const today0 = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
       let status0 = "Em dia";
       if (c0.installments_remaining === 0) status0 = "Quitado";
       else if (due0 && due0 < today0) status0 = "Atrasado";
-
       document.getElementById("sumStatus").textContent = status0;
-      document.getElementById("sumDue").textContent = c0.due_date || "—";
-      document.getElementById("sumInst").textContent = (c0.installments_remaining ?? "—");
+
+      showMsg("✅ Portal carregado com sucesso.", "ok");
     });
   </script>
 </body>

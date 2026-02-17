@@ -4,7 +4,7 @@ window.APP_CONFIG = {
 
   COMPANY_NAME: "RR Consultoria",
   COMPANY_TAGLINE: "Assessoria & Consultoria",
-  LOGO_URL: "./logo.png",
+  LOGO_URL: "./Logo.png",
 
   SUPPORT_WHATSAPP: "5511971952500",
   SUPPORT_MESSAGE: "Olá! Preciso de ajuda com o Portal."

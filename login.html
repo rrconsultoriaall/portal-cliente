@@ -1,63 +1,91 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Login - Portal</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acessar Portal</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#f4f6f9; text-align:center; padding:40px; }
-    .box { background:#fff; padding:24px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); max-width:420px; margin:30px auto; text-align:left; }
-    input{ width:100%; padding:12px; border-radius:10px; border:1px solid #d1d5db; margin:8px 0 14px; }
-    button{ width:100%; background:#1e40af; color:#fff; border:none; padding:12px; border-radius:10px; cursor:pointer; }
-    .err{ color:#b91c1c; font-size:14px; margin-top:10px; }
-    .muted{ color:#6b7280; font-size:14px; margin-top:8px; }
+    body{font-family:Arial,sans-serif;background:#f4f6f9;text-align:center;padding:40px}
+    .card{max-width:420px;margin:0 auto;background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.08);text-align:left}
+    h1{margin:0 0 16px;color:#1e40af;text-align:center}
+    label{display:block;margin:12px 0 6px;font-size:14px;color:#111827}
+    input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font-size:16px}
+    button{width:100%;margin-top:16px;padding:12px;border:0;border-radius:10px;background:#1e40af;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+    .hint{margin-top:12px;font-size:12px;color:#6b7280;text-align:center}
+    .msg{margin-top:12px;font-size:13px;text-align:center}
+    .ok{color:#065f46}
+    .err{color:#b91c1c}
+    .pill{display:inline-block;background:#f3f4f6;padding:2px 8px;border-radius:999px;font-size:12px}
   </style>
 </head>
 <body>
-  <h1 style="color:#1e40af">Acessar Portal</h1>
 
-  <div class="box">
-    <label>Email</label>
-    <input id="email" placeholder="seuemail@dominio.com" />
+  <div class="card">
+    <h1>Acessar Portal</h1>
 
-    <label>Senha</label>
-    <input id="password" type="password" placeholder="********" />
+    <label for="email">Email</label>
+    <input id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="username" />
+
+    <label for="password">Senha</label>
+    <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
 
     <button id="btn">Entrar</button>
-    <div id="msg" class="err"></div>
 
-    <div class="muted">
-      Dica: se não tiver usuário, crie no Supabase (Auth → Users → Add user).
+    <div class="hint">
+      Dica: crie o usuário no Supabase (Auth → Users → Add user).
     </div>
+
+    <div id="msg" class="msg"></div>
   </div>
 
-<script>
-  const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ✅ Coloque suas chaves aqui
+    const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
+    const supabaseKey = "SUA_ANON_KEY_AQUI";
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  const msg = (t) => document.getElementById("msg").textContent = t || "";
+    const $ = (id) => document.getElementById(id);
+    const msg = (text, ok=false) => {
+      $("msg").className = "msg " + (ok ? "ok" : "err");
+      $("msg").textContent = text;
+    };
 
-  document.getElementById("btn").addEventListener("click", async () => {
-    msg("");
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      msg("Erro: " + error.message);
-      return;
+    async function goIfAlreadyLogged() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) location.href = "./index.html";
     }
 
-    location.href = "./index.html";
-  });
+    async function login() {
+      msg("Entrando...", true);
 
-  // Se já estiver logado, manda pro index
-  (async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data?.user) location.href = "./index.html";
-  })();
-</script>
+      const email = $("email").value.trim();
+      const password = $("password").value;
 
+      if (!email || !password) {
+        msg("Preencha email e senha.");
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        msg("Erro: " + error.message);
+        return;
+      }
+
+      msg("Login ok! Indo pro portal…", true);
+      location.href = "./index.html";
+    }
+
+    $("btn").addEventListener("click", login);
+
+    // Enter no teclado
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") login();
+    });
+
+    goIfAlreadyLogged();
+  </script>
 </body>
 </html>

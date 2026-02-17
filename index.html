@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Portal do Cliente</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,23 +11,166 @@
       text-align: center;
       padding: 40px;
     }
-    h1 {
-      color: #1e40af;
-    }
+    h1 { color: #1e40af; }
     .box {
       background: white;
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       margin-top: 30px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
     }
+    .topbar{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    button{
+      background:#1e40af;
+      color:#fff;
+      border:none;
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+    }
+    button.secondary{
+      background:#e5e7eb;
+      color:#111827;
+    }
+    .contract {
+      border-top: 1px solid #eee;
+      padding: 12px 0;
+    }
+    .muted{ color:#6b7280; font-size: 14px; }
+    .err{ color:#b91c1c; font-size: 14px; }
+    code{ background:#f3f4f6; padding:2px 6px; border-radius:6px; }
   </style>
 </head>
 <body>
-  <h1>Portal do Cliente</h1>
-  <div class="box">
-    <p>Área exclusiva para clientes.</p>
-    <p>Em breve você poderá acessar seus contratos aqui.</p>
-  </div>
+
+<h1>Portal do Cliente</h1>
+
+<div class="box" id="content">
+  Carregando...
+</div>
+
+<script>
+  const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  function render(html){ document.getElementById("content").innerHTML = html; }
+
+  async function logout(){
+    await supabase.auth.signOut();
+    location.href = "./login.html";
+  }
+
+  async function loadContracts() {
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+
+    if (userErr) {
+      render(`<div class="err">Erro ao ler usuário: ${userErr.message}</div>`);
+      return;
+    }
+
+    if (!userData?.user) {
+      // Se não tiver sessão, manda pro login
+      location.href = "./login.html";
+      return;
+    }
+
+    const uid = userData.user.id;
+
+    // Busca o client vinculado ao usuário
+    const { data: client, error: clientErr } = await supabase
+      .from("clients")
+      .select("id, full_name")
+      .eq("user_id", uid)
+      .single();
+
+    if (clientErr) {
+      render(`
+        <div class="topbar">
+          <div><strong>Olá!</strong> <span class="muted">(uid: <code>${uid}</code>)</span></div>
+          <button class="secondary" onclick="logout()">Sair</button>
+        </div>
+        <div class="err">Erro buscando cliente: ${clientErr.message}</div>
+        <div class="muted">Se aparecer “permission denied”, é RLS/policy faltando.</div>
+      `);
+      return;
+    }
+
+    if (!client) {
+      render(`
+        <div class="topbar">
+          <div><strong>Olá!</strong> <span class="muted">(uid: <code>${uid}</code>)</span></div>
+          <button class="secondary" onclick="logout()">Sair</button>
+        </div>
+        <div class="err">Cliente não encontrado para esse usuário.</div>
+      `);
+      return;
+    }
+
+    // Busca contratos do client
+    const { data: contracts, error: contractsErr } = await supabase
+      .from("contracts")
+      .select("id, created_at, amount_paid, installment, due_date, notes")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false });
+
+    if (contractsErr) {
+      render(`
+        <div class="topbar">
+          <div><strong>${client.full_name || "Cliente"}</strong></div>
+          <button class="secondary" onclick="logout()">Sair</button>
+        </div>
+        <div class="err">Erro buscando contratos: ${contractsErr.message}</div>
+      `);
+      return;
+    }
+
+    if (!contracts || contracts.length === 0) {
+      render(`
+        <div class="topbar">
+          <div><strong>${client.full_name || "Cliente"}</strong></div>
+          <button class="secondary" onclick="logout()">Sair</button>
+        </div>
+        <div class="muted">Nenhum contrato encontrado.</div>
+      `);
+      return;
+    }
+
+    let html = `
+      <div class="topbar">
+        <div><strong>${client.full_name || "Cliente"}</strong><div class="muted">Seus contratos</div></div>
+        <button class="secondary" onclick="logout()">Sair</button>
+      </div>
+    `;
+
+    contracts.forEach(c => {
+      html += `
+        <div class="contract">
+          <div><strong>Contrato:</strong> <code>${c.id}</code></div>
+          <div class="muted">Criado: ${new Date(c.created_at).toLocaleString()}</div>
+          <div><strong>Valor pago:</strong> ${c.amount_paid ?? 0}</div>
+          <div><strong>Parcela:</strong> ${c.installment ?? ""}</div>
+          <div><strong>Vencimento:</strong> ${c.due_date ? new Date(c.due_date).toLocaleDateString() : ""}</div>
+          <div><strong>Obs:</strong> ${c.notes ?? ""}</div>
+        </div>
+      `;
+    });
+
+    render(html);
+  }
+
+  loadContracts();
+</script>
+
 </body>
 </html>

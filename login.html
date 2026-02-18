@@ -5,61 +5,82 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Login - Portal do Cliente</title>
 
-  <link rel="stylesheet" href="/portal-cliente/app.css?v=201">
-  <script src="/portal-cliente/config.js?v=201"></script>
+  <!-- ✅ RELATIVO (não quebra no GitHub Pages) -->
+  <link rel="stylesheet" href="./app.css?v=200">
+
+  <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
-<div class="page">
-  <div class="card">
+  <div class="page">
+    <div class="card">
 
-    <div class="brand">
-      <img class="brand-logo" src="/portal-cliente/Logo.png" />
-      <div class="brand-text">
-        <div class="brand-title">RR Consultoria</div>
-        <div class="brand-sub">Área do Cliente</div>
-      </div>
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-sub" id="companyTagline">Área do Cliente</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <h1>Entrar</h1>
+
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="Seu email" autocomplete="email" />
+
+        <label for="password">Senha</label>
+        <input id="password" type="password" placeholder="Sua senha" autocomplete="current-password" />
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btnLogin" type="button">Entrar</button>
+        </div>
+
+        <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
+      </main>
+
+      <footer class="footer">
+        <span id="footerCompany">© RR Consultoria</span>
+      </footer>
+
     </div>
-
-    <h1>Entrar</h1>
-
-    <label>Email</label>
-    <input type="email" id="email" placeholder="Seu email">
-
-    <label>Senha</label>
-    <input type="password" id="password" placeholder="Sua senha">
-
-    <div class="actions">
-      <button class="btn btn-primary" id="btnLogin">Entrar</button>
-    </div>
-
-    <div class="msg" id="msg"></div>
-
   </div>
-</div>
 
 <script>
-const sb = supabase.createClient(
-  window.APP_CONFIG.SUPABASE_URL,
-  window.APP_CONFIG.SUPABASE_ANON_KEY
-);
+  const CFG = window.APP_CONFIG || {};
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-const msg = document.getElementById("msg");
+  const $ = (id) => document.getElementById(id);
 
-document.getElementById("btnLogin").onclick = async () => {
-  msg.textContent = "Entrando...";
-  const { error } = await sb.auth.signInWithPassword({
-    email: email.value,
-    password: password.value
-  });
+  // Branding
+  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
+  if (CFG.COMPANY_NAME) $('companyName').textContent = CFG.COMPANY_NAME;
+  if (CFG.COMPANY_TAGLINE) $('companyTagline').textContent = CFG.COMPANY_TAGLINE;
+  $('footerCompany').textContent = `© ${CFG.COMPANY_NAME || 'RR Consultoria'}`;
 
-  if (error) {
-    msg.textContent = error.message;
-  } else {
-    window.location.href = "/portal-cliente/index.html?v=201";
+  const msgEl = $('msg');
+  const setMsg = (t, ok=false) => {
+    msgEl.textContent = t || '';
+    msgEl.style.opacity = t ? '1' : '0';
+    msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
+
+  async function doLogin(){
+    setMsg('Entrando...');
+    const email = $('email').value.trim();
+    const password = $('password').value;
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    if (error) return setMsg(error.message);
+    window.location.href = './index.html?v=200';
   }
-};
+
+  $('btnLogin').addEventListener('click', doLogin);
 </script>
 
 </body>

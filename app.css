@@ -283,3 +283,11 @@ button, a, .btn, .navItem{
 *{
   -webkit-tap-highlight-color: transparent;
 }
+/* garante que nada "roube" o clique por cima */
+.bg { pointer-events: none; }
+.card::before, .card::after { pointer-events: none; }
+.topbar { position: relative; z-index: 2; }
+.content { position: relative; z-index: 1; }
+
+/* botões SEMPRE clicáveis */
+.btn { cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }

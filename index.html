@@ -169,7 +169,12 @@
       .eq('client_id', clientId)
       .order('created_at', { ascending: false });
 
-    if (error) { area.textContent = 'Erro ao carregar contratos.'; setMsg(error.message); return; }
+    if (error) {
+  area.textContent = 'Erro ao carregar contratos.';
+  setMsg(`Supabase: ${error.message} (code: ${error.code || '—'})`);
+  console.log('contracts error', error);
+  return;
+      }
     if (!data || data.length === 0) { area.textContent = 'Nenhum contrato encontrado.'; return; }
 
     // Mostra 1º contrato como “cartão”

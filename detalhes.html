@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Detalhes do Contrato</title>
+
+  <link rel="stylesheet" href="./app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img id="logoImg" class="logo" alt="Logo" />
+        <div class="brandText">
+          <div class="brandName" id="companyName">Detalhes</div>
+          <div class="brandSub" id="subtitle">Contrato selecionado</div>
+        </div>
+      </div>
+
+      <div class="topActions">
+        <button type="button" class="btn ghost" id="btnSupport">Suporte</button>
+        <button type="button" class="btn" id="btnBack">Voltar</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="card" id="card">
+        <div class="cardHead">
+          <span class="dot"></span>
+          <h2>Contrato</h2>
+        </div>
+
+        <div id="headerLine" class="row" style="justify-content: space-between; gap: 12px;">
+          <div id="badge" class="badge">—</div>
+          <div id="contractId" class="muted mono">#—</div>
+        </div>
+
+        <div class="kvGrid">
+          <div class="kv"><div class="k">Valor pago</div><div class="v" id="paid">—</div></div>
+          <div class="kv"><div class="k">Parcelas restantes</div><div class="v" id="inst">—</div></div>
+          <div class="kv"><div class="k">Próximo vencimento</div><div class="v" id="due">—</div></div>
+          <div class="kv"><div class="k">Criado em</div><div class="v" id="created">—</div></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="k">Observações</div>
+        <div class="note big" id="notes">—</div>
+
+        <div class="actionsRow">
+          <button type="button" class="btn" id="btnOpenPayments">Ver pagamentos</button>
+          <button type="button" class="btn ghost" id="btnSupport2">Falar no suporte</button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottomNav">
+      <button type="button" class="navItem" data-go="./index.html">Painel</button>
+      <button type="button" class="navItem" data-go="./pagamentos.html">Pagamentos</button>
+      <button type="button" class="navItem" data-go="./perfil.html">Perfil</button>
+    </nav>
+
+    <footer class="footer">© <span id="companyFooter">Sua empresa</span></footer>
+  </div>
+
+  <script>
+    const CFG = window.APP_CONFIG || {};
+    const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    const $ = (id) => document.getElementById(id);
+
+    function moneyBR(v) {
+      const n = Number(v || 0);
+      return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+    function dateBR(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso + "T00:00:00");
+      return d.toLocaleDateString("pt-BR");
+    }
+    function statusContrato(dueISO, instRem) {
+      const inst = Number(instRem ?? 0);
+      if (inst <= 0) return "Quitado";
+      if (!dueISO) return "Em dia";
+      const today = new Date();
+      const due = new Date(dueISO + "T00:00:00");
+      return (due < new Date(today.getFullYear(), today.getMonth(), today.getDate())) ? "Atrasado" : "Em dia";
+    }
+    function badgeClass(status) {
+      if (status === "Quitado") return "badge ok";
+      if (status === "Atrasado") return "badge warn";
+      return "badge";
+    }
+    function openSupport(extra) {
+      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const base = CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda no Portal do Cliente.";
+      const msg = extra ? `${base}\n\n${extra}` : base;
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    async function requireSession() {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      if (!session) { location.href = "./login.html"; return null; }
+      return session;
+    }
+
+    async function load() {
+      $("logoImg").src = CFG.LOGO_URL || "./Logo.png";
+      $("companyName").textContent = CFG.COMPANY_NAME || "RR Consultoria";
+      $("companyFooter").textContent = CFG.COMPANY_NAME || "Sua empresa";
+
+      document.querySelectorAll(".navItem").forEach(btn => {
+        btn.addEventListener("click", () => location.href = btn.dataset.go);
+      });
+
+      $("btnBack").addEventListener("click", () => history.length > 1 ? history.back() : (location.href = "./index.html"));
+      $("btnSupport").addEventListener("click", () => openSupport("Tela: Detalhes"));
+      $("btnSupport2").addEventListener("click", () => openSupport("Tela: Detalhes"));
+
+      $("btnOpenPayments").addEventListener("click", () => location.href = "./pagamentos.html");
+
+      const session = await requireSession();
+      if (!session) return;
+
+      const id = localStorage.getItem("selected_contract_id");
+      if (!id) {
+        $("card").innerHTML = `<div class="error">Nenhum contrato selecionado. Volte ao Painel e clique em “Ver detalhes”.</div>`;
+        return;
+      }
+
+      const { data: contract, error } = await supabase
+        .from("contracts")
+        .select("id, amount_paid, installments_remaining, due_date, notes, created_at")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error || !contract) {
+        $("card").innerHTML = `<div class="error">Não consegui carregar o contrato. ${error ? error.message : ""}</div>`;
+        return;
+      }
+
+      const st = statusContrato(contract.due_date, contract.installments_remaining);
+      $("badge").className = badgeClass(st);
+      $("badge").textContent = st;
+
+      $("contractId").textContent = `#${String(contract.id).slice(0, 8)}`;
+      $("paid").textContent = moneyBR(contract.amount_paid);
+      $("inst").textContent = contract.installments_remaining ?? "—";
+      $("due").textContent = dateBR(contract.due_date);
+      $("created").textContent = contract.created_at ? new Date(contract.created_at).toLocaleString("pt-BR") : "—";
+      $("notes").textContent = (contract.notes || "").trim() ? contract.notes : "—";
+    }
+
+    document.addEventListener("DOMContentLoaded", load);
+  </script>
+</body>
+</html>

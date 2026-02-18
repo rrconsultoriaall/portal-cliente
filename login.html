@@ -1,117 +1,21 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente — Login</title>
 
   <link rel="stylesheet" href="./app.css" />
-
-  <!-- Supabase + Config (nessa ordem) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="./config.js"></script>
-
-  <!-- App -->
-  <script defer>
-    (function () {
-      function $(sel) { return document.querySelector(sel); }
-
-      function buildWhatsappLink() {
-        const cfg = window.APP_CONFIG || {};
-        const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
-        const msg = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de suporte no portal.");
-        if (!phone) return null;
-        return `https://wa.me/${phone}?text=${msg}`;
-      }
-
-      function applyBrand() {
-        const cfg = window.APP_CONFIG || {};
-        const logo = $("#logoImg");
-        const name = $("#companyName");
-        const tag = $("#companyTagline");
-
-        if (name && cfg.COMPANY_NAME) name.textContent = cfg.COMPANY_NAME;
-        if (tag && cfg.COMPANY_TAGLINE) tag.textContent = cfg.COMPANY_TAGLINE;
-
-        if (logo) {
-          const src = cfg.LOGO_URL || "./Logo.png";
-          logo.src = src;
-          logo.alt = cfg.COMPANY_NAME || "Logo";
-        }
-      }
-
-      async function onLogin(e) {
-        e.preventDefault();
-
-        const cfg = window.APP_CONFIG || {};
-        const status = $("#status");
-        const email = ($("#email").value || "").trim();
-        const pass = ($("#password").value || "").trim();
-
-        if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
-          status.textContent = "Faltou configurar SUPABASE_URL e SUPABASE_ANON_KEY no config.js";
-          status.className = "status err";
-          return;
-        }
-
-        if (!email || !pass) {
-          status.textContent = "Preencha email e senha.";
-          status.className = "status err";
-          return;
-        }
-
-        status.textContent = "Entrando...";
-        status.className = "status ok";
-
-        try {
-          const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-          const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-
-          if (error) {
-            status.textContent = error.message || "Erro ao fazer login.";
-            status.className = "status err";
-            return;
-          }
-
-          // vai pro portal
-          window.location.href = "./index.html";
-        } catch (err) {
-          status.textContent = "Erro inesperado no login.";
-          status.className = "status err";
-          console.error(err);
-        }
-      }
-
-      function onSupport() {
-        const link = buildWhatsappLink();
-        if (!link) return alert("WhatsApp de suporte não configurado no config.js");
-        window.open(link, "_blank");
-      }
-
-      window.addEventListener("DOMContentLoaded", () => {
-        applyBrand();
-
-        // Botões SEMPRE clicáveis (evita submit escondido)
-        const btnSupport = $("#btnSupport");
-        const form = $("#loginForm");
-
-        if (btnSupport) btnSupport.addEventListener("click", onSupport);
-        if (form) form.addEventListener("submit", onLogin);
-
-        // debug básico
-        console.log("LOGIN OK: scripts carregados");
-      });
-    })();
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
 </head>
 
 <body>
-  <div class="bg"></div>
   <div class="shell">
     <div class="card">
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" src="./Logo.png" alt="Logo" />
+          <img id="logoImg" src="" alt="Logo" />
           <div class="title">
             <strong id="companyName">Portal do Cliente</strong>
             <span id="companyTagline">Acesse seus contratos</span>
@@ -119,39 +23,96 @@
         </div>
 
         <div class="actions">
-          <button type="button" class="btn" id="btnSupport">Suporte</button>
+          <button class="btn" id="btnSupport" type="button">Suporte</button>
         </div>
       </div>
 
       <div class="content">
         <h1 class="h1">Entrar</h1>
 
-        <form id="loginForm" class="panel">
-          <label class="label">Email</label>
-          <input id="email" class="input" type="email" placeholder="seuemail@dominio.com" autocomplete="username" />
+        <form id="loginForm" class="form">
+          <label class="label" for="email">Email</label>
+          <input class="input" id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="email" required />
 
-          <label class="label" style="margin-top:12px;">Senha</label>
-          <input id="password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" />
+          <label class="label" for="password">Senha</label>
+          <input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
 
-          <button type="submit" class="btn primary" style="margin-top:14px;">Entrar</button>
+          <div class="row">
+            <button class="btn primary" id="btnLogin" type="submit">Entrar</button>
+          </div>
 
-          <div id="status" class="status"></div>
-
-          <p class="hint">
-            Se der “Invalid login credentials”, confira email/senha e se o usuário está confirmado no Supabase.
-          </p>
+          <div id="msg" class="msg" aria-live="polite"></div>
         </form>
-
-        <div class="panel" style="margin-top:16px;">
-          <div class="badge"><span class="dot"></span> Acesso seguro</div>
-          <p class="muted" style="margin-top:12px;">
-            Você acessa seu painel com contratos, próximos vencimentos e status.
-          </p>
-        </div>
       </div>
-
-      <div class="footer">© <span id="companyFooter">Sua empresa</span></div>
     </div>
   </div>
+
+  <script>
+    // ===== Config + UI =====
+    const CFG = window.APP_CONFIG || {};
+    const SUPABASE_URL = CFG.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY;
+
+    const companyNameEl = document.getElementById("companyName");
+    const companyTaglineEl = document.getElementById("companyTagline");
+    const logoImgEl = document.getElementById("logoImg");
+
+    companyNameEl.textContent = CFG.COMPANY_NAME || "Portal do Cliente";
+    companyTaglineEl.textContent = CFG.COMPANY_TAGLINE || "Acesse seus contratos";
+    logoImgEl.src = CFG.LOGO_URL || "./Logo.png";
+
+    const msgEl = document.getElementById("msg");
+
+    function showMsg(text, type = "info") {
+      msgEl.textContent = text || "";
+      msgEl.dataset.type = type; // só pra você estilizar se quiser no CSS (não mexi)
+    }
+
+    // ===== Support =====
+    document.getElementById("btnSupport").addEventListener("click", () => {
+      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const message = CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o portal.";
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+      window.open(url, "_blank");
+    });
+
+    // ===== Supabase =====
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Se já estiver logado, manda direto pro portal
+    (async () => {
+      const { data } = await sb.auth.getSession();
+      if (data?.session) {
+        window.location.href = "./index.html";
+      }
+    })();
+
+    // ===== Login =====
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showMsg("");
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const btn = document.getElementById("btnLogin");
+      btn.disabled = true;
+      btn.textContent = "Entrando...";
+
+      try {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+          showMsg("Email ou senha inválidos.", "error");
+          return;
+        }
+        window.location.href = "./index.html";
+      } catch (err) {
+        showMsg("Erro ao entrar. Tente novamente.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Entrar";
+      }
+    });
+  </script>
 </body>
 </html>

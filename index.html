@@ -44,21 +44,10 @@
           <div id="msg" class="msg" aria-live="polite"></div>
         </section>
 
-        <!-- PLANO + PROGRESSO (só aparece quando aprovado) -->
+        <!-- PLANO / PROGRESSO (só aparece quando aprovado) -->
         <section class="block" id="planBlock" style="display:none;">
           <div class="pill">Seu plano</div>
           <div id="planArea" class="mini">Carregando...</div>
-        </section>
-
-        <section class="block" id="progressBlock" style="display:none;">
-          <div class="pill">Progresso</div>
-          <div id="progressArea" class="mini">Carregando...</div>
-        </section>
-
-        <!-- PAGAMENTOS (todos) -->
-        <section class="block" id="paymentsBlock" style="display:none;">
-          <div class="pill">Pagamentos</div>
-          <div id="paymentsArea" class="mini">Carregando...</div>
         </section>
 
         <!-- AÇÕES (só aparece quando aprovado) -->
@@ -133,23 +122,9 @@
   $('btnLogout').addEventListener('click', doLogout);
   $('btnLogout2').addEventListener('click', doLogout);
 
-  // Helpers
-  const fmtMoney = (v) => {
-    const n = Number(v || 0);
-    return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-  };
-
-  const fmtDate = (d) => {
-    if (!d) return '—';
-    const s = String(d).slice(0,10);
-    return s;
-  };
-
   // ===== UI states =====
   function showPending(email){
     $('planBlock').style.display = 'none';
-    $('progressBlock').style.display = 'none';
-    $('paymentsBlock').style.display = 'none';
     $('actionsBlock').style.display = 'none';
 
     setText('statusPill', 'Aguardando aprovação');
@@ -157,7 +132,7 @@
       <div style="margin-top:6px">
         Sua conta foi criada com sucesso ✅<br/>
         Mas ainda precisa ser <b>aprovada pelo administrador</b>.<br/>
-        Assim que for aprovada, você conseguirá acessar o portal.
+        Assim que for aprovada, você conseguirá acessar seu plano e pagamentos.
         <div style="opacity:.85; margin-top:10px">Dica: tente novamente mais tarde após a aprovação.</div>
       </div>
     `;
@@ -168,8 +143,6 @@
   function showApproved(email){
     $('pendingActions').style.display = 'none';
     $('planBlock').style.display = '';
-    $('progressBlock').style.display = '';
-    $('paymentsBlock').style.display = '';
     $('actionsBlock').style.display = '';
 
     setText('statusPill', 'Portal');
@@ -177,13 +150,10 @@
     if (email) setText('loggedAs', `Logado como: ${email}`);
   }
 
-  // ===== Loaders =====
-  async function loadPlanAndProgressByEmail(email){
-    const planArea = $('planArea');
-    const progArea = $('progressArea');
-
-    planArea.textContent = 'Carregando...';
-    progArea.textContent = 'Carregando...';
+  // ===== Data loader (Plano/Progresso) =====
+  async function loadPlanProgress(email){
+    const area = $('planArea');
+    area.textContent = 'Carregando...';
 
     const { data, error } = await sb
       .from('client_plan_progress')
@@ -191,102 +161,57 @@
       .eq('email', email)
       .maybeSingle();
 
-    if (error) {
-      planArea.textContent = 'Erro ao carregar plano.';
-      progArea.textContent = 'Erro ao carregar progresso.';
-      setMsg(error.message);
-      return null;
-    }
+    if (error) { area.textContent = 'Erro ao carregar plano.'; setMsg(error.message); return; }
+    if (!data) { area.textContent = 'Nenhum plano encontrado.'; return; }
 
-    if (!data) {
-      planArea.textContent = 'Plano não encontrado.';
-      progArea.textContent = '—';
-      return null;
-    }
+    const fmtMoney = (v) => Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    const clamp = (n) => Math.max(0, Math.min(100, Number(n || 0)));
 
-    // Plano
-    planArea.innerHTML = `
+    const entryPct = clamp(data.entry_progress_percent);
+    const mainPct  = clamp(data.main_progress_percent);
+    const totalPct = clamp(data.progress_percent);
+
+    // Plan info + progress cards
+    area.innerHTML = `
       <div class="contract-card">
+
         <div class="contract-head">
-          <div class="contract-status">${data.plan_name || 'Plano'}</div>
-          <div class="contract-id">#${String(data.plan_id ?? '').toString()}</div>
+          <div class="contract-status">${data.plan_name ?? 'Seu plano'}</div>
+          <div class="contract-id">#${data.plan_id ?? '—'}</div>
         </div>
 
         <div class="contract-grid">
-          <div class="kv"><div class="k">Entrada</div><div class="v">${data.entry_months ?? 0}x ${fmtMoney(data.entry_amount)}</div></div>
-          <div class="kv"><div class="k">Principal</div><div class="v">${data.main_months ?? 0}x ${fmtMoney(data.main_amount)}</div></div>
+          <div class="kv wide"><div class="k">Entrada</div><div class="v">${data.entry_months}x ${fmtMoney(data.entry_amount)}</div></div>
+          <div class="kv wide"><div class="k">Principal</div><div class="v">${data.main_months}x ${fmtMoney(data.main_amount)}</div></div>
+
           <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(data.plan_total)}</div></div>
           <div class="kv"><div class="k">Restante</div><div class="v">${fmtMoney(data.remaining_total)}</div></div>
         </div>
 
-        <div class="mini" style="margin-top:10px; opacity:.8">
+        <div style="margin-top:14px" class="mini">
+          <b>Entrada</b> — Pago ${fmtMoney(data.entry_paid)} de ${fmtMoney(data.entry_total)} (${entryPct.toFixed(2)}%)
+        </div>
+        <div class="progress"><div class="bar" style="width:${entryPct}%"></div></div>
+
+        <div style="margin-top:12px" class="mini">
+          <b>Principal</b> — Pago ${fmtMoney(data.main_paid)} de ${fmtMoney(data.main_total)} (${mainPct.toFixed(2)}%)
+        </div>
+        <div class="progress"><div class="bar" style="width:${mainPct}%"></div></div>
+
+        <div style="margin-top:12px" class="mini">
+          <b>Geral</b> — Pago ${fmtMoney(data.paid_total)} de ${fmtMoney(data.plan_total)} (${totalPct.toFixed(2)}%)
+          <div style="opacity:.75; margin-top:6px">Pagamentos lançados: ${data.payments_count ?? 0}</div>
+        </div>
+        <div class="progress"><div class="bar" style="width:${totalPct}%"></div></div>
+
+        <div class="mini" style="margin-top:10px; opacity:.75">
           *Valores informativos. Em caso de divergência, fale com o suporte.
         </div>
       </div>
     `;
-
-    // Progresso
-    const pct = Number(data.progress_percent || 0);
-    const paid = Number(data.paid_total || 0);
-    const total = Number(data.plan_total || 0);
-
-    progArea.innerHTML = `
-      <div class="contract-card">
-        <div class="contract-grid">
-          <div class="kv"><div class="k">Pago</div><div class="v">${fmtMoney(paid)}</div></div>
-          <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(total)}</div></div>
-          <div class="kv"><div class="k">Pagamentos lançados</div><div class="v">${data.payments_count ?? 0}</div></div>
-          <div class="kv"><div class="k">Progresso</div><div class="v">${pct.toFixed(2)}%</div></div>
-        </div>
-
-        <div style="margin-top:12px; width:100%; height:10px; border-radius:999px; overflow:hidden; background: rgba(255,255,255,.12);">
-          <div style="height:100%; width:${Math.min(100, Math.max(0, pct))}%; background: rgba(255,255,255,.85);"></div>
-        </div>
-
-        <div class="mini" style="margin-top:10px; opacity:.75">
-          Atualiza automaticamente conforme os pagamentos são lançados pelo administrador.
-        </div>
-      </div>
-    `;
-
-    return data;
   }
 
-  async function loadPaymentsByEmail(email){
-    const area = $('paymentsArea');
-    area.textContent = 'Carregando...';
-
-    const { data, error } = await sb
-      .from('client_payments')
-      .select('id,paid_at,amount,method,notes')
-      .eq('client_email', email)
-      .order('paid_at', { ascending: false });
-
-    if (error) {
-      area.textContent = 'Erro ao carregar pagamentos.';
-      setMsg(error.message);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      area.textContent = 'Nenhum pagamento registrado ainda.';
-      return;
-    }
-
-    const rows = data.map((p) => `
-      <div class="contract-card" style="margin-bottom:10px;">
-        <div class="contract-grid">
-          <div class="kv"><div class="k">Data</div><div class="v">${fmtDate(p.paid_at)}</div></div>
-          <div class="kv"><div class="k">Valor</div><div class="v">${fmtMoney(p.amount)}</div></div>
-          <div class="kv"><div class="k">Método</div><div class="v">${p.method ? String(p.method) : '—'}</div></div>
-          <div class="kv wide"><div class="k">Obs.</div><div class="v">${p.notes ? String(p.notes) : '—'}</div></div>
-        </div>
-      </div>
-    `).join('');
-
-    area.innerHTML = rows;
-  }
-
+  // ===== Boot =====
   async function boot(){
     setMsg('');
 
@@ -301,6 +226,7 @@
     const uid = session.user.id;
     const email = session.user.email;
 
+    // Busca o cliente pelo user_id (correto)
     const { data: client, error } = await sb
       .from('clients')
       .select('id,is_active')
@@ -319,11 +245,7 @@
     }
 
     showApproved(email);
-
-    // Carrega painel
-    await loadPlanAndProgressByEmail(email);
-    await loadPaymentsByEmail(email);
-
+    await loadPlanProgress(email);
     setMsg('Portal carregado ✅', true);
   }
 

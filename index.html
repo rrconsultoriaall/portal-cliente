@@ -4,9 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente</title>
-
   <link rel="stylesheet" href="./app.css?v=200">
-  <script src="./config.js?v=200"></script>
+  <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -16,12 +15,11 @@
 
       <header class="topbar">
         <div class="brand">
-          <img id="logoImg" class="brand-logo" src="./logo.png?v=200" alt="Logo"
-               onerror="this.style.display='none'">
+          <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
-            <div class="brand-title" id="companyName">Sua empresa</div>
-            <div class="brand-tagline" id="companyTagline">Portal do Cliente</div>
-            <div class="brand-tagline mini" id="loggedAs"></div>
+            <div class="brand-title" id="companyName">Portal</div>
+            <div class="brand-sub" id="companyTagline">Área do cliente</div>
+            <div class="brand-sub mini" id="loggedAs" style="opacity:.9"></div>
           </div>
         </div>
 
@@ -33,64 +31,47 @@
 
       <main class="content">
 
-        <!-- ====== PENDING (aguardando aprovação) ====== -->
-        <section class="block" id="pendingBlock" style="display:none;">
-          <div class="pill">Aguardando aprovação</div>
-          <div class="mini" style="line-height:1.6; opacity:.9;">
-            Sua conta foi criada com sucesso ✅<br/>
-            Mas ainda precisa ser <b>aprovada pelo administrador</b>.<br/>
-            Assim que for aprovada, você conseguirá acessar seus contratos.
+        <!-- STATUS / MENSAGENS -->
+        <section class="block" id="statusBlock">
+          <div class="pill" id="statusPill">Carregando...</div>
+          <div id="statusArea" class="mini" style="line-height:1.55">Aguarde…</div>
+
+          <div class="row" style="gap:10px; margin-top:14px; display:none;" id="pendingActions">
+            <button class="btn btn-secondary" id="btnSupport2" type="button">Falar no suporte</button>
+            <button class="btn btn-danger" id="btnLogout2" type="button">Sair</button>
           </div>
 
-          <div style="margin-top:14px; display:flex; gap:10px;">
-            <button class="btn btn-secondary" id="btnSupport2" type="button" style="flex:1;">Falar no suporte</button>
-            <button class="btn btn-danger" id="btnLogout2" type="button" style="flex:1;">Sair</button>
-          </div>
-
-          <div class="mini" style="margin-top:12px; opacity:.75;">
-            Dica: tente novamente mais tarde após a aprovação.
-          </div>
+          <div id="msg" class="msg" aria-live="polite"></div>
         </section>
 
-        <!-- ====== PORTAL NORMAL (ativo) ====== -->
-        <section class="block" id="portalBlock" style="display:none;">
+        <!-- CONTRATOS (só aparece quando aprovado) -->
+        <section class="block" id="contractsBlock" style="display:none;">
           <div class="pill">Seus contratos</div>
           <div id="contractsArea" class="mini">Carregando...</div>
         </section>
 
+        <!-- AÇÕES (só aparece quando aprovado) -->
         <section class="block" id="actionsBlock" style="display:none;">
-          <div class="pill">Ações</div>
+          <h2 style="margin: 4px 0 10px;">Ações</h2>
 
-          <a class="action-link" href="./perfil.html?v=200">
-            <div>
-              <strong>Perfil</strong><br/>
-              <span>Seus dados cadastrais</span>
-            </div>
-            <div class="chev">›</div>
+          <a class="action" href="./pagamentos.html?v=200" id="linkPayments">
+            <div class="action-title">Pagamentos</div>
+            <div class="action-sub">Histórico e comprovantes</div>
+            <div class="action-arrow">›</div>
           </a>
 
-          <div style="height:10px;"></div>
-
-          <a class="action-link" href="./pagamentos.html?v=200">
-            <div>
-              <strong>Pagamentos</strong><br/>
-              <span>Histórico e status</span>
-            </div>
-            <div class="chev">›</div>
+          <a class="action" href="./perfil.html?v=200" id="linkProfile">
+            <div class="action-title">Perfil</div>
+            <div class="action-sub">Seus dados cadastrais</div>
+            <div class="action-arrow">›</div>
           </a>
 
-          <div style="height:10px;"></div>
-
-          <a class="action-link" href="./detalhes.html?v=200">
-            <div>
-              <strong>Detalhes</strong><br/>
-              <span>Informações adicionais</span>
-            </div>
-            <div class="chev">›</div>
+          <a class="action" href="./detalhes.html?v=200" id="linkDetails">
+            <div class="action-title">Detalhes</div>
+            <div class="action-sub">Contrato e informações extras</div>
+            <div class="action-arrow">›</div>
           </a>
         </section>
-
-        <div id="msg" class="msg" aria-live="polite"></div>
 
       </main>
 
@@ -102,11 +83,14 @@
   </div>
 
 <script>
+  // ===== Config / Supabase =====
   const CFG = window.APP_CONFIG || {};
   const sb = (window.supabase?.createClient ? window.supabase : supabase)
     .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
   const $ = (id) => document.getElementById(id);
+
+  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
 
   const msgEl = $('msg');
   const setMsg = (t, ok=false) => {
@@ -115,135 +99,141 @@
     msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
   };
 
-  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
-
-  // Logo + textos
-  const logoImg = $('logoImg');
-  logoImg.src = (CFG.LOGO_URL || './logo.png') + '?v=200';
-
+  // Branding
+  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
   if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
   if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
   setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
 
+  // Suporte WhatsApp
   function openSupport(){
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
     const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
     if (!phone) return alert('WhatsApp de suporte não configurado.');
     window.location.href = `https://wa.me/${phone}?text=${text}`;
   }
-
-  // Botões
   $('btnSupport').addEventListener('click', openSupport);
   $('btnSupport2').addEventListener('click', openSupport);
 
+  // Logout
   async function doLogout(){
     await sb.auth.signOut();
-    window.location.href = './login.html';
+    window.location.href = './login.html?v=200';
   }
   $('btnLogout').addEventListener('click', doLogout);
   $('btnLogout2').addEventListener('click', doLogout);
 
-  async function requireSession(){
-    const { data, error } = await sb.auth.getSession();
-    if (error) throw error;
-    if (!data?.session) {
-      window.location.href = './login.html';
-      return null;
-    }
-    return data.session;
+  // ===== UI states =====
+  function showPending(email){
+    $('contractsBlock').style.display = 'none';
+    $('actionsBlock').style.display = 'none';
+
+    setText('statusPill', 'Aguardando aprovação');
+    $('statusArea').innerHTML = `
+      <div style="margin-top:6px">
+        Sua conta foi criada com sucesso ✅<br/>
+        Mas ainda precisa ser <b>aprovada pelo administrador</b>.<br/>
+        Assim que for aprovada, você conseguirá acessar seus contratos.
+        <div style="opacity:.85; margin-top:10px">Dica: tente novamente mais tarde após a aprovação.</div>
+      </div>
+    `;
+    $('pendingActions').style.display = 'flex';
+    if (email) setText('loggedAs', `Logado como: ${email}`);
   }
 
-  async function checkStatusAndRender(){
-    setMsg('Carregando...');
-    const session = await requireSession();
-    if (!session) return;
+  function showApproved(email){
+    $('pendingActions').style.display = 'none';
+    $('contractsBlock').style.display = '';
+    $('actionsBlock').style.display = '';
 
-    const user = session.user;
-    setText('loggedAs', `Logado como: ${user.email || ''}`);
-
-    const { data: client, error } = await sb
-      .from('clients')
-      .select('status')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error(error);
-      setMsg('Erro: ' + error.message);
-      return;
-    }
-
-    // Se não existe linha no clients, trata como pendente (mais seguro)
-    const status = client?.status || 'pending';
-
-    if (status !== 'active') {
-      // Bloqueia acesso: mostra mensagem e opção de sair/suporte
-      $('pendingBlock').style.display = 'block';
-      $('portalBlock').style.display = 'none';
-      $('actionsBlock').style.display = 'none';
-      setMsg('');
-
-      // (Opcional) mantém logado, mas sem acesso ao portal.
-      // Se você preferir deslogar automaticamente, descomente:
-      // await sb.auth.signOut();
-
-      return;
-    }
-
-    // Ativo → mostra portal
-    $('pendingBlock').style.display = 'none';
-    $('portalBlock').style.display = 'block';
-    $('actionsBlock').style.display = 'block';
-    setMsg('');
-
-    await loadContracts();
+    setText('statusPill', 'Portal');
+    $('statusArea').innerHTML = `<span style="opacity:.9">Bem-vindo! ✅</span>`;
+    if (email) setText('loggedAs', `Logado como: ${email}`);
   }
 
-  async function loadContracts(){
+  // ===== Data loaders =====
+  async function loadContractsForClient(clientId){
     const area = $('contractsArea');
     area.textContent = 'Carregando...';
 
-    const { data: sess } = await sb.auth.getSession();
-    const uid = sess?.session?.user?.id;
-
-    // Busca contratos do cliente (de acordo com suas policies)
     const { data, error } = await sb
       .from('contracts')
-      .select('*')
+      .select('id,status,total_value,amount_paid,installments_total,installments_paid,due_date,notes,created_at')
+      .eq('client_id', clientId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error(error);
-      area.textContent = 'Erro ao carregar contratos: ' + error.message;
-      return;
-    }
+    if (error) { area.textContent = 'Erro ao carregar contratos.'; setMsg(error.message); return; }
+    if (!data || data.length === 0) { area.textContent = 'Nenhum contrato encontrado.'; return; }
 
-    if (!data || data.length === 0) {
-      area.textContent = 'Nenhum contrato encontrado.';
-      return;
-    }
+    // Mostra 1º contrato como “cartão”
+    const c = data[0];
+    const fmtMoney = (v) => {
+      const n = Number(v || 0);
+      return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    };
 
-    // Render simples (você pode sofisticar depois)
-    area.innerHTML = data.map(c => {
-      const status = c.status || '—';
-      const paid = c.amount_paid ?? c.valor_pago ?? '—';
-      const remain = c.installments_remaining ?? c.parcelas_restantes ?? '—';
-      const due = c.due_date ?? c.data_vencimento ?? '—';
-      const notes = c.notes ?? c.observacoes ?? '';
-
-      return `
-        <div class="block" style="margin-top:10px;">
-          <div class="mini"><b>Status:</b> ${status}</div>
-          <div class="mini"><b>Valor pago:</b> ${paid}</div>
-          <div class="mini"><b>Parcelas restantes:</b> ${remain}</div>
-          <div class="mini"><b>Vencimento:</b> ${due}</div>
-          ${notes ? `<div class="mini" style="margin-top:8px;"><b>Obs:</b> ${notes}</div>` : ``}
+    area.innerHTML = `
+      <div class="contract-card">
+        <div class="contract-head">
+          <div class="contract-status">${c.status || '—'}</div>
+          <div class="contract-id">#${String(c.id).slice(0,8)}</div>
         </div>
-      `;
-    }).join('');
+
+        <div class="contract-grid">
+          <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(c.total_value)}</div></div>
+          <div class="kv"><div class="k">Pago</div><div class="v">${fmtMoney(c.amount_paid)}</div></div>
+          <div class="kv"><div class="k">Parcelas</div><div class="v">${(c.installments_paid ?? 0)} / ${(c.installments_total ?? 0)}</div></div>
+          <div class="kv"><div class="k">Vencimento</div><div class="v">${c.due_date ? String(c.due_date).slice(0,10) : '—'}</div></div>
+          <div class="kv wide"><div class="k">Observações</div><div class="v">${c.notes ? String(c.notes) : '—'}</div></div>
+        </div>
+
+        <div class="mini" style="margin-top:10px; opacity:.75">
+          Se você tiver vários contratos, depois a gente coloca uma lista aqui.
+        </div>
+      </div>
+    `;
   }
 
-  checkStatusAndRender();
+  async function boot(){
+    setMsg('');
+
+    const { data: sessData } = await sb.auth.getSession();
+    const session = sessData?.session;
+
+    if (!session) {
+      window.location.href = './login.html?v=200';
+      return;
+    }
+
+    // 🔥 Regra correta: busca cliente pelo user_id do usuário logado
+    const uid = session.user.id;
+    const email = session.user.email;
+
+    const { data: client, error } = await sb
+      .from('clients')
+      .select('id,is_active')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (error) {
+      showPending(email);
+      setMsg(error.message);
+      return;
+    }
+
+    // Se não tem registro do cliente ainda, ou não está ativo -> aguardando
+    if (!client || client.is_active !== true) {
+      showPending(email);
+      return;
+    }
+
+    // Aprovado -> mostra portal e carrega contratos
+    showApproved(email);
+    await loadContractsForClient(client.id);
+    setMsg('Portal carregado ✅', true);
+  }
+
+  boot();
 </script>
 
 </body>

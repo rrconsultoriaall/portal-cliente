@@ -3,238 +3,192 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin | RR Consultoria</title>
+  <title>Admin • Portal</title>
   <link rel="stylesheet" href="./app.css?v=1" />
   <script src="./config.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="page">
-    <div class="card">
-      <header class="topbar">
-        <div class="brand">
-          <img class="brand-logo" src="./logo.png?v=1" alt="Logo" onerror="this.style.display='none'">
-          <div class="brand-text">
-            <div class="brand-title" id="companyName">Admin</div>
-            <div class="brand-sub" id="loggedAs"></div>
-          </div>
-        </div>
-        <div class="top-actions">
-          <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
-          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
-        </div>
-      </header>
-
-      <main class="content">
-        <h1 class="h1">Painel Admin</h1>
-        <p class="helper" id="msg"></p>
-
-        <div class="block">
-          <h2 class="h2">1) Encontrar cliente</h2>
-          <label class="label">Email do cliente</label>
-          <input id="clientEmail" class="input" type="email" placeholder="cliente@dominio.com" />
-          <button class="btn btn-primary" id="btnFind" type="button">Buscar</button>
-
-          <div class="mini">
-            <div><b>client_id:</b> <span id="clientId">—</span></div>
-            <div><b>Nome:</b> <span id="clientName">—</span></div>
-            <div><b>Status:</b> <span id="clientStatus">—</span></div>
-          </div>
-        </div>
-
-        <div class="block">
-          <h2 class="h2">2) Criar contrato</h2>
-
-          <div class="grid">
-            <div class="field">
-              <label class="label">Total do contrato (R$)</label>
-              <input id="total_value" class="input" type="number" step="0.01" placeholder="48000" />
-            </div>
-            <div class="field">
-              <label class="label">Valor pago (R$)</label>
-              <input id="amount_paid" class="input" type="number" step="0.01" placeholder="1000" />
-            </div>
-            <div class="field">
-              <label class="label">Parcelas restantes</label>
-              <input id="installments_remaining" class="input" type="number" placeholder="12" />
-            </div>
-            <div class="field">
-              <label class="label">Vencimento</label>
-              <input id="due_date" class="input" type="date" />
-            </div>
-            <div class="field">
-              <label class="label">Status</label>
-              <input id="contract_status" class="input" type="text" placeholder="Em dia" />
-            </div>
-            <div class="field">
-              <label class="label">Observações</label>
-              <input id="contract_notes" class="input" type="text" placeholder="Contrato fechado via WhatsApp" />
+  <div class="wrap">
+    <div class="shell">
+      <div class="card">
+        <header class="header">
+          <div class="brand">
+            <img id="logoImg" alt="Logo" />
+            <div class="titles">
+              <div class="name" id="companyName">Sua empresa</div>
+              <div class="tag" id="adminAs">Checando admin...</div>
             </div>
           </div>
 
-          <button class="btn btn-primary" id="btnCreateContract" type="button">Criar contrato</button>
-
-          <div class="mini">
-            <div><b>contract_id:</b> <span id="contractId">—</span></div>
+          <div class="top-actions">
+            <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+            <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
           </div>
-        </div>
+        </header>
 
-        <div class="block">
-          <h2 class="h2">3) Registrar pagamento</h2>
+        <main class="content">
+          <section class="block">
+            <div class="pill">Admin</div>
+            <div id="msg" class="msg" aria-live="polite"></div>
+          </section>
 
-          <div class="grid">
-            <div class="field">
-              <label class="label">Valor (R$)</label>
-              <input id="pay_amount" class="input" type="number" step="0.01" placeholder="1000" />
-            </div>
-            <div class="field">
-              <label class="label">Data do pagamento</label>
-              <input id="paid_at" class="input" type="date" />
-            </div>
-            <div class="field">
-              <label class="label">Método</label>
-              <input id="method" class="input" type="text" placeholder="Pix" />
-            </div>
-            <div class="field">
-              <label class="label">Notas</label>
-              <input id="pay_notes" class="input" type="text" placeholder="Pago via pix" />
-            </div>
-          </div>
+          <section class="block">
+            <h2 class="block-title">Clientes (últimos 10)</h2>
+            <div id="clientsArea" class="mini">Carregando...</div>
+          </section>
 
-          <button class="btn btn-primary" id="btnAddPayment" type="button">Salvar pagamento</button>
-        </div>
+          <section class="block">
+            <h2 class="block-title">Contratos (últimos 10)</h2>
+            <div id="contractsArea" class="mini">Carregando...</div>
+          </section>
+        </main>
 
-        <div class="divider"></div>
-        <a class="link" href="./index.html?v=1">Ver painel do cliente (logado como você)</a>
-      </main>
-
-      <footer class="footer">
-        <span id="footerCompany">© Sua empresa</span>
-      </footer>
+        <footer class="footer">
+          <span id="footerCompany">© Sua empresa</span>
+        </footer>
+      </div>
     </div>
   </div>
 
-<script>
-  const sb = (window.supabase?.createClient ? window.supabase : supabase).createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  <script>
+    const CFG = window.APP_CONFIG || {};
+    const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-  const setText = (id, v) => (document.getElementById(id).textContent = v);
-  const msg = document.getElementById('msg');
-  const setMsg = (t, ok=false) => {
-    msg.textContent = t || '';
-    msg.style.opacity = t ? '1' : '0.95';
-    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
-  };
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? ''; };
+    const msgEl = document.getElementById('msg');
+    const setMsg = (t, ok=false) => {
+      msgEl.textContent = t || '';
+      msgEl.style.opacity = t ? '1' : '0';
+      msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,200,200,.95)';
+    };
 
-  // brand
-  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME + ' • Admin');
-  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+    // Brand
+    setText('companyName', CFG.COMPANY_NAME || 'Sua empresa');
+    setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+    document.getElementById('logoImg').src = (CFG.LOGO_URL || './Logo.png') + '?v=1';
 
-  document.getElementById('btnSupport').addEventListener('click', () => {
-    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
-    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
-    if (!phone) return alert('WhatsApp de suporte não configurado.');
-    window.location.href = `https://wa.me/${phone}?text=${text}`;
-  });
+    // Botões
+    document.getElementById('btnSupport').addEventListener('click', () => {
+      const phone = (CFG.SUPPORT_WHATSAPP || '').trim();
+      if (!phone) return alert('WhatsApp de suporte não configurado.');
+      const text = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda.');
+      window.location.href = `https://wa.me/${phone}?text=${text}`;
+    });
 
-  document.getElementById('btnLogout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = './login.html?v=1';
-  });
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      window.location.href = './login.html?v=1';
+    });
 
-  const $ = (id) => document.getElementById(id);
-  let currentClient = null;
-  let currentContractId = null;
-
-  async function requireAdmin() {
-    const { data } = await supabase.auth.getSession();
-    if (!data?.session) { window.location.href = './login.html?v=1'; return null; }
-
-    setText('loggedAs', `Logado como: ${data.session.user.email}`);
-
-    // checa se é admin
-    const { data: adm, error } = await supabase.from('admins').select('user_id').eq('user_id', data.session.user.id).maybeSingle();
-    if (error || !adm) {
-      setMsg('Acesso negado: este usuário não é admin.', false);
-      return null;
+    async function requireSession() {
+      const { data } = await sb.auth.getSession();
+      const session = data?.session;
+      if (!session) {
+        window.location.href = './login.html?v=1';
+        return null;
+      }
+      return session;
     }
-    return data.session;
-  }
 
-  async function findClient() {
-    await requireAdmin();
+    async function requireAdmin(session){
+      // precisa existir em public.admins a linha com user_id = auth.uid()
+      const { data, error } = await sb
+        .from('admins')
+        .select('user_id')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
 
-    const email = $('clientEmail').value.trim().toLowerCase();
-    if (!email) return setMsg('Digite o email do cliente.');
+      if (error) throw error;
+      return !!data;
+    }
 
-    setMsg('Buscando cliente...');
-    const { data, error } = await supabase
-      .from('clients')
-      .select('id, full_name, status, email')
-      .eq('email', email)
-      .single();
+    function escapeHtml(s){
+      return String(s ?? '')
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#039;');
+    }
 
-    if (error) return setMsg('Cliente não encontrado. Ele já criou conta com esse email?', false);
+    async function loadAdmin() {
+      setMsg('');
+      const session = await requireSession();
+      if (!session) return;
 
-    currentClient = data;
-    setText('clientId', data.id);
-    setText('clientName', data.full_name || '—');
-    setText('clientStatus', data.status || '—');
-    setMsg('Cliente encontrado ✅', true);
-  }
+      setText('adminAs', `Logado como: ${session.user.email}`);
 
-  async function createContract() {
-    await requireAdmin();
-    if (!currentClient?.id) return setMsg('Primeiro busque o cliente pelo email.');
+      let isAdmin = false;
+      try{
+        isAdmin = await requireAdmin(session);
+      }catch(e){
+        setMsg(e.message);
+        return;
+      }
 
-    const payload = {
-      client_id: currentClient.id,
-      total_value: Number($('total_value').value || 0),
-      amount_paid: Number($('amount_paid').value || 0),
-      installments_remaining: Number($('installments_remaining').value || 0),
-      due_date: $('due_date').value || null,
-      status: $('contract_status').value.trim() || 'Em dia',
-      notes: $('contract_notes').value.trim() || null
-    };
+      if (!isAdmin){
+        setMsg('Acesso negado: este usuário não é admin.', false);
+        document.getElementById('clientsArea').textContent = '—';
+        document.getElementById('contractsArea').textContent = '—';
+        return;
+      }
 
-    setMsg('Criando contrato...');
-    const { data, error } = await supabase
-      .from('contracts')
-      .insert(payload)
-      .select('id')
-      .single();
+      setMsg('Admin carregado ✅', true);
 
-    if (error) return setMsg(error.message, false);
+      const clientsArea = document.getElementById('clientsArea');
+      const contractsArea = document.getElementById('contractsArea');
 
-    currentContractId = data.id;
-    setText('contractId', currentContractId);
-    setMsg('Contrato criado ✅', true);
-  }
+      // Clientes
+      const { data: clients, error: cErr } = await sb
+        .from('clients')
+        .select('id, full_name, email, is_active, created_at')
+        .order('created_at', { ascending:false })
+        .limit(10);
 
-  async function addPayment() {
-    await requireAdmin();
-    if (!currentContractId) return setMsg('Crie (ou tenha) um contract_id primeiro.');
+      if (cErr){
+        clientsArea.textContent = 'Erro ao carregar clientes.';
+        setMsg(cErr.message);
+        return;
+      }
 
-    const payload = {
-      contract_id: currentContractId,
-      amount: Number($('pay_amount').value || 0),
-      paid_at: $('paid_at').value || null,
-      method: $('method').value.trim() || null,
-      notes: $('pay_notes').value.trim() || null
-    };
+      clientsArea.innerHTML = (clients?.length ? clients : []).map(c => `
+        <div class="contract-card" style="margin-top:10px">
+          <div style="font-weight:900;font-size:18px">${escapeHtml(c.full_name || '—')}</div>
+          <div class="mini">${escapeHtml(c.email || '')}</div>
+          <div class="mini">Ativo: <b>${c.is_active ? 'Sim' : 'Não'}</b></div>
+          <div class="mini">ID: ${escapeHtml(String(c.id).slice(0,8))}</div>
+        </div>
+      `).join('') || `<div class="mini">Nenhum cliente.</div>`;
 
-    setMsg('Salvando pagamento...');
-    const { error } = await supabase.from('payments').insert(payload);
+      // Contratos
+      const { data: contracts, error: kErr } = await sb
+        .from('contracts')
+        .select('id, client_id, status, total_value, amount_paid, due_date, created_at')
+        .order('created_at', { ascending:false })
+        .limit(10);
 
-    if (error) return setMsg(error.message, false);
-    setMsg('Pagamento registrado ✅', true);
-  }
+      if (kErr){
+        contractsArea.textContent = 'Erro ao carregar contratos.';
+        setMsg(kErr.message);
+        return;
+      }
 
-  $('btnFind').addEventListener('click', findClient);
-  $('btnCreateContract').addEventListener('click', createContract);
-  $('btnAddPayment').addEventListener('click', addPayment);
+      contractsArea.innerHTML = (contracts?.length ? contracts : []).map(k => `
+        <div class="contract-card" style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;gap:10px">
+            <div style="font-weight:900">${escapeHtml(k.status || 'Contrato')}</div>
+            <div class="mini">#${escapeHtml(String(k.id).slice(0,8))}</div>
+          </div>
+          <div class="mini">client_id: ${escapeHtml(String(k.client_id).slice(0,8))}</div>
+          <div class="mini">total: ${Number(k.total_value||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+          <div class="mini">pago: ${Number(k.amount_paid||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+          <div class="mini">vencimento: ${escapeHtml(k.due_date || '—')}</div>
+        </div>
+      `).join('') || `<div class="mini">Nenhum contrato.</div>`;
+    }
 
-  requireAdmin();
-</script>
-
+    loadAdmin();
+  </script>
 </body>
 </html>

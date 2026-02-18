@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Perfil</title>
+
+  <link rel="stylesheet" href="./app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img id="logoImg" class="logo" alt="Logo" />
+        <div class="brandText">
+          <div class="brandName" id="companyName">Perfil</div>
+          <div class="brandSub" id="sub">Conta e segurança</div>
+        </div>
+      </div>
+
+      <div class="topActions">
+        <button type="button" class="btn ghost" id="btnSupport">Suporte</button>
+        <button type="button" class="btn danger" id="btnLogout">Sair</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="card">
+        <div class="cardHead">
+          <span class="dot"></span>
+          <h2>Seus dados</h2>
+        </div>
+
+        <div class="kvGrid">
+          <div class="kv"><div class="k">Email</div><div class="v" id="email">—</div></div>
+          <div class="kv"><div class="k">Nome</div><div class="v" id="name">—</div></div>
+          <div class="kv"><div class="k">ID</div><div class="v mono" id="uid">—</div></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="hint">🔒 Dica: se a sessão expirar, você volta pro login automaticamente.</div>
+
+        <div class="actionsRow">
+          <button type="button" class="btn" onclick="location.href='./index.html'">Voltar ao painel</button>
+          <button type="button" class="btn ghost" id="btnSupport2">Falar no suporte</button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottomNav">
+      <button type="button" class="navItem" data-go="./index.html">Painel</button>
+      <button type="button" class="navItem" data-go="./pagamentos.html">Pagamentos</button>
+      <button type="button" class="navItem active" data-go="./perfil.html">Perfil</button>
+    </nav>
+
+    <footer class="footer">© <span id="companyFooter">Sua empresa</span></footer>
+  </div>
+
+  <script>
+    const CFG = window.APP_CONFIG || {};
+    const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    const $ = (id) => document.getElementById(id);
+
+    function openSupport(extra) {
+      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const base = CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda no Portal do Cliente.";
+      const msg = extra ? `${base}\n\n${extra}` : base;
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    async function requireSession() {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      if (!session) { location.href = "./login.html"; return null; }
+      return session;
+    }
+
+    async function load() {
+      $("logoImg").src = CFG.LOGO_URL || "./Logo.png";
+      $("companyName").textContent = CFG.COMPANY_NAME || "RR Consultoria";
+      $("companyFooter").textContent = CFG.COMPANY_NAME || "Sua empresa";
+
+      document.querySelectorAll(".navItem").forEach(btn => btn.addEventListener("click", () => location.href = btn.dataset.go));
+
+      $("btnSupport").addEventListener("click", () => openSupport("Tela: Perfil"));
+      $("btnSupport2").addEventListener("click", () => openSupport("Tela: Perfil"));
+
+      $("btnLogout").addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        location.href = "./login.html";
+      });
+
+      const session = await requireSession();
+      if (!session) return;
+
+      $("email").textContent = session.user.email;
+      $("uid").textContent = session.user.id;
+
+      const { data: client } = await supabase
+        .from("clients")
+        .select("full_name")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      $("name").textContent = (client?.full_name || "—");
+    }
+
+    document.addEventListener("DOMContentLoaded", load);
+  </script>
+</body>
+</html>

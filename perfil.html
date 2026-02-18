@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Perfil</title>
-  <link rel="stylesheet" href="./app.css" />
+  <link rel="stylesheet" href="./app.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
 </head>
@@ -13,10 +13,10 @@
     <div class="card">
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" src="" alt="Logo" />
+          <img id="logoImg" src="" alt="Logo">
           <div class="title">
             <strong id="companyName">RR Consultoria</strong>
-            <span class="muted">Perfil</span>
+            <span id="companyTagline">Perfil</span>
           </div>
         </div>
         <div class="actions">
@@ -26,39 +26,38 @@
 
       <div class="content">
         <div class="panel">
-          <h2 class="h2">Seus dados</h2>
-          <div class="muted">Informações do seu cadastro.</div>
-          <div class="hr"></div>
-
-          <div id="box" class="muted">Carregando...</div>
+          <h2 style="margin:0 0 10px 0;">Seus dados</h2>
+          <div class="contractGrid">
+            <div class="kv">
+              <div class="k">Nome</div>
+              <div class="v" id="p_nome" style="font-size:18px;font-weight:700;">—</div>
+            </div>
+            <div class="kv">
+              <div class="k">Email</div>
+              <div class="v" id="p_email" style="font-size:18px;font-weight:700;">—</div>
+            </div>
+          </div>
         </div>
-
-        <div class="footer">© <span id="footerName">RR Consultoria</span></div>
       </div>
+
+      <div class="footer">© <span id="footerCompany">RR Consultoria</span></div>
     </div>
   </div>
 
   <script>
-    const CFG = window.APP_CONFIG || {};
-    const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    const cfg = window.APP_CONFIG || {};
+    document.getElementById('logoImg').src = cfg.LOGO_URL || './Logo.png';
+    document.getElementById('companyName').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
+    document.getElementById('footerCompany').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
 
-    document.getElementById("companyName").textContent = CFG.COMPANY_NAME || "Portal";
-    document.getElementById("footerName").textContent = CFG.COMPANY_NAME || "Sua empresa";
-    document.getElementById("logoImg").src = CFG.LOGO_URL || "./Logo.png";
+    const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
-    async function load() {
-      const { data } = await sb.auth.getSession();
-      if (!data?.session) { window.location.href="./login.html"; return; }
-
-      const name = localStorage.getItem("client_name") || "—";
-      const email = data.session.user.email || "—";
-
-      document.getElementById("box").innerHTML = `
-        <div><strong>Nome:</strong> ${name}</div>
-        <div style="margin-top:10px;"><strong>Email:</strong> ${email}</div>
-      `;
-    }
-    load();
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      document.getElementById('p_email').textContent = user?.email || '—';
+      // Se você tiver tabela profiles com nome, dá pra buscar aqui depois.
+      document.getElementById('p_nome').textContent = '—';
+    })();
   </script>
 </body>
 </html>

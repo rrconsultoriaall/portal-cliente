@@ -2,12 +2,23 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal do Cliente</title>
 
+  <!-- cache-buster do CSS -->
   <link rel="stylesheet" href="./app.css?v=20260218" />
+
+  <!-- config primeiro -->
+  <script src="./config.js?v=20260218"></script>
+
+  <!-- Supabase v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js?v=1"></script>
+
+  <style>
+    /* Só pra garantir clique no mobile (sem mudar cor/tema) */
+    .topbar, .actions, .btn { position: relative; z-index: 10; }
+    .btn { pointer-events: auto; touch-action: manipulation; }
+  </style>
 </head>
 
 <body>
@@ -17,231 +28,254 @@
       <!-- TOPBAR -->
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" alt="Logo" />
+          <img id="logoImg" alt="Logo" style="width:44px;height:44px;border-radius:14px;object-fit:cover;" />
           <div class="title">
             <strong id="companyName">Sua empresa</strong>
             <span id="companyTagline">Acesse seus contratos</span>
-            <span id="whoami" class="muted"></span>
+            <span id="loggedAs" style="display:block;opacity:.7;margin-top:2px;"></span>
           </div>
         </div>
 
         <div class="actions">
           <button class="btn" id="btnSupport" type="button">Suporte</button>
-          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+          <button class="btn btnDanger" id="btnLogout" type="button">Sair</button>
         </div>
       </div>
 
       <!-- CONTRATOS -->
-      <div class="panel">
-        <div class="panel-hd">
+      <div class="content">
+        <div class="panel">
           <div class="badge"><span class="dot"></span> Seus contratos</div>
+          <div id="contractsBox" style="margin-top:12px;">
+            <div id="contractsLoading">Carregando seus contratos...</div>
+          </div>
         </div>
 
-        <div class="hr"></div>
+        <!-- AÇÕES -->
+        <div class="panel">
+          <h2>Ações</h2>
 
-        <div id="contractsBox" class="panel-bd">
-          <div class="muted">Carregando seus contratos...</div>
+          <div class="list">
+            <a class="listItem" id="btnPagamentos" href="./pagamentos.html">
+              <div class="liText">
+                <div class="liTitle">Pagamentos</div>
+                <div class="liSub">Histórico e comprovantes</div>
+              </div>
+              <div class="liArrow">›</div>
+            </a>
+
+            <a class="listItem" id="btnPerfil" href="./perfil.html">
+              <div class="liText">
+                <div class="liTitle">Perfil</div>
+                <div class="liSub">Seus dados cadastrais</div>
+              </div>
+              <div class="liArrow">›</div>
+            </a>
+
+            <a class="listItem" id="btnDetalhes" href="./detalhes.html">
+              <div class="liText">
+                <div class="liTitle">Detalhes</div>
+                <div class="liSub">Contrato e informações extras</div>
+              </div>
+              <div class="liArrow">›</div>
+            </a>
+          </div>
         </div>
-      </div>
 
-      <!-- AÇÕES -->
-     <div class="panel">
-  <h2>Ações</h2>
-
-  <div class="list">
-    <a class="listItem" href="./pagamentos.html">
-      <div class="liText">
-        <div class="liTitle">Pagamentos</div>
-        <div class="liSub">Histórico e comprovantes</div>
+        <div class="footer">© <span id="footerCompany">Sua empresa</span></div>
       </div>
-      <div class="liArrow">›</div>
-    </a>
-
-    <a class="listItem" href="./perfil.html">
-      <div class="liText">
-        <div class="liTitle">Perfil</div>
-        <div class="liSub">Seus dados cadastrais</div>
-      </div>
-      <div class="liArrow">›</div>
-    </a>
-
-    <a class="listItem" href="./detalhes.html">
-      <div class="liText">
-        <div class="liTitle">Detalhes</div>
-        <div class="liSub">Contrato e informações extras</div>
-      </div>
-      <div class="liArrow">›</div>
-    </a>
+    </div>
   </div>
-     </div> 
 
 <script>
 (function () {
-  const CFG = window.APP_CONFIG || {};
-  const $ = (id) => document.getElementById(id);
+  const cfg = window.APP_CONFIG || {};
 
-  // 1) Branding seguro (não deixa logo quebrar)
-  function setBrand() {
-    const name = CFG.COMPANY_NAME || "Sua empresa";
-    const tagline = CFG.COMPANY_TAGLINE || "Acesse seus contratos";
-    $("companyName").textContent = name;
-    $("companyTagline").textContent = tagline;
-    $("footerCompany").textContent = name;
+  // --- Branding ---
+  const companyName = document.getElementById("companyName");
+  const companyTagline = document.getElementById("companyTagline");
+  const footerCompany = document.getElementById("footerCompany");
+  const logoImg = document.getElementById("logoImg");
 
-    const logoEl = $("logoImg");
-    const preferred = (CFG.LOGO_URL || "./Logo.png");
-    const fallback = preferred.includes("Logo.png") ? "./logo.png" : "./Logo.png";
+  companyName.textContent = cfg.COMPANY_NAME || "Sua empresa";
+  companyTagline.textContent = cfg.COMPANY_TAGLINE || "Acesse seus contratos";
+  footerCompany.textContent = cfg.COMPANY_NAME || "Sua empresa";
 
-    logoEl.src = preferred + "?v=1";
-    logoEl.onerror = () => { logoEl.onerror = null; logoEl.src = fallback + "?v=1"; };
+  // Logo: tenta caminho do config, depois tenta Logo.png e logo.png
+  function setLogoWithFallback() {
+    const tryUrls = [];
+    if (cfg.LOGO_URL) tryUrls.push(cfg.LOGO_URL);
+    tryUrls.push("./Logo.png", "./logo.png");
+
+    let i = 0;
+    const tryNext = () => {
+      if (i >= tryUrls.length) return;
+      const url = tryUrls[i++];
+      logoImg.src = url + (url.includes("?") ? "" : "?v=20260218");
+    };
+
+    logoImg.onerror = () => tryNext();
+    tryNext();
+  }
+  setLogoWithFallback();
+
+  // --- Supabase ---
+  if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+    document.getElementById("contractsBox").innerHTML =
+      "<div style='opacity:.8'>Config do Supabase não encontrada (SUPABASE_URL / SUPABASE_ANON_KEY).</div>";
+    return;
   }
 
-  // 2) Cliente Supabase
-  function getClient() {
-    const url = CFG.SUPABASE_URL;
-    const key = CFG.SUPABASE_ANON_KEY;
-    if (!url || !key) throw new Error("SUPABASE_URL ou SUPABASE_ANON_KEY ausente no config.js");
-    return window.supabase.createClient(url, key);
-  }
+  const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
-  // 3) WhatsApp suporte
-  function openSupport() {
-    const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
-    const msg = encodeURIComponent(CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
-    const link = phone
+  // --- Botões ---
+  const btnSupport = document.getElementById("btnSupport");
+  const btnLogout = document.getElementById("btnLogout");
+
+  btnSupport.addEventListener("click", () => {
+    const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+    const msg = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o portal.");
+    const url = phone
       ? `https://wa.me/${phone}?text=${msg}`
       : `https://wa.me/?text=${msg}`;
-    window.open(link, "_blank", "noopener,noreferrer");
+    window.open(url, "_blank");
+  });
+
+  btnLogout.addEventListener("click", async () => {
+    try { await sb.auth.signOut(); } catch (e) {}
+    // joga pro login com cache-buster
+    window.location.href = "./login.html?v=logout";
+  });
+
+  // --- Render de contrato (bem separado e profissional) ---
+  function formatMoney(v) {
+    const n = Number(v);
+    if (Number.isNaN(n)) return v ?? "—";
+    return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+  function formatDate(v) {
+    if (!v) return "—";
+    // aceita "2026-02-22" ou ISO
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return String(v);
+    return d.toLocaleDateString("pt-BR");
   }
 
-  // 4) Render de contrato (bem separado/profissional)
-  function renderContractRow(c) {
-    // mapeamento tolerante de campos (porque seu banco pode estar com nomes diferentes)
-    const pick = (...keys) => {
-      for (const k of keys) if (c && c[k] !== undefined && c[k] !== null && String(c[k]).trim() !== "") return c[k];
-      return null;
-    };
-
-    const id = pick("id", "uuid", "codigo", "code");
-    const status = pick("status", "situacao", "estado") || "—";
-    const paid = pick("valor_pago", "valorPago", "paid_amount", "amount_paid", "pago", "valor");
-    const remaining = pick("parcelas_restantes", "parcelasRestantes", "remaining_installments", "restantes");
-    const due = pick("vencimento", "proximo_vencimento", "due_date", "next_due", "data_vencimento");
-    const notes = pick("observacoes", "obs", "notes", "observacao");
-
-    const fmtMoney = (v) => {
-      if (v === null || v === undefined || v === "") return "—";
-      const n = Number(String(v).replace(",", "."));
-      if (!Number.isFinite(n)) return String(v);
-      return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    };
-
-    const fmtDate = (v) => {
-      if (!v) return "—";
-      const d = new Date(v);
-      if (!isNaN(d.getTime())) return d.toLocaleDateString("pt-BR");
-      return String(v);
-    };
+  function renderContract(c) {
+    const status = c.status || c.situacao || "—";
+    const code = c.codigo || c.code || c.id || c.uuid || "";
+    const valor = c.valor_pago ?? c.valor ?? c.pago ?? c.valorPago;
+    const parcelas = c.parcelas_restantes ?? c.parcelas ?? c.restantes;
+    const venc = c.vencimento || c.proximo_vencimento || c.due_date;
+    const obs = c.observacoes || c.obs || "";
 
     return `
       <div class="contractCard">
-        <div class="contractTop">
-          <div class="contractStatus">${status}</div>
-          <div class="contractId">${id ? ("#" + String(id).slice(0, 8)) : ""}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+          <div style="font-weight:800;font-size:18px;">${status}</div>
+          <div style="opacity:.65;font-weight:700;">${code ? "#" + String(code).slice(0,8) : ""}</div>
         </div>
 
         <div class="kv">
           <div class="k">Valor pago</div>
-          <div class="v">${fmtMoney(paid)}</div>
-        </div>
+          <div class="v">${formatMoney(valor)}</div>
 
-        <div class="kv">
           <div class="k">Parcelas restantes</div>
-          <div class="v">${remaining ?? "—"}</div>
-        </div>
+          <div class="v">${parcelas ?? "—"}</div>
 
-        <div class="kv">
           <div class="k">Vencimento</div>
-          <div class="v">${fmtDate(due)}</div>
-        </div>
+          <div class="v">${formatDate(venc)}</div>
 
-        <div class="kv">
-          <div class="k">Observações</div>
-          <div class="v">${notes ? String(notes) : "—"}</div>
+          ${obs ? `<div class="k">Observações</div><div class="v">${obs}</div>` : ""}
         </div>
       </div>
     `;
   }
 
-  async function loadContracts(sb, user) {
-    const box = $("contractsBox");
-    box.innerHTML = `<div class="muted">Carregando seus contratos...</div>`;
-
-    // tenta tabela 1, se falhar tenta tabela 2
-    const tables = ["contracts", "contratos"];
-    let data = null;
-
-    for (const table of tables) {
-      try {
-        const r = await sb
-          .from(table)
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(10);
-
-        if (!r.error && Array.isArray(r.data)) {
-          data = r.data;
-          break;
-        }
-      } catch (e) {
-        // ignora e tenta próxima
-      }
+  // Um mini CSS só do bloco do contrato (sem mexer na sua paleta)
+  const style = document.createElement("style");
+  style.textContent = `
+    .contractCard{
+      margin-top: 10px;
+      padding: 18px 18px;
+      border-radius: 18px;
+      background: rgba(0,0,0,.10);
+      border: 1px solid rgba(255,255,255,.10);
     }
-
-    if (!data || data.length === 0) {
-      box.innerHTML = `<div class="muted">Nenhum contrato encontrado.</div>`;
-      return;
+    .kv{
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
+    .k{ opacity:.70; font-size: 13px; }
+    .v{ font-weight: 800; font-size: 18px; letter-spacing: .2px; }
+  `;
+  document.head.appendChild(style);
 
-    box.innerHTML = data.map(renderContractRow).join("");
-  }
-
-  async function main() {
-    setBrand();
-
-    const sb = getClient();
-
-    // Botões SEMPRE depois de DOM pronto
-    $("btnSupport").addEventListener("click", openSupport);
-
-    $("btnLogout").addEventListener("click", async () => {
-      try { await sb.auth.signOut(); } catch (e) {}
-      // cache-buster no redirect
-      window.location.href = "./login.html?v=" + Date.now();
-    });
+  async function load() {
+    const loggedAs = document.getElementById("loggedAs");
+    const box = document.getElementById("contractsBox");
+    const loading = document.getElementById("contractsLoading");
 
     // sessão
-    const { data: sessData, error: sessErr } = await sb.auth.getSession();
+    const { data: sessData } = await sb.auth.getSession();
     const session = sessData?.session;
-
-    if (!session?.user) {
-      window.location.href = "./login.html?v=" + Date.now();
+    if (!session) {
+      window.location.href = "./login.html?v=no-session";
       return;
     }
 
-    $("whoami").textContent = `Logado como: ${session.user.email || ""}`;
+    const user = session.user;
+    loggedAs.textContent = "Logado como: " + (user.email || "");
 
-    // carrega contratos
-    await loadContracts(sb, session.user);
+    // tenta buscar contrato em tabelas comuns
+    const tablesToTry = ["contratos", "contracts"];
+    let lastErr = null;
+
+    for (const table of tablesToTry) {
+      // tenta por user_id
+      let q1 = sb.from(table).select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1);
+      let r1 = await q1;
+      if (!r1.error && r1.data && r1.data.length) {
+        loading.remove();
+        box.innerHTML = renderContract(r1.data[0]);
+        return;
+      }
+
+      // tenta por email
+      let q2 = sb.from(table).select("*").eq("email", user.email).order("created_at", { ascending: false }).limit(1);
+      let r2 = await q2;
+      if (!r2.error && r2.data && r2.data.length) {
+        loading.remove();
+        box.innerHTML = renderContract(r2.data[0]);
+        return;
+      }
+
+      // tenta sem filtro (só pra não ficar travado)
+      let q3 = sb.from(table).select("*").order("created_at", { ascending: false }).limit(1);
+      let r3 = await q3;
+      if (!r3.error && r3.data && r3.data.length) {
+        loading.remove();
+        box.innerHTML = renderContract(r3.data[0]);
+        return;
+      }
+
+      lastErr = r1.error || r2.error || r3.error;
+    }
+
+    loading.remove();
+    box.innerHTML = `<div style="opacity:.85">Nenhum contrato encontrado.</div>`;
+    if (lastErr) {
+      box.innerHTML += `<div style="opacity:.55;margin-top:8px;font-size:12px;">(debug: ${String(lastErr.message || lastErr)})</div>`;
+    }
   }
 
-  // roda depois do DOM
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => main().catch(console.error));
-  } else {
-    main().catch(console.error);
-  }
+  load().catch(err => {
+    const box = document.getElementById("contractsBox");
+    box.innerHTML = `<div style="opacity:.85">Erro ao carregar contratos.</div>
+    <div style="opacity:.55;margin-top:8px;font-size:12px;">${String(err)}</div>`;
+  });
 })();
 </script>
 </body>

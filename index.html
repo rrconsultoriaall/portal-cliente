@@ -1,198 +1,312 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal do Cliente</title>
 
   <link rel="stylesheet" href="./app.css" />
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
+
+  <!-- Anti-cache do CSS (não muda cor, só evita cache chato) -->
+  <script>
+    (function(){
+      const v = Date.now();
+      const link = document.querySelector('link[href="./app.css"]');
+      if (link) link.href = './app.css?v=' + v;
+    })();
+  </script>
 </head>
 
 <body>
   <div class="shell">
     <div class="card">
+
+      <!-- TOPBAR -->
       <div class="topbar">
         <div class="brand">
           <img id="logoImg" src="" alt="Logo" />
           <div class="title">
-            <strong id="companyName">Portal do Cliente</strong>
-            <span id="loggedAs">Carregando sessão...</span>
+            <strong id="companyName">Sua empresa</strong>
+            <span id="companyTagline">Acesse seus contratos</span>
+            <span id="userLine" style="display:block; opacity:.75; font-weight:600; margin-top:2px;"></span>
           </div>
         </div>
 
         <div class="actions">
           <button class="btn" id="btnSupport" type="button">Suporte</button>
-          <button class="btn danger" id="btnLogout" type="button">Sair</button>
+          <button class="btnSecondary" id="btnLogout" type="button">Sair</button>
         </div>
       </div>
 
+      <!-- CONTEÚDO -->
       <div class="content">
-        <div class="grid">
-          <!-- CONTRATOS -->
-          <div class="panel">
-            <div class="badge"><span class="dot"></span> Seus contratos</div>
-            <div class="hr"></div>
 
-            <div id="contractsBox">
-              <div class="muted">Carregando seus contratos...</div>
-            </div>
+        <!-- CONTRATO -->
+        <div class="panel contractCard" id="contractsPanel">
+          <div class="pill">Seus contratos</div>
+
+          <div id="contractsEmpty" style="margin-top:12px; opacity:.75;">
+            Carregando seus contratos...
           </div>
 
-          <!-- AÇÕES -->
-          <div class="panel">
-            <h2 class="h2">Ações</h2>
-            <div class="muted">Abra uma seção para ver as informações completas.</div>
-            <div class="hr"></div>
+          <div id="contractsOne" style="display:none; margin-top:12px;">
+            <div class="contractHeader">
+              <div class="contractStatus" id="c_status">—</div>
+              <div class="contractId" id="c_id">—</div>
+            </div>
 
-            <div class="navCards">
-              <a class="navCard" href="./pagamentos.html">
-                <div>
-                  <strong>Pagamentos</strong><br />
-                  <span>Histórico e comprovantes</span>
-                </div>
-                <div class="chev">›</div>
-              </a>
+            <div class="contractGrid">
+              <div class="kv">
+                <div class="k">Valor pago</div>
+                <div class="v" id="c_valor">—</div>
+              </div>
 
-              <a class="navCard" href="./perfil.html">
-                <div>
-                  <strong>Perfil</strong><br />
-                  <span>Seus dados cadastrais</span>
-                </div>
-                <div class="chev">›</div>
-              </a>
+              <div class="kv small">
+                <div class="k">Parcelas restantes</div>
+                <div class="v" id="c_parcelas">—</div>
+              </div>
 
-              <a class="navCard" href="./detalhes.html">
-                <div>
-                  <strong>Detalhes</strong><br />
-                  <span>Contrato e informações extras</span>
-                </div>
-                <div class="chev">›</div>
-              </a>
+              <div class="kv small">
+                <div class="k">Vencimento</div>
+                <div class="v" id="c_vencimento">—</div>
+              </div>
+
+              <div class="kv">
+                <div class="k">Observações</div>
+                <div class="v" id="c_obs" style="font-size:18px; font-weight:700;">—</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="footer">© <span id="footerName">RR Consultoria</span></div>
+        <!-- AÇÕES (SEM o texto “Abra uma seção…”) -->
+        <div class="panel">
+          <h2 style="margin:0 0 6px 0;">Ações</h2>
+
+          <div class="actionsGrid">
+            <a class="actionBtn" id="btnPagamentos" href="./pagamentos.html">
+              <div>
+                Pagamentos
+                <small>Histórico e comprovantes</small>
+              </div>
+              <span>›</span>
+            </a>
+
+            <a class="actionBtn" id="btnPerfil" href="./perfil.html">
+              <div>
+                Perfil
+                <small>Seus dados cadastrais</small>
+              </div>
+              <span>›</span>
+            </a>
+
+            <a class="actionBtn" id="btnDetalhes" href="./detalhes.html">
+              <div>
+                Detalhes
+                <small>Contrato e informações extras</small>
+              </div>
+              <span>›</span>
+            </a>
+          </div>
+        </div>
+
       </div>
+
+      <!-- FOOTER -->
+      <div class="footer">
+        © <span id="footerCompany">Sua empresa</span>
+      </div>
+
     </div>
   </div>
 
   <script>
-    const CFG = window.APP_CONFIG || {};
-    const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    // ===== Config =====
+    const cfg = window.APP_CONFIG || {};
+    const supabaseUrl = cfg.SUPABASE_URL;
+    const supabaseKey = cfg.SUPABASE_ANON_KEY;
 
-    document.getElementById("companyName").textContent = CFG.COMPANY_NAME || "Portal do Cliente";
-    document.getElementById("footerName").textContent = CFG.COMPANY_NAME || "Sua empresa";
-    document.getElementById("logoImg").src = CFG.LOGO_URL || "./Logo.png";
+    // Logo e textos
+    const logoEl = document.getElementById('logoImg');
+    const nameEl = document.getElementById('companyName');
+    const tagEl  = document.getElementById('companyTagline');
+    const footerEl = document.getElementById('footerCompany');
 
-    document.getElementById("btnSupport").addEventListener("click", () => {
-      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
-      const message = CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o portal.";
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank");
+    nameEl.textContent = cfg.COMPANY_NAME || 'Sua empresa';
+    tagEl.textContent  = cfg.COMPANY_TAGLINE || 'Acesse seus contratos';
+    footerEl.textContent = cfg.COMPANY_NAME || 'Sua empresa';
+    logoEl.src = cfg.LOGO_URL || './Logo.png';
+
+    // ===== Helpers =====
+    function moneyBRL(v){
+      try { return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0)); }
+      catch(e){ return 'R$ ' + (v || 0); }
+    }
+
+    function dateBR(d){
+      if(!d) return '—';
+      const dt = new Date(d);
+      if (isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleDateString('pt-BR');
+    }
+
+    function mapStatus(vencimentoISO){
+      if(!vencimentoISO) return '—';
+      const today = new Date(); today.setHours(0,0,0,0);
+      const v = new Date(vencimentoISO); v.setHours(0,0,0,0);
+      return (v.getTime() >= today.getTime()) ? 'Em dia' : 'Atrasado';
+    }
+
+    function setEmpty(msg){
+      const empty = document.getElementById('contractsEmpty');
+      const one = document.getElementById('contractsOne');
+      empty.style.display = 'block';
+      empty.textContent = msg;
+      one.style.display = 'none';
+    }
+
+    function renderContrato(c){
+      const empty = document.getElementById('contractsEmpty');
+      const one = document.getElementById('contractsOne');
+
+      // tenta pegar campos mais comuns (pra não quebrar se mudar)
+      const rawId = c.id || c.uuid || c.contract_id || c.codigo || '';
+      const shortId = rawId ? ('#' + String(rawId).slice(-8)) : '';
+
+      const venc = c.vencimento || c.due_date || c.proximo_vencimento || c.next_due || null;
+
+      const valor = c.valor_pago ?? c.valor ?? c.paid_amount ?? c.valorPago ?? 0;
+      const parcelas = c.parcelas_restantes ?? c.parcelas ?? c.remaining_installments ?? c.parcelasRestantes ?? '—';
+      const obs = c.observacoes ?? c.obs ?? c.notes ?? c.observacao ?? '—';
+
+      document.getElementById('c_status').textContent = c.status || c.situacao || mapStatus(venc);
+      document.getElementById('c_id').textContent = shortId;
+      document.getElementById('c_valor').textContent = moneyBRL(valor);
+      document.getElementById('c_parcelas').textContent = String(parcelas ?? '—');
+      document.getElementById('c_vencimento').textContent = dateBR(venc);
+      document.getElementById('c_obs').textContent = obs || '—';
+
+      // Detalhes abre com id
+      const btnDetalhes = document.getElementById('btnDetalhes');
+      if (btnDetalhes && rawId) {
+        btnDetalhes.href = './detalhes.html?id=' + encodeURIComponent(rawId);
+      }
+
+      empty.style.display = 'none';
+      one.style.display = 'block';
+    }
+
+    // ===== Botões =====
+    const btnSupport = document.getElementById('btnSupport');
+    const btnLogout = document.getElementById('btnLogout');
+
+    btnSupport.addEventListener('click', () => {
+      const number = (cfg.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+      const msg = encodeURIComponent(cfg.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+      if (!number) {
+        alert('Número do WhatsApp não configurado no config.js');
+        return;
+      }
+      window.open(`https://wa.me/${number}?text=${msg}`, '_blank');
     });
 
-    document.getElementById("btnLogout").addEventListener("click", async () => {
-      await sb.auth.signOut();
-      window.location.href = "./login.html";
+    // ===== Supabase =====
+    if (!supabaseUrl || !supabaseKey) {
+      setEmpty('Config do Supabase ausente no config.js (SUPABASE_URL / SUPABASE_ANON_KEY).');
+      btnLogout.disabled = true;
+    }
+
+    const supabase = (supabaseUrl && supabaseKey)
+      ? window.supabase.createClient(supabaseUrl, supabaseKey)
+      : null;
+
+    btnLogout.addEventListener('click', async () => {
+      try {
+        if (supabase) await supabase.auth.signOut();
+      } catch(e) {}
+      // manda pro login com cache-buster
+      location.href = './login.html?v=' + Date.now();
     });
 
-    function moneyBR(value) {
-      return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    }
-    function formatDateBR(isoDate) {
-      if (!isoDate) return "—";
-      const [y,m,d] = String(isoDate).split("-");
-      return (y && m && d) ? `${d}/${m}/${y}` : String(isoDate);
-    }
-    function statusFromDueDate(dueDate) {
-      if (!dueDate) return "—";
-      const today = new Date();
-      const due = new Date(dueDate + "T00:00:00");
-      const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      return (due < t) ? "Atrasado" : "Em dia";
-    }
-
-    async function requireSession() {
-      const { data } = await sb.auth.getSession();
-      if (!data?.session) {
-        window.location.href = "./login.html";
+    async function requireAuth(){
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        location.href = './login.html?v=' + Date.now();
         return null;
       }
-      return data.session;
+      document.getElementById('userLine').textContent = 'Logado como: ' + (user.email || '');
+      return user;
     }
 
-    async function loadContracts() {
-      const session = await requireSession();
-      if (!session) return;
+    // Busca contrato tentando funcionar em mais de um cenário
+    async function loadContracts(user){
+      // Você pode configurar um nome fixo no config.js:
+      // window.APP_CONFIG.CONTRACTS_TABLE = "contratos" (por exemplo)
+      const tableCandidates = [
+        cfg.CONTRACTS_TABLE,
+        'contracts',
+        'contratos',
+        'cliente_contratos'
+      ].filter(Boolean);
 
-      document.getElementById("loggedAs").textContent = `Logado como: ${session.user.email || ""}`;
+      // tenta filtros comuns
+      const email = user.email || '';
 
-      const { data: clientRow } = await sb
-        .from("clients")
-        .select("id, full_name")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
+      for (const table of tableCandidates) {
+        // 1) tenta por user_id
+        let q = supabase.from(table).select('*').limit(1);
+        try {
+          const r1 = await q.eq('user_id', user.id);
+          if (!r1.error && r1.data && r1.data.length) return r1.data;
+        } catch(e) {}
 
-      // salva pra outras páginas (perfil/detalhes)
-      localStorage.setItem("client_id", clientRow?.id ? String(clientRow.id) : "");
-      localStorage.setItem("client_name", clientRow?.full_name || "");
+        // 2) tenta por email
+        try {
+          const r2 = await supabase.from(table).select('*').limit(1).eq('email', email);
+          if (!r2.error && r2.data && r2.data.length) return r2.data;
+        } catch(e) {}
 
-      const { data: contracts, error } = await sb
-        .from("contracts")
-        .select("id, amount_paid, installments_remaining, due_date, notes")
-        .eq("client_id", clientRow?.id || "__none__")
-        .order("due_date", { ascending: true });
+        // 3) tenta por user_email
+        try {
+          const r3 = await supabase.from(table).select('*').limit(1).eq('user_email', email);
+          if (!r3.error && r3.data && r3.data.length) return r3.data;
+        } catch(e) {}
 
-      if (error) {
-        document.getElementById("contractsBox").innerHTML = `<div class="muted">Erro ao carregar contratos.</div>`;
-        return;
+        // 4) sem filtro (caso você esteja testando com tabela livre)
+        try {
+          const r4 = await supabase.from(table).select('*').limit(1);
+          if (!r4.error && r4.data && r4.data.length) return r4.data;
+        } catch(e) {}
       }
 
-      if (!contracts || contracts.length === 0) {
-        document.getElementById("contractsBox").innerHTML = `<div class="muted">Nenhum contrato encontrado.</div>`;
-        return;
-      }
-
-      const html = contracts.map(c => {
-        const st = statusFromDueDate(c.due_date);
-        return `
-          <div class="contractItem">
-            <div class="contractHeader">
-              <strong>${st}</strong>
-              <span class="muted">#${String(c.id).slice(0, 8)}</span>
-            </div>
-
-            <div class="contractGrid">
-              <div>
-                <span class="muted">Valor pago</span>
-                <div><strong>${moneyBR(c.amount_paid)}</strong></div>
-              </div>
-
-              <div>
-                <span class="muted">Parcelas restantes</span>
-                <div><strong>${c.installments_remaining ?? "—"}</strong></div>
-              </div>
-
-              <div>
-                <span class="muted">Vencimento</span>
-                <div><strong>${formatDateBR(c.due_date)}</strong></div>
-              </div>
-
-              <div>
-                <span class="muted">Observações</span>
-                <div><strong>${(c.notes || "—")}</strong></div>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      document.getElementById("contractsBox").innerHTML = `<div class="contractsList">${html}</div>`;
+      return [];
     }
 
-    loadContracts();
+    (async () => {
+      if (!supabase) return;
+
+      const user = await requireAuth();
+      if (!user) return;
+
+      try {
+        const list = await loadContracts(user);
+
+        if (!list || !list.length) {
+          setEmpty('Nenhum contrato encontrado.');
+          return;
+        }
+
+        renderContrato(list[0]);
+
+      } catch (err) {
+        console.error(err);
+        setEmpty('Erro ao carregar contratos. (Veja o console)');
+      }
+    })();
   </script>
 </body>
 </html>

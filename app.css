@@ -1,473 +1,306 @@
-/* ===== PALETA OFICIAL RR CONSULTORIA ===== */
-
 :root{
-  --bg-gradient: linear-gradient(135deg, #0b1f33 0%, #123a5a 100%);
-  --card-bg: rgba(255,255,255,0.06);
-  --card-border: rgba(255,255,255,0.08);
-  --text-main: rgba(255,255,255,0.92);
-  --text-soft: rgba(255,255,255,0.65);
-  --primary-gradient: linear-gradient(90deg, #1d72f3, #27c2a5);
-  --danger-border: rgba(255,80,80,0.4);
+  --bg1:#0b2f44;
+  --bg2:#0a2436;
+
+  --card: rgba(255,255,255,.08);
+  --card2: rgba(255,255,255,.06);
+  --stroke: rgba(255,255,255,.12);
+
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.62);
+
+  --accent:#19d3c5;
+  --danger:#ff6b6b;
+
+  --shadow: 0 20px 60px rgba(0,0,0,.45);
 }
 
-/* ===== BASE ===== */
-
-*{
-  box-sizing:border-box;
-}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
 
 body{
   margin:0;
-  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg-gradient);
-  color: var(--text-main);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,.08), transparent 60%),
+              linear-gradient(180deg, var(--bg1), var(--bg2));
 }
 
-/* ===== CONTAINER PRINCIPAL ===== */
+a{ color: inherit; }
+
+.wrap{
+  min-height:100%;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:28px 16px 60px;
+}
 
 .shell{
-  max-width:420px;
-  margin:40px auto;
-  padding:20px;
+  width:min(860px, 92vw);
 }
 
 .card{
-  background: var(--card-bg);
-  backdrop-filter: blur(20px);
-  border:1px solid var(--card-border);
-  border-radius:24px;
-  padding:22px;
-  box-shadow:0 25px 60px rgba(0,0,0,0.35);
+  background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+  border: 1px solid var(--stroke);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  backdrop-filter: blur(10px);
 }
 
-/* ===== TOPO ===== */
-
-.topbar{
+.header{
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  margin-bottom:20px;
+  justify-content:space-between;
+  gap:14px;
+  padding:18px 18px;
+  border-bottom:1px solid rgba(255,255,255,.08);
 }
 
 .brand{
   display:flex;
   align-items:center;
   gap:12px;
+  min-width:0;
 }
 
 .brand img{
-  width:42px;
-  height:42px;
+  width:44px;
+  height:44px;
+  object-fit:contain;
   border-radius:12px;
-  object-fit:cover;
+  background: rgba(0,0,0,.12);
+  border:1px solid rgba(255,255,255,.10);
 }
 
-.title strong{
-  display:block;
-  font-size:16px;
+.brand .titles{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
 }
 
-.title span{
+.brand .titles .name{
+  font-weight:700;
+  letter-spacing:.2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.brand .titles .tag{
   font-size:13px;
-  color: var(--text-soft);
+  color: var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-/* ===== INPUTS ===== */
-
-.input{
-  width:100%;
-  padding:14px 16px;
-  border-radius:18px;
-  border:1px solid var(--card-border);
-  background:rgba(0,0,0,0.25);
-  color:var(--text-main);
-  outline:none;
-  font-size:15px;
-  margin-bottom:14px;
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
-.input::placeholder{
-  color:var(--text-soft);
-}
-
-/* ===== BOTÕES ===== */
-
-.btn-primary{
-  padding:12px 20px;
-  border-radius:20px;
-  border:none;
-  cursor:pointer;
-  font-weight:600;
-  background:var(--primary-gradient);
-  color:white;
-  transition:0.2s ease;
-}
-
-.btn-primary:hover{
-  transform:translateY(-2px);
-  opacity:0.95;
-}
-
-.btn{
-  padding:10px 18px;
-  border-radius:20px;
-  border:1px solid var(--card-border);
-  background:rgba(255,255,255,0.05);
-  color:var(--text-main);
-  cursor:pointer;
-}
-
-.btn-danger{
-  border:1px solid var(--danger-border);
-  color:#ff8080;
-}
-
-/* ===== BLOCOS INTERNOS ===== */
-
-.panel{
-  background:rgba(255,255,255,0.04);
-  border:1px solid var(--card-border);
-  border-radius:20px;
+.content{
   padding:18px;
-  margin-bottom:18px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
 }
 
-.panel h3{
-  margin:0 0 12px 0;
+.block{
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 22px;
+  padding:16px;
 }
 
-.panel p{
-  margin:6px 0;
-  color:var(--text-soft);
+.block-title{
+  font-size:28px;
+  font-weight:800;
+  margin:0 0 10px 0;
 }
 
-/* ===== BADGE ===== */
-
-.badge{
+.pill{
   display:inline-flex;
   align-items:center;
-  gap:8px;
-  padding:6px 14px;
-  border-radius:20px;
-  font-size:13px;
-  background:rgba(39,194,165,0.15);
-  border:1px solid rgba(39,194,165,0.3);
-  color:#27c2a5;
-}
-/* ===========================
-   OVERRIDES FIXOS (NÃO MEXER)
-   - Paleta mais clara (fintech)
-   - Corrige links roxos da seção "Ações"
-   - Mantém o resto do layout intacto
-   =========================== */
-
-:root{
-  /* FUNDO (mais claro) */
-  --bgA: #0f4f73;   /* topo */
-  --bgB: #082a3f;   /* base */
-
-  /* VIDRO / CARDS */
-  --glass: rgba(255,255,255,.08);
-  --glass2: rgba(255,255,255,.06);
-  --stroke: rgba(255,255,255,.14);
-
-  /* TEXTO */
-  --text: rgba(255,255,255,.92);
-  --muted: rgba(255,255,255,.68);
-
-  /* DESTAQUE */
-  --accent: #17d6c4;
-  --accent2:#0ea5ff;
+  gap:10px;
+  padding:10px 14px;
+  border-radius: 999px;
+  background: rgba(25,211,197,.14);
+  border:1px solid rgba(25,211,197,.25);
+  color: rgba(25,211,197,.95);
+  font-weight:700;
+  font-size:14px;
 }
 
-/* FUNDO DO SITE (trava na cor mais clara) */
-html, body{
-  background: radial-gradient(1200px 700px at 25% 10%, rgba(255,255,255,.10), transparent 60%),
-              linear-gradient(180deg, var(--bgA) 0%, var(--bgB) 100%) !important;
-  color: var(--text) !important;
+.mini{ color: var(--muted); }
+
+.form{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:10px;
 }
 
-/* Se existir algum wrapper do fundo, isso garante a mesma cor */
-.bg, .background, .page, .wrap{
-  background: transparent !important;
-}
-
-/* CORRIGE: links roxos padrão do navegador (principal causa da "bagunça") */
-a, a:visited{
-  color: var(--text) !important;
-  text-decoration: none !important;
-}
-
-/* SEÇÃO "AÇÕES" — transforma os links em botões bonitos */
-.actions a,
-.actions a:visited,
-.actionsLinks a,
-.actionsLinks a:visited{
-  display: block;
-  margin: 10px 0;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid var(--stroke);
-  background: rgba(0,0,0,.12);
-  color: var(--text) !important;
-  text-decoration: none !important;
-  font-weight: 700;
-}
-
-.actions a small,
-.actionsLinks a small{
-  display:block;
-  margin-top: 4px;
-  font-weight: 500;
+label{
+  font-size:14px;
   color: var(--muted);
 }
 
-.actions a:hover,
-.actionsLinks a:hover{
-  background: rgba(255,255,255,.08);
+.input{
+  width:100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.18);
+  color: rgba(255,255,255,.92);
+  outline: none;
 }
+.input::placeholder{ color: rgba(255,255,255,.45); }
 
-/* Espaçamento interno dos textos (pra não ficar tudo "colado") */
-.panel, .card, .box{
-  color: var(--text);
-}
-
-.panel p, .panel div, .panel span,
-.card p, .card div, .card span{
-  line-height: 1.35;
-}
-
-/* Se seus “itens” de contrato estiverem colados, isso ajuda */
-.contractItem,
-.contractsList{
-  display: grid;
-  gap: 10px;
-}
-/* ===== RODAPÉ ===== */
-
-.footer{
-  text-align:center;
-  font-size:13px;
-  color:var(--text-soft);
-  margin-top:20px;
-}
-/* ===== Ajustes de layout (sem mudar paleta) ===== */
-
-/* Botões do topo: mais espaçamento e responsivo */
-.topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 14px;
-}
-
-.topbar .actions{
-  display:flex;
-  flex-direction:column;   /* um embaixo do outro (igual seu print) */
-  gap: 12px;               /* AFASTAMENTO entre Suporte e Sair */
-  align-items:flex-end;
-}
-
-/* Se em algum lugar os botões estiverem "colados" */
-.btn, .btnSecondary{
-  margin: 0;
-}
-
-/* CONTRATO: separar e alinhar profissional */
-.contractCard{
-  padding: 18px;
-}
-
-.contractHeader{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.contractStatus{
-  font-weight: 800;
-  font-size: 22px;
-  line-height: 1.15;
-}
-
-.contractId{
-  opacity: .75;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.contractGrid{
+.row{
   display:grid;
   grid-template-columns: 1fr;
-  gap: 12px;               /* espaço entre linhas */
-  margin-top: 10px;
+  gap:10px;
+}
+
+.btn{
+  border:none;
+  cursor:pointer;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-weight:800;
+  letter-spacing:.2px;
+  color: rgba(255,255,255,.90);
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+.btn:hover{ filter: brightness(1.06); }
+
+.btn-primary{
+  background: linear-gradient(180deg, rgba(25,211,197,.45), rgba(25,211,197,.22));
+  border: 1px solid rgba(25,211,197,.35);
+  color: rgba(0,0,0,.78);
+}
+
+.btn-secondary{
+  background: rgba(255,255,255,.10);
+}
+
+.btn-danger{
+  background: rgba(255,107,107,.12);
+  border: 1px solid rgba(255,107,107,.35);
+  color: rgba(255,160,160,.95);
+}
+
+.msg{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.16);
+  color: rgba(255,255,255,.85);
+  opacity:0;
+  transition: opacity .2s ease;
+}
+
+.footer{
+  padding:12px 18px 18px;
+  color: rgba(255,255,255,.55);
+  font-size:13px;
+  text-align:center;
+}
+
+.contract-card{
+  margin-top:12px;
+  padding:14px;
+  border-radius: 18px;
+  background: var(--card2);
+  border:1px solid rgba(255,255,255,.10);
+}
+
+.contract-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.contract-status{
+  font-size:22px;
+  font-weight:900;
+}
+
+.contract-id{
+  color: rgba(255,255,255,.55);
+  font-weight:700;
+}
+
+.contract-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px 12px;
 }
 
 .kv{
-  display:grid;
-  grid-template-columns: 1fr;
-  gap: 2px;
+  padding:10px 12px;
+  border-radius: 16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.12);
+}
+.k{ font-size:12px; color: var(--muted); margin-bottom:4px; font-weight:700; }
+.v{ font-size:18px; font-weight:900; }
+
+.kv.wide{ grid-column: 1 / -1; }
+
+.actions-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:12px;
 }
 
-.kv .k{
-  opacity: .75;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.kv .v{
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: .2px;
-}
-
-/* Campos menores (tipo data e parcelas) */
-.kv.small .v{
-  font-size: 18px;
-  font-weight: 800;
-}
-
-/* AÇÕES: vira botões bonitos e some o roxo/sublinhado */
-.actionsGrid{
-  display:grid;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.actionBtn{
+.action-btn{
+  width:100%;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap: 10px;
-  padding: 14px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(0,0,0,.12);
-  text-decoration:none;
-  color: rgba(255,255,255,.92);
-  font-weight: 800;
+  gap:14px;
+  padding:16px 16px;
+  border-radius: 22px;
+  background: rgba(0,0,0,.14);
+  border:1px solid rgba(255,255,255,.12);
+  cursor:pointer;
+  text-align:left;
+  color: var(--text);
 }
 
-.actionBtn small{
-  display:block;
-  opacity: .75;
-  font-weight: 600;
+.action-btn .left{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
 }
 
-.actionBtn:visited{ color: rgba(255,255,255,.92); }
-/* ===== LISTA DE AÇÕES (botões Pagamentos / Perfil / Detalhes) ===== */
-
-.list{
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.action-btn .title{
+  font-size:20px;
+  font-weight:900;
 }
 
-.listItem{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px;
-  border-radius: 18px;
-  text-decoration: none;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  transition: all .2s ease;
+.action-btn .sub{
+  color: var(--muted);
+  font-weight:700;
 }
 
-.listItem:hover{
-  background: rgba(255,255,255,0.08);
-  transform: translateY(-2px);
+.action-btn .arrow{
+  font-size:22px;
+  opacity:.7;
 }
 
-.liText{
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.liTitle{
-  font-weight: 600;
-  font-size: 16px;
-  color: rgba(255,255,255,0.95);
-}
-
-.liSub{
-  font-size: 13px;
-  color: rgba(255,255,255,0.6);
-}
-
-.liArrow{
-  font-size: 22px;
-  color: rgba(255,255,255,0.5);
-}
-/* ===== HOTFIX: Ações virarem botões premium (prioridade máxima) ===== */
-.list{
-  margin-top: 20px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 16px !important;
-}
-
-.listItem{
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 18px 20px !important;
-  border-radius: 18px !important;
-  text-decoration: none !important;
-
-  background: rgba(255,255,255,0.04) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-
-  color: rgba(255,255,255,0.95) !important;
-  transition: all .2s ease !important;
-}
-
-.listItem:hover{
-  background: rgba(255,255,255,0.08) !important;
-  transform: translateY(-2px) !important;
-}
-
-.liText{
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important;
-}
-
-.liTitle{
-  font-weight: 700 !important;
-  font-size: 16px !important;
-  color: rgba(255,255,255,0.95) !important;
-}
-
-.liSub{
-  font-size: 13px !important;
-  color: rgba(255,255,255,0.60) !important;
-}
-
-.liArrow{
-  font-size: 22px !important;
-  color: rgba(255,255,255,0.55) !important;
-}
-.top-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-end}
-.block{margin-top:14px;padding:16px;border-radius:22px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.08)}
-.pill{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.10);opacity:.95}
-.h2{margin:0 0 10px;font-size:28px}
-.action-list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
-.action-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.10);text-decoration:none;color:inherit}
-.action-title{font-weight:800;font-size:20px}
-.action-sub{opacity:.7;margin-top:2px}
-.chev{opacity:.7;font-size:26px}
-.contract-card{padding:16px;border-radius:22px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.08)}
-.contract-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.contract-status{font-weight:800;font-size:22px}
-.contract-id{opacity:.6}
-.contract-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.kv{padding:12px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.10)}
-.k{opacity:.65;font-size:13px}
-.v{font-weight:800;font-size:18px;margin-top:4px}
-.kv.wide{grid-column:1 / -1}
+@media (min-width: 700px){
+  .row{ grid-template-columns: 1fr 1fr; }
+  }

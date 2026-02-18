@@ -1,30 +1,22 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal do Cliente</title>
 
-  <link rel="stylesheet" href="./app.css" />
+  <link rel="stylesheet" href="./app.css?v=20260218a" />
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js"></script>
 
-  <!-- Anti-cache do CSS (não muda cor, só evita cache chato) -->
-  <script>
-    (function(){
-      const v = Date.now();
-      const link = document.querySelector('link[href="./app.css"]');
-      if (link) link.href = './app.css?v=' + v;
-    })();
-  </script>
+  <!-- Seu config -->
+  <script src="./config.js?v=20260218a"></script>
 </head>
 
 <body>
   <div class="shell">
     <div class="card">
-
       <!-- TOPBAR -->
       <div class="topbar">
         <div class="brand">
@@ -32,281 +24,273 @@
           <div class="title">
             <strong id="companyName">Sua empresa</strong>
             <span id="companyTagline">Acesse seus contratos</span>
-            <span id="userLine" style="display:block; opacity:.75; font-weight:600; margin-top:2px;"></span>
+            <span id="loggedAs" class="muted" style="display:none;"></span>
           </div>
         </div>
 
         <div class="actions">
           <button class="btn" id="btnSupport" type="button">Suporte</button>
-          <button class="btnSecondary" id="btnLogout" type="button">Sair</button>
+          <button class="btn btn-ghost" id="btnLogout" type="button">Sair</button>
         </div>
       </div>
 
-      <!-- CONTEÚDO -->
+      <!-- CONTENT -->
       <div class="content">
 
-        <!-- CONTRATO -->
-        <div class="panel contractCard" id="contractsPanel">
-          <div class="pill">Seus contratos</div>
-
-          <div id="contractsEmpty" style="margin-top:12px; opacity:.75;">
-            Carregando seus contratos...
-          </div>
-
-          <div id="contractsOne" style="display:none; margin-top:12px;">
-            <div class="contractHeader">
-              <div class="contractStatus" id="c_status">—</div>
-              <div class="contractId" id="c_id">—</div>
-            </div>
-
-            <div class="contractGrid">
-              <div class="kv">
-                <div class="k">Valor pago</div>
-                <div class="v" id="c_valor">—</div>
-              </div>
-
-              <div class="kv small">
-                <div class="k">Parcelas restantes</div>
-                <div class="v" id="c_parcelas">—</div>
-              </div>
-
-              <div class="kv small">
-                <div class="k">Vencimento</div>
-                <div class="v" id="c_vencimento">—</div>
-              </div>
-
-              <div class="kv">
-                <div class="k">Observações</div>
-                <div class="v" id="c_obs" style="font-size:18px; font-weight:700;">—</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AÇÕES (SEM o texto “Abra uma seção…”) -->
+        <!-- CONTRATOS -->
         <div class="panel">
-          <h2 style="margin:0 0 6px 0;">Ações</h2>
+          <div class="panelHead">
+            <span class="pill">Seus contratos</span>
+          </div>
 
-          <div class="actionsGrid">
-            <a class="actionBtn" id="btnPagamentos" href="./pagamentos.html">
-              <div>
-                Pagamentos
-                <small>Histórico e comprovantes</small>
+          <div id="contractsBox" class="contractBox">
+            <div id="contractsStatus" class="muted">Carregando seus contratos...</div>
+            <div id="contractsList"></div>
+          </div>
+
+          <div id="errBox" class="err" style="display:none;"></div>
+        </div>
+
+        <!-- AÇÕES -->
+        <div class="panel">
+          <div class="panelHead">
+            <h2 style="margin:0;">Ações</h2>
+          </div>
+
+          <div class="menu">
+            <a class="menuItem" href="./pagamentos.html">
+              <div class="miText">
+                <strong>Pagamentos</strong>
+                <span>Histórico e comprovantes</span>
               </div>
-              <span>›</span>
+              <span class="miArrow">›</span>
             </a>
 
-            <a class="actionBtn" id="btnPerfil" href="./perfil.html">
-              <div>
-                Perfil
-                <small>Seus dados cadastrais</small>
+            <a class="menuItem" href="./perfil.html">
+              <div class="miText">
+                <strong>Perfil</strong>
+                <span>Seus dados cadastrais</span>
               </div>
-              <span>›</span>
+              <span class="miArrow">›</span>
             </a>
 
-            <a class="actionBtn" id="btnDetalhes" href="./detalhes.html">
-              <div>
-                Detalhes
-                <small>Contrato e informações extras</small>
+            <a class="menuItem" href="./detalhes.html">
+              <div class="miText">
+                <strong>Detalhes</strong>
+                <span>Contrato e informações extras</span>
               </div>
-              <span>›</span>
+              <span class="miArrow">›</span>
             </a>
           </div>
         </div>
 
+        <div class="footer">© <span id="footerCompany">Sua empresa</span></div>
       </div>
-
-      <!-- FOOTER -->
-      <div class="footer">
-        © <span id="footerCompany">Sua empresa</span>
-      </div>
-
     </div>
   </div>
 
   <script>
-    // ===== Config =====
-    const cfg = window.APP_CONFIG || {};
-    const supabaseUrl = cfg.SUPABASE_URL;
-    const supabaseKey = cfg.SUPABASE_ANON_KEY;
+    // ========= Config + UI =========
+    const CFG = window.APP_CONFIG || {};
+    const $ = (id) => document.getElementById(id);
 
-    // Logo e textos
-    const logoEl = document.getElementById('logoImg');
-    const nameEl = document.getElementById('companyName');
-    const tagEl  = document.getElementById('companyTagline');
-    const footerEl = document.getElementById('footerCompany');
+    $("companyName").textContent = CFG.COMPANY_NAME || "Sua empresa";
+    $("companyTagline").textContent = CFG.COMPANY_TAGLINE || "Acesse seus contratos";
+    $("footerCompany").textContent = CFG.COMPANY_NAME || "Sua empresa";
 
-    nameEl.textContent = cfg.COMPANY_NAME || 'Sua empresa';
-    tagEl.textContent  = cfg.COMPANY_TAGLINE || 'Acesse seus contratos';
-    footerEl.textContent = cfg.COMPANY_NAME || 'Sua empresa';
-    logoEl.src = cfg.LOGO_URL || './Logo.png';
+    if (CFG.LOGO_URL) $("logoImg").src = CFG.LOGO_URL;
 
-    // ===== Helpers =====
-    function moneyBRL(v){
-      try { return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0)); }
-      catch(e){ return 'R$ ' + (v || 0); }
+    // ========= Supabase =========
+    const supabase = window.supabase.createClient(
+      CFG.SUPABASE_URL,
+      CFG.SUPABASE_ANON_KEY
+    );
+
+    // ========= Helpers =========
+    function showError(msg) {
+      const box = $("errBox");
+      box.style.display = "block";
+      box.textContent = msg;
     }
 
-    function dateBR(d){
-      if(!d) return '—';
-      const dt = new Date(d);
-      if (isNaN(dt.getTime())) return String(d);
-      return dt.toLocaleDateString('pt-BR');
-    }
-
-    function mapStatus(vencimentoISO){
-      if(!vencimentoISO) return '—';
-      const today = new Date(); today.setHours(0,0,0,0);
-      const v = new Date(vencimentoISO); v.setHours(0,0,0,0);
-      return (v.getTime() >= today.getTime()) ? 'Em dia' : 'Atrasado';
-    }
-
-    function setEmpty(msg){
-      const empty = document.getElementById('contractsEmpty');
-      const one = document.getElementById('contractsOne');
-      empty.style.display = 'block';
-      empty.textContent = msg;
-      one.style.display = 'none';
-    }
-
-    function renderContrato(c){
-      const empty = document.getElementById('contractsEmpty');
-      const one = document.getElementById('contractsOne');
-
-      // tenta pegar campos mais comuns (pra não quebrar se mudar)
-      const rawId = c.id || c.uuid || c.contract_id || c.codigo || '';
-      const shortId = rawId ? ('#' + String(rawId).slice(-8)) : '';
-
-      const venc = c.vencimento || c.due_date || c.proximo_vencimento || c.next_due || null;
-
-      const valor = c.valor_pago ?? c.valor ?? c.paid_amount ?? c.valorPago ?? 0;
-      const parcelas = c.parcelas_restantes ?? c.parcelas ?? c.remaining_installments ?? c.parcelasRestantes ?? '—';
-      const obs = c.observacoes ?? c.obs ?? c.notes ?? c.observacao ?? '—';
-
-      document.getElementById('c_status').textContent = c.status || c.situacao || mapStatus(venc);
-      document.getElementById('c_id').textContent = shortId;
-      document.getElementById('c_valor').textContent = moneyBRL(valor);
-      document.getElementById('c_parcelas').textContent = String(parcelas ?? '—');
-      document.getElementById('c_vencimento').textContent = dateBR(venc);
-      document.getElementById('c_obs').textContent = obs || '—';
-
-      // Detalhes abre com id
-      const btnDetalhes = document.getElementById('btnDetalhes');
-      if (btnDetalhes && rawId) {
-        btnDetalhes.href = './detalhes.html?id=' + encodeURIComponent(rawId);
+    function moneyBRL(n) {
+      try {
+        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n || 0));
+      } catch {
+        return `R$ ${n}`;
       }
-
-      empty.style.display = 'none';
-      one.style.display = 'block';
     }
 
-    // ===== Botões =====
-    const btnSupport = document.getElementById('btnSupport');
-    const btnLogout = document.getElementById('btnLogout');
+    function dateBR(d) {
+      if (!d) return "—";
+      // aceita YYYY-MM-DD
+      const parts = String(d).slice(0,10).split("-");
+      if (parts.length !== 3) return String(d);
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
 
-    btnSupport.addEventListener('click', () => {
-      const number = (cfg.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
-      const msg = encodeURIComponent(cfg.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
-      if (!number) {
-        alert('Número do WhatsApp não configurado no config.js');
-        return;
-      }
-      window.open(`https://wa.me/${number}?text=${msg}`, '_blank');
+    function renderContract(c) {
+      // ajuste os nomes abaixo se a sua tabela usa outros campos
+      const status = c.status || "—";
+      const id = c.id ? `#${String(c.id).slice(0,8)}` : "";
+      const paid = moneyBRL(c.valor_pago ?? c.valorPago ?? 0);
+      const rest = (c.parcelas_restantes ?? c.parcelasRestantes ?? "—");
+      const venc = dateBR(c.vencimento);
+      const obs = (c.observacoes ?? c.obs ?? "—");
+
+      return `
+        <div class="contractCard">
+          <div class="ccTop">
+            <div class="ccStatus">${status}</div>
+            <div class="ccId">${id}</div>
+          </div>
+
+          <div class="ccGrid">
+            <div class="ccRow">
+              <span class="ccLabel">Valor pago</span>
+              <strong class="ccValue">${paid}</strong>
+            </div>
+
+            <div class="ccRow">
+              <span class="ccLabel">Parcelas restantes</span>
+              <strong class="ccValue">${rest}</strong>
+            </div>
+
+            <div class="ccRow">
+              <span class="ccLabel">Vencimento</span>
+              <strong class="ccValue">${venc}</strong>
+            </div>
+
+            <div class="ccRow ccFull">
+              <span class="ccLabel">Observações</span>
+              <strong class="ccValue">${obs}</strong>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ========= Actions =========
+    $("btnSupport").addEventListener("click", () => {
+      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const msg = encodeURIComponent(CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
+      if (!phone) return alert("WhatsApp de suporte não configurado no config.js");
+      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
     });
 
-    // ===== Supabase =====
-    if (!supabaseUrl || !supabaseKey) {
-      setEmpty('Config do Supabase ausente no config.js (SUPABASE_URL / SUPABASE_ANON_KEY).');
-      btnLogout.disabled = true;
-    }
-
-    const supabase = (supabaseUrl && supabaseKey)
-      ? window.supabase.createClient(supabaseUrl, supabaseKey)
-      : null;
-
-    btnLogout.addEventListener('click', async () => {
-      try {
-        if (supabase) await supabase.auth.signOut();
-      } catch(e) {}
-      // manda pro login com cache-buster
-      location.href = './login.html?v=' + Date.now();
+    $("btnLogout").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      // joga pro login
+      window.location.href = "./login.html?v=20260218a";
     });
 
-    async function requireAuth(){
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        location.href = './login.html?v=' + Date.now();
-        return null;
-      }
-      document.getElementById('userLine').textContent = 'Logado como: ' + (user.email || '');
-      return user;
-    }
-
-    // Busca contrato tentando funcionar em mais de um cenário
-    async function loadContracts(user){
-      // Você pode configurar um nome fixo no config.js:
-      // window.APP_CONFIG.CONTRACTS_TABLE = "contratos" (por exemplo)
-      const tableCandidates = [
-        cfg.CONTRACTS_TABLE,
-        'contracts',
-        'contratos',
-        'cliente_contratos'
-      ].filter(Boolean);
-
-      // tenta filtros comuns
-      const email = user.email || '';
-
-      for (const table of tableCandidates) {
-        // 1) tenta por user_id
-        let q = supabase.from(table).select('*').limit(1);
-        try {
-          const r1 = await q.eq('user_id', user.id);
-          if (!r1.error && r1.data && r1.data.length) return r1.data;
-        } catch(e) {}
-
-        // 2) tenta por email
-        try {
-          const r2 = await supabase.from(table).select('*').limit(1).eq('email', email);
-          if (!r2.error && r2.data && r2.data.length) return r2.data;
-        } catch(e) {}
-
-        // 3) tenta por user_email
-        try {
-          const r3 = await supabase.from(table).select('*').limit(1).eq('user_email', email);
-          if (!r3.error && r3.data && r3.data.length) return r3.data;
-        } catch(e) {}
-
-        // 4) sem filtro (caso você esteja testando com tabela livre)
-        try {
-          const r4 = await supabase.from(table).select('*').limit(1);
-          if (!r4.error && r4.data && r4.data.length) return r4.data;
-        } catch(e) {}
-      }
-
-      return [];
-    }
-
-    (async () => {
-      if (!supabase) return;
-
-      const user = await requireAuth();
-      if (!user) return;
-
+    // ========= Load =========
+    (async function init() {
       try {
-        const list = await loadContracts(user);
+        const { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+        if (sessErr) throw sessErr;
 
-        if (!list || !list.length) {
-          setEmpty('Nenhum contrato encontrado.');
+        const session = sessionData?.session;
+        if (!session) {
+          window.location.href = "./login.html?v=20260218a";
           return;
         }
 
-        renderContrato(list[0]);
+        const email = session.user?.email || "";
+        $("loggedAs").style.display = "block";
+        $("loggedAs").textContent = `Logado como: ${email}`;
 
-      } catch (err) {
-        console.error(err);
-        setEmpty('Erro ao carregar contratos. (Veja o console)');
+        // >>>>>>>>>>>> BUSCA DE CONTRATOS <<<<<<<<<<<<
+        // Troque "contracts" pelo nome real da sua tabela se for diferente
+        // E troque "email" pelo campo certo (ex: client_email, user_email, etc.)
+        const { data: rows, error: qErr } = await supabase
+          .from("contracts")
+          .select("*")
+          .eq("email", email)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (qErr) throw qErr;
+
+        $("contractsStatus").style.display = "none";
+        const list = $("contractsList");
+
+        if (!rows || rows.length === 0) {
+          list.innerHTML = `<div class="muted">Nenhum contrato encontrado.</div>`;
+          return;
+        }
+
+        list.innerHTML = rows.map(renderContract).join("");
+
+      } catch (e) {
+        $("contractsStatus").style.display = "none";
+        showError("Erro ao carregar contratos: " + (e?.message || e));
       }
     })();
   </script>
+
+  <!-- CSS mínimo local para garantir o botão Sair + cards bonitos (SEM mexer na paleta) -->
+  <style>
+    /* garante alinhamento dos botões no topo */
+    .actions { display:flex; gap:12px; align-items:center; }
+    .btn { cursor:pointer; }
+
+    /* botão Sair “padronizado” sem virar vermelho/estranho */
+    .btn-ghost{
+      opacity:.95;
+    }
+
+    /* lista/itens (ações) */
+    .menu { display:flex; flex-direction:column; gap:14px; margin-top:14px; }
+    .menuItem{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 16px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.10);
+      text-decoration:none;
+      color: rgba(255,255,255,.92);
+    }
+    .miText strong{ display:block; font-size:18px; }
+    .miText span{ display:block; margin-top:4px; opacity:.70; }
+    .miArrow{ font-size:26px; opacity:.65; }
+
+    /* contratos mais “fintech” e com espaçamento */
+    .contractCard{
+      margin-top:12px;
+      padding:16px 16px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.10);
+    }
+    .ccTop{
+      display:flex; align-items:baseline; justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .ccStatus{ font-weight:800; font-size:22px; }
+    .ccId{ opacity:.65; font-weight:600; }
+
+    .ccGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px 18px;
+    }
+    .ccRow{ display:flex; flex-direction:column; gap:6px; }
+    .ccFull{ grid-column: 1 / -1; }
+
+    .ccLabel{ opacity:.70; font-size:14px; letter-spacing:.2px; }
+    .ccValue{ font-size:18px; }
+
+    .err{
+      margin-top:12px;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.92);
+      opacity:.95;
+    }
+    .muted{ opacity:.70; }
+  </style>
 </body>
 </html>

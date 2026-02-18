@@ -115,8 +115,7 @@
   </div>
 
 <script>
-  const CFG = window.APP_CONFIG || {};
-  const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  const sb = (window.supabase?.createClient ? window.supabase : supabase).createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
   const setText = (id, v) => (document.getElementById(id).textContent = v);
   const msg = document.getElementById('msg');

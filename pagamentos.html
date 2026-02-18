@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Pagamentos</title>
-  <link rel="stylesheet" href="./app.css" />
+  <link rel="stylesheet" href="./app.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
 </head>
@@ -13,10 +13,10 @@
     <div class="card">
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" src="" alt="Logo" />
+          <img id="logoImg" src="" alt="Logo">
           <div class="title">
             <strong id="companyName">RR Consultoria</strong>
-            <span class="muted">Pagamentos</span>
+            <span id="companyTagline">Pagamentos</span>
           </div>
         </div>
         <div class="actions">
@@ -26,23 +26,20 @@
 
       <div class="content">
         <div class="panel">
-          <h2 class="h2">Histórico</h2>
-          <div class="muted">Aqui você verá seus pagamentos e comprovantes.</div>
-          <div class="hr"></div>
-
-          <div class="muted">Em breve: lista de pagamentos.</div>
+          <h2 style="margin:0 0 10px 0;">Pagamentos</h2>
+          <div style="opacity:.8">Em breve: histórico de pagamentos e comprovantes.</div>
         </div>
-
-        <div class="footer">© <span id="footerName">RR Consultoria</span></div>
       </div>
+
+      <div class="footer">© <span id="footerCompany">RR Consultoria</span></div>
     </div>
   </div>
 
   <script>
-    const CFG = window.APP_CONFIG || {};
-    document.getElementById("companyName").textContent = CFG.COMPANY_NAME || "Portal";
-    document.getElementById("footerName").textContent = CFG.COMPANY_NAME || "Sua empresa";
-    document.getElementById("logoImg").src = CFG.LOGO_URL || "./Logo.png";
+    const cfg = window.APP_CONFIG || {};
+    document.getElementById('logoImg').src = cfg.LOGO_URL || './Logo.png';
+    document.getElementById('companyName').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
+    document.getElementById('footerCompany').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
   </script>
 </body>
 </html>

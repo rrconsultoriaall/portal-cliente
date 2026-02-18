@@ -1,229 +1,240 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin - Portal</title>
-
-<style>
-:root{
-  --bg:#f4f6fb;
-  --card:#ffffff;
-  --primary:#1e40af;
-  --danger:#b91c1c;
-  --shadow:0 12px 30px rgba(15,23,42,.10);
-  --radius:18px;
-}
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:var(--bg);
-  padding:20px;
-}
-.top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  max-width:1000px;
-  margin:0 auto 20px;
-}
-h1{margin:0;color:var(--primary)}
-button{
-  border:none;
-  padding:10px 14px;
-  border-radius:12px;
-  font-weight:700;
-  cursor:pointer;
-}
-.btn-dark{background:#111;color:#fff}
-.btn-primary{background:var(--primary);color:#fff}
-.card{
-  background:var(--card);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:16px;
-  max-width:1000px;
-  margin:0 auto 16px;
-}
-input, select{
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #ccc;
-  margin-bottom:8px;
-  width:100%;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-th, td{
-  padding:8px;
-  border-bottom:1px solid #eee;
-  font-size:13px;
-}
-th{background:#fafafa}
-.err{color:var(--danger);font-size:13px}
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin | RR Consultoria</title>
+  <link rel="stylesheet" href="./app.css?v=1" />
+  <script src="./config.js?v=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
+  <div class="page">
+    <div class="card">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="./logo.png?v=1" alt="Logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <div class="brand-title" id="companyName">Admin</div>
+            <div class="brand-sub" id="loggedAs"></div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+        </div>
+      </header>
 
-<div class="top">
-  <h1>Painel Admin</h1>
-  <button class="btn-dark" onclick="logout()">Sair</button>
-</div>
+      <main class="content">
+        <h1 class="h1">Painel Admin</h1>
+        <p class="helper" id="msg"></p>
 
-<div id="error" class="err"></div>
+        <div class="block">
+          <h2 class="h2">1) Encontrar cliente</h2>
+          <label class="label">Email do cliente</label>
+          <input id="clientEmail" class="input" type="email" placeholder="cliente@dominio.com" />
+          <button class="btn btn-primary" id="btnFind" type="button">Buscar</button>
 
-<div class="card">
-  <h3>Criar Contrato</h3>
-  <select id="clientSelect"></select>
-  <input type="number" id="amount" placeholder="Valor pago">
-  <input type="number" id="installments" placeholder="Parcelas restantes">
-  <input type="date" id="dueDate">
-  <select id="status">
-    <option value="ativo">ativo</option>
-    <option value="pendente">pendente</option>
-    <option value="atrasado">atrasado</option>
-    <option value="finalizado">finalizado</option>
-  </select>
-  <input type="text" id="notes" placeholder="Observações">
-  <button class="btn-primary" onclick="createContract()">Salvar</button>
-</div>
+          <div class="mini">
+            <div><b>client_id:</b> <span id="clientId">—</span></div>
+            <div><b>Nome:</b> <span id="clientName">—</span></div>
+            <div><b>Status:</b> <span id="clientStatus">—</span></div>
+          </div>
+        </div>
 
-<div class="card">
-  <h3>Contratos</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Status</th>
-        <th>Cliente</th>
-        <th>Valor</th>
-        <th>Parcelas</th>
-        <th>Vencimento</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody id="contractsTable"></tbody>
-  </table>
-</div>
+        <div class="block">
+          <h2 class="h2">2) Criar contrato</h2>
+
+          <div class="grid">
+            <div class="field">
+              <label class="label">Total do contrato (R$)</label>
+              <input id="total_value" class="input" type="number" step="0.01" placeholder="48000" />
+            </div>
+            <div class="field">
+              <label class="label">Valor pago (R$)</label>
+              <input id="amount_paid" class="input" type="number" step="0.01" placeholder="1000" />
+            </div>
+            <div class="field">
+              <label class="label">Parcelas restantes</label>
+              <input id="installments_remaining" class="input" type="number" placeholder="12" />
+            </div>
+            <div class="field">
+              <label class="label">Vencimento</label>
+              <input id="due_date" class="input" type="date" />
+            </div>
+            <div class="field">
+              <label class="label">Status</label>
+              <input id="contract_status" class="input" type="text" placeholder="Em dia" />
+            </div>
+            <div class="field">
+              <label class="label">Observações</label>
+              <input id="contract_notes" class="input" type="text" placeholder="Contrato fechado via WhatsApp" />
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="btnCreateContract" type="button">Criar contrato</button>
+
+          <div class="mini">
+            <div><b>contract_id:</b> <span id="contractId">—</span></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <h2 class="h2">3) Registrar pagamento</h2>
+
+          <div class="grid">
+            <div class="field">
+              <label class="label">Valor (R$)</label>
+              <input id="pay_amount" class="input" type="number" step="0.01" placeholder="1000" />
+            </div>
+            <div class="field">
+              <label class="label">Data do pagamento</label>
+              <input id="paid_at" class="input" type="date" />
+            </div>
+            <div class="field">
+              <label class="label">Método</label>
+              <input id="method" class="input" type="text" placeholder="Pix" />
+            </div>
+            <div class="field">
+              <label class="label">Notas</label>
+              <input id="pay_notes" class="input" type="text" placeholder="Pago via pix" />
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="btnAddPayment" type="button">Salvar pagamento</button>
+        </div>
+
+        <div class="divider"></div>
+        <a class="link" href="./index.html?v=1">Ver painel do cliente (logado como você)</a>
+      </main>
+
+      <footer class="footer">
+        <span id="footerCompany">© Sua empresa</span>
+      </footer>
+    </div>
+  </div>
 
 <script>
+  const CFG = window.APP_CONFIG || {};
+  const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-// 🔐 COLE SUA URL E ANON KEY
-const supabaseUrl = "https://occxmqvoyvmxvaoaxecw.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3htcXZveXZteHZhb2F4ZWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzg4MDMsImV4cCI6MjA4Njg1NDgwM30.lJXhM58PK3ofpZdjeJqdF-C9fV9UL4JRw54cpygWkao";
+  const setText = (id, v) => (document.getElementById(id).textContent = v);
+  const msg = document.getElementById('msg');
+  const setMsg = (t, ok=false) => {
+    msg.textContent = t || '';
+    msg.style.opacity = t ? '1' : '0.95';
+    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
 
-const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  // brand
+  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME + ' • Admin');
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
 
-async function logout(){
-  await supabase.auth.signOut();
-  window.location.href = "./login.html";
-}
-
-function showError(msg){
-  document.getElementById("error").innerText = msg;
-}
-
-async function checkAdmin(){
-  const { data: session } = await supabase.auth.getSession();
-  if(!session.session){
-    window.location.href = "./login.html";
-    return false;
-  }
-
-  const userId = session.session.user.id;
-
-  const { data } = await supabase
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if(!data){
-    showError("Acesso negado. Você não é admin.");
-    return false;
-  }
-
-  return true;
-}
-
-async function loadClients(){
-  const { data } = await supabase
-    .from("clients")
-    .select("id, full_name");
-
-  const select = document.getElementById("clientSelect");
-  select.innerHTML = data.map(c =>
-    `<option value="${c.id}">${c.full_name || c.id}</option>`
-  ).join("");
-}
-
-async function loadContracts(){
-  const { data } = await supabase
-    .from("contracts")
-    .select("*")
-    .order("created_at", { ascending:false });
-
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, full_name");
-
-  const nameMap = {};
-  clients.forEach(c => nameMap[c.id] = c.full_name || c.id);
-
-  document.getElementById("contractsTable").innerHTML =
-    data.map(c => `
-      <tr>
-        <td>${c.status}</td>
-        <td>${nameMap[c.client_id] || c.client_id}</td>
-        <td>R$ ${Number(c.amount_paid || 0).toLocaleString("pt-BR")}</td>
-        <td>${c.installments_remaining || "-"}</td>
-        <td>${c.due_date || "-"}</td>
-        <td>
-          <button onclick="deleteContract('${c.id}')">Excluir</button>
-        </td>
-      </tr>
-    `).join("");
-}
-
-async function createContract(){
-  const client_id = document.getElementById("clientSelect").value;
-  const amount_paid = Number(document.getElementById("amount").value);
-  const installments_remaining = Number(document.getElementById("installments").value);
-  const due_date = document.getElementById("dueDate").value;
-  const status = document.getElementById("status").value;
-  const notes = document.getElementById("notes").value;
-
-  const { error } = await supabase.from("contracts").insert({
-    client_id,
-    amount_paid,
-    installments_remaining,
-    due_date,
-    status,
-    notes
+  document.getElementById('btnSupport').addEventListener('click', () => {
+    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+    if (!phone) return alert('WhatsApp de suporte não configurado.');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
   });
 
-  if(error) showError(error.message);
-  else{
-    loadContracts();
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = './login.html?v=1';
+  });
+
+  const $ = (id) => document.getElementById(id);
+  let currentClient = null;
+  let currentContractId = null;
+
+  async function requireAdmin() {
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) { window.location.href = './login.html?v=1'; return null; }
+
+    setText('loggedAs', `Logado como: ${data.session.user.email}`);
+
+    // checa se é admin
+    const { data: adm, error } = await supabase.from('admins').select('user_id').eq('user_id', data.session.user.id).maybeSingle();
+    if (error || !adm) {
+      setMsg('Acesso negado: este usuário não é admin.', false);
+      return null;
+    }
+    return data.session;
   }
-}
 
-async function deleteContract(id){
-  await supabase.from("contracts").delete().eq("id", id);
-  loadContracts();
-}
+  async function findClient() {
+    await requireAdmin();
 
-(async () => {
-  const ok = await checkAdmin();
-  if(!ok) return;
+    const email = $('clientEmail').value.trim().toLowerCase();
+    if (!email) return setMsg('Digite o email do cliente.');
 
-  await loadClients();
-  await loadContracts();
-})();
+    setMsg('Buscando cliente...');
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, full_name, status, email')
+      .eq('email', email)
+      .single();
+
+    if (error) return setMsg('Cliente não encontrado. Ele já criou conta com esse email?', false);
+
+    currentClient = data;
+    setText('clientId', data.id);
+    setText('clientName', data.full_name || '—');
+    setText('clientStatus', data.status || '—');
+    setMsg('Cliente encontrado ✅', true);
+  }
+
+  async function createContract() {
+    await requireAdmin();
+    if (!currentClient?.id) return setMsg('Primeiro busque o cliente pelo email.');
+
+    const payload = {
+      client_id: currentClient.id,
+      total_value: Number($('total_value').value || 0),
+      amount_paid: Number($('amount_paid').value || 0),
+      installments_remaining: Number($('installments_remaining').value || 0),
+      due_date: $('due_date').value || null,
+      status: $('contract_status').value.trim() || 'Em dia',
+      notes: $('contract_notes').value.trim() || null
+    };
+
+    setMsg('Criando contrato...');
+    const { data, error } = await supabase
+      .from('contracts')
+      .insert(payload)
+      .select('id')
+      .single();
+
+    if (error) return setMsg(error.message, false);
+
+    currentContractId = data.id;
+    setText('contractId', currentContractId);
+    setMsg('Contrato criado ✅', true);
+  }
+
+  async function addPayment() {
+    await requireAdmin();
+    if (!currentContractId) return setMsg('Crie (ou tenha) um contract_id primeiro.');
+
+    const payload = {
+      contract_id: currentContractId,
+      amount: Number($('pay_amount').value || 0),
+      paid_at: $('paid_at').value || null,
+      method: $('method').value.trim() || null,
+      notes: $('pay_notes').value.trim() || null
+    };
+
+    setMsg('Salvando pagamento...');
+    const { error } = await supabase.from('payments').insert(payload);
+
+    if (error) return setMsg(error.message, false);
+    setMsg('Pagamento registrado ✅', true);
+  }
+
+  $('btnFind').addEventListener('click', findClient);
+  $('btnCreateContract').addEventListener('click', createContract);
+  $('btnAddPayment').addEventListener('click', addPayment);
+
+  requireAdmin();
 </script>
 
 </body>

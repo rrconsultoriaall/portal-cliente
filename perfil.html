@@ -183,3 +183,25 @@
 </script>
 </body>
   </html>
+const btn = document.getElementById('btnSave') || document.querySelector('button');
+btn?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  console.log('CLIQUEI SALVAR ✅');
+  alert('Clique do salvar pegou ✅');
+
+  const { data: sess } = await supabase.auth.getSession();
+  console.log('session', sess);
+
+  // tenta um update simples só pra testar permissão
+  const { error } = await supabase
+    .from('clients')
+    .update({ full_name: 'Teste Salvando ' + new Date().toISOString() })
+    .eq('user_id', sess.session.user.id);
+
+  if (error) {
+    console.error('ERRO SUPABASE', error);
+    alert('Erro ao salvar: ' + error.message);
+  } else {
+    alert('Salvou ✅');
+  }
+});

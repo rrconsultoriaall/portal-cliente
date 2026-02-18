@@ -14,11 +14,11 @@
     <div class="card">
 
       <header class="topbar">
-        <div class="brand" style="gap:12px; justify-content:flex-start;">
+        <div class="brand">
           <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
             <div class="brand-title" id="companyName">RR Consultoria</div>
-            <div class="brand-sub" id="companyTagline">Área do Cliente</div>
+            <div class="brand-sub" id="companyTagline">Assessoria &amp; Consultoria</div>
             <div class="brand-sub mini" id="loggedAs" style="opacity:.9"></div>
           </div>
         </div>
@@ -31,53 +31,65 @@
 
       <main class="content">
 
-        <div style="margin: 4px 0 10px;">
-          <a href="./index.html?v=200" class="mini" style="display:inline-block; font-weight:800;">‹ Voltar</a>
-        </div>
+        <a href="./index.html?v=200" style="display:inline-block; margin: 2px 0 12px;">&larr; Voltar</a>
 
         <section class="block">
           <div class="pill">Seus dados</div>
 
-          <div id="statusArea" class="mini" style="line-height:1.55; margin-bottom:12px;">
-            Carregando seu perfil…
+          <div id="statusLine" class="mini" style="line-height:1.55; margin-bottom:10px;">
+            Carregando...
           </div>
 
-          <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
+          <div id="msg" class="msg" aria-live="polite" style="opacity:0;"></div>
 
-          <form id="formProfile" autocomplete="on" style="margin-top:10px;">
-            <label for="fullName">Nome completo</label>
-            <input id="fullName" name="name" type="text" placeholder="Seu nome completo" />
+          <form id="profileForm" autocomplete="on" style="margin-top:10px;">
 
-            <label for="birthDate">Data de nascimento</label>
-            <input id="birthDate" name="bday" type="date" />
+            <label for="full_name">Nome completo</label>
+            <input id="full_name" name="full_name" type="text" placeholder="Seu nome completo" />
+
+            <label for="birth_date">Data de nascimento</label>
+            <input id="birth_date" name="birth_date" type="date" />
 
             <label for="cpf">CPF</label>
-            <input id="cpf" name="cpf" inputmode="numeric" placeholder="Somente números" />
+            <input id="cpf" name="cpf" type="text" inputmode="numeric" placeholder="Somente números" />
 
             <label for="phone">Telefone</label>
-            <input id="phone" name="tel" inputmode="tel" placeholder="DDD + número" />
+            <input id="phone" name="phone" type="text" inputmode="tel" placeholder="DDD + número" />
 
             <label for="cep">CEP</label>
-            <input id="cep" name="cep" inputmode="numeric" placeholder="Somente números" />
+            <input id="cep" name="cep" type="text" inputmode="numeric" placeholder="Somente números" />
 
             <label for="address">Endereço</label>
-            <input id="address" name="address" type="text" placeholder="Rua, número, bairro, cidade" />
+            <input id="address" name="address" type="text" placeholder="Rua, número, bairro" />
+
+            <label for="city">Cidade</label>
+            <input id="city" name="city" type="text" placeholder="Sua cidade" />
+
+            <label for="state">Estado</label>
+            <select id="state" name="state">
+              <option value="">Selecione</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option>
+              <option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+              <option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option>
+              <option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+              <option>SP</option><option>SE</option><option>TO</option>
+            </select>
+
+            <label for="notes">Observações</label>
+            <textarea id="notes" name="notes" rows="3" placeholder="Opcional"></textarea>
 
             <div class="actions">
               <button class="btn btn-primary" id="btnSave" type="submit">Salvar</button>
               <button class="btn btn-secondary" id="btnReload" type="button">Recarregar</button>
             </div>
-          </form>
 
-          <div class="mini" style="margin-top:10px; opacity:.75;">
-            Seus dados são usados apenas para cadastro e suporte. Caso algo não bata, fale com o suporte.
-          </div>
+          </form>
         </section>
 
       </main>
 
       <footer class="footer">
-        <span id="footerCompany">© Sua empresa</span>
+        <span id="footerCompany">© RR Consultoria</span>
       </footer>
 
     </div>
@@ -91,20 +103,20 @@
 
   const $ = (id) => document.getElementById(id);
 
-  // Branding
-  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
-  if (CFG.COMPANY_NAME) $('companyName').textContent = CFG.COMPANY_NAME;
-  if (CFG.COMPANY_TAGLINE) $('companyTagline').textContent = CFG.COMPANY_TAGLINE;
-  $('footerCompany').textContent = `© ${CFG.COMPANY_NAME || 'Sua empresa'}`;
+  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
 
-  // Mensagem
   const msgEl = $('msg');
-  function setMsg(t, ok=false){
-    if (!msgEl) return;
+  const setMsg = (t, ok=false) => {
     msgEl.textContent = t || '';
     msgEl.style.opacity = t ? '1' : '0';
     msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
-  }
+  };
+
+  // Branding
+  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
+  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'RR Consultoria'}`);
 
   // Suporte WhatsApp
   function openSupport(){
@@ -122,135 +134,135 @@
   }
   $('btnLogout').addEventListener('click', doLogout);
 
-  // Helpers
-  function v(id){ return ( $(id)?.value ?? '' ).trim(); }
-  function setVal(id, val){
-    const el = $(id);
-    if (!el) return;
-    el.value = val ?? '';
+  // ===== Helpers de formatação (sem frescura) =====
+  const onlyDigits = (s) => (s ?? '').toString().replace(/\D/g,'');
+  function normalizeState(v){
+    const s = (v ?? '').toString().trim().toUpperCase();
+    return s.length === 2 ? s : (s ? s.slice(0,2) : '');
   }
 
-  function collectProfile(){
-    return {
-      full_name: v('fullName'),
-      birth_date: v('birthDate') || null,
-      cpf: v('cpf'),
-      phone: v('phone'),
-      cep: v('cep'),
-      address: v('address'),
-    };
+  // ===== Load/Save =====
+  let CURRENT_UID = null;
+
+  function fillForm(client){
+    // client pode ser null
+    $('full_name').value = client?.full_name ?? '';
+    $('birth_date').value = client?.birth_date ? String(client.birth_date).slice(0,10) : '';
+    $('cpf').value = client?.cpf ?? '';
+    $('phone').value = client?.phone ?? '';
+    $('cep').value = client?.cep ?? '';
+    $('address').value = client?.address ?? '';
+    $('city').value = client?.city ?? '';
+    $('state').value = client?.state ? normalizeState(client.state) : '';
+    $('notes').value = client?.notes ?? '';
   }
 
-  function fillProfile(row){
-    setVal('fullName', row?.full_name || '');
-    setVal('birthDate', row?.birth_date ? String(row.birth_date).slice(0,10) : '');
-    setVal('cpf', row?.cpf || '');
-    setVal('phone', row?.phone || '');
-    setVal('cep', row?.cep || '');
-    setVal('address', row?.address || '');
-  }
-
-  async function getSessionOrRedirect(){
-    const { data } = await sb.auth.getSession();
-    const session = data?.session;
-    if (!session){
-      window.location.href = './login.html?v=200';
-      return null;
-    }
-    return session;
-  }
-
-  async function loadProfile(){
+  async function loadClient(){
     setMsg('');
-    $('statusArea').textContent = 'Carregando seu perfil…';
+    $('statusLine').textContent = 'Carregando...';
 
-    const session = await getSessionOrRedirect();
-    if (!session) return;
-
-    const uid = session.user.id;
-    const email = session.user.email;
-    $('loggedAs').textContent = email ? `Logado como: ${email}` : '';
-
-    const { data: client, error } = await sb
-      .from('clients')
-      .select('id, full_name, birth_date, cpf, phone, cep, address')
-      .eq('user_id', uid)
-      .maybeSingle();
-
-    if (error){
-      console.error(error);
-      $('statusArea').textContent = 'Não foi possível carregar agora.';
-      setMsg(`Erro ao carregar: ${error.message}`, false);
+    const { data: sessData } = await sb.auth.getSession();
+    const session = sessData?.session;
+    if (!session) {
+      window.location.href = './login.html?v=200';
       return;
     }
 
-    fillProfile(client || {});
-    $('statusArea').innerHTML = client
-      ? 'Perfil carregado ✅'
-      : 'Seu perfil ainda não tem dados. Preencha e clique em <b>Salvar</b>.';
-    if (client) setMsg('', true);
+    const uid = session.user.id;
+    const email = session.user.email;
+    CURRENT_UID = uid;
+    setText('loggedAs', email ? `Logado como: ${email}` : '');
+
+    // Busca pelo user_id (regra correta)
+    const { data: client, error } = await sb
+      .from('clients')
+      .select('id,user_id,is_active,full_name,birth_date,cpf,phone,cep,address,city,state,notes,email,status,plan_id,created_at')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (error) {
+      $('statusLine').textContent = 'Erro ao carregar seu perfil.';
+      setMsg(error.message);
+      fillForm(null);
+      return;
+    }
+
+    if (!client) {
+      // Se não existir, a gente avisa (mas não cria automaticamente pra não “inventar” regra)
+      $('statusLine').innerHTML = `
+        Não encontramos seu cadastro na tabela <b>clients</b>.<br/>
+        Fale com o suporte para criar/associar seu usuário.
+      `;
+      setMsg('Cadastro não encontrado para este usuário.', false);
+      fillForm(null);
+      return;
+    }
+
+    // ok
+    $('statusLine').innerHTML = `Perfil carregado ✅`;
+    fillForm(client);
+    setMsg('', true);
   }
 
-  async function saveProfile(e){
-    e?.preventDefault?.();
+  async function saveClient(){
     setMsg('');
 
-    const btn = $('btnSave');
-    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
-
-    try{
-      const session = await getSessionOrRedirect();
-      if (!session) return;
-
-      const uid = session.user.id;
-      const email = session.user.email;
-
-      // tenta achar o client atual
-      const { data: existing, error: findErr } = await sb
-        .from('clients')
-        .select('id')
-        .eq('user_id', uid)
-        .maybeSingle();
-
-      if (findErr) throw findErr;
-
-      const payload = collectProfile();
-      payload.user_id = uid;
-      payload.email = email;
-
-      let res;
-      if (existing?.id){
-        res = await sb.from('clients')
-          .update(payload)
-          .eq('id', existing.id)
-          .select('id')
-          .maybeSingle();
-      } else {
-        res = await sb.from('clients')
-          .insert(payload)
-          .select('id')
-          .maybeSingle();
-      }
-
-      if (res.error) throw res.error;
-
-      $('statusArea').innerHTML = 'Dados salvos ✅';
-      setMsg('Dados salvos ✅', true);
-    } catch(err){
-      console.error(err);
-      $('statusArea').textContent = 'Não foi possível salvar.';
-      setMsg(`Não foi possível salvar: ${err?.message || err}`, false);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+    if (!CURRENT_UID) {
+      setMsg('Sessão inválida. Faça login novamente.');
+      return;
     }
+
+    // monta payload com as colunas reais da sua tabela
+    const payload = {
+      full_name: ($('full_name').value || '').trim() || null,
+      birth_date: $('birth_date').value ? $('birth_date').value : null,
+      cpf: onlyDigits($('cpf').value) || null,
+      phone: ($('phone').value || '').trim() || null,
+      cep: onlyDigits($('cep').value) || null,
+      address: ($('address').value || '').trim() || null,
+      city: ($('city').value || '').trim() || null,
+      state: normalizeState($('state').value) || null,
+      notes: ($('notes').value || '').trim() || null,
+    };
+
+    // Atualiza o registro do cliente pelo user_id
+    const { data, error } = await sb
+      .from('clients')
+      .update(payload)
+      .eq('user_id', CURRENT_UID)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      setMsg(`Erro ao salvar: ${error.message}`);
+      return;
+    }
+
+    if (!data) {
+      setMsg('Não foi possível salvar: cadastro não encontrado para este usuário.');
+      return;
+    }
+
+    setMsg('Dados salvos ✅', true);
   }
 
-  $('formProfile').addEventListener('submit', saveProfile);
-  $('btnReload').addEventListener('click', loadProfile);
+  // Eventos
+  $('btnReload').addEventListener('click', loadClient);
 
-  // boot
-  loadProfile();
+  $('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('btnSave').disabled = true;
+    try {
+      await saveClient();
+    } finally {
+      $('btnSave').disabled = false;
+    }
+  });
+
+  // Boot
+  loadClient();
 </script>
 
 </body>
-  </html>
+</html>
+```0

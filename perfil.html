@@ -4,20 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Perfil | Portal do Cliente</title>
-  <link rel="stylesheet" href="./app.css">
+
+  <link rel="stylesheet" href="./app.css?v=10">
   <script src="./config.js?v=10"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
   <div class="page">
     <div class="card">
+
       <header class="topbar">
         <div class="brand">
           <img class="brand-logo" src="./logo.png?v=10" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
-            <div class="brand-title" id="companyName">RR Consultoria</div>
-            <div class="brand-sub">Perfil</div>
-            <div class="brand-sub small" id="loggedAs"></div>
+            <div class="brand-title" id="companyName">Sua empresa</div>
+            <div class="brand-sub" id="companyTagline">Perfil</div>
+            <div class="brand-mini" id="loggedAs"></div>
           </div>
         </div>
 
@@ -28,180 +31,199 @@
       </header>
 
       <main class="content">
-        <a class="link" href="./index.html?v=10">‹ Voltar</a>
+        <a class="backlink" href="./index.html?v=10" id="btnBack">‹ Voltar</a>
 
         <section class="block">
           <div class="pill">Seus dados</div>
 
-          <div class="grid">
-            <div class="field">
-              <label class="label">Nome completo</label>
-              <input id="full_name" class="input" type="text" placeholder="Seu nome" />
-            </div>
+          <div id="msg" class="msg" aria-live="polite"></div>
 
-            <div class="field">
-              <label class="label">Data de nascimento</label>
-              <input id="birth_date" class="input" type="date" />
-            </div>
+          <div class="form">
 
-            <div class="field">
-              <label class="label">CPF</label>
-              <input id="cpf" class="input" type="text" placeholder="000.000.000-00" />
-            </div>
+            <label class="lbl" for="fullName">Nome completo</label>
+            <input class="input" id="fullName" type="text" autocomplete="name" placeholder="Seu nome completo" />
 
-            <div class="field">
-              <label class="label">Telefone</label>
-              <input id="phone" class="input" type="text" placeholder="(11) 99999-9999" />
-            </div>
+            <label class="lbl" for="birthDate">Data de nascimento</label>
+            <!-- Se você preferir manter no formato dd/mm/aaaa, pode trocar pra type="text" -->
+            <input class="input" id="birthDate" type="date" />
 
-            <div class="field">
-              <label class="label">CEP</label>
-              <input id="cep" class="input" type="text" placeholder="00000-000" />
-            </div>
+            <label class="lbl" for="cpf">CPF</label>
+            <input class="input" id="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" />
 
-            <div class="field">
-              <label class="label">Endereço</label>
-              <input id="address" class="input" type="text" placeholder="Rua, número" />
-            </div>
+            <label class="lbl" for="phone">Telefone</label>
+            <input class="input" id="phone" type="text" inputmode="tel" placeholder="(11) 99999-9999" />
 
-            <div class="field">
-              <label class="label">Cidade</label>
-              <input id="city" class="input" type="text" placeholder="Cidade" />
-            </div>
+            <label class="lbl" for="cep">CEP</label>
+            <input class="input" id="cep" type="text" inputmode="numeric" placeholder="00000-000" />
 
-            <div class="field">
-              <label class="label">Estado</label>
-              <input id="state" class="input" type="text" placeholder="SP" />
-            </div>
+            <label class="lbl" for="address">Endereço</label>
+            <input class="input" id="address" type="text" autocomplete="street-address" placeholder="Rua, número, bairro" />
+
+            <label class="lbl" for="city">Cidade</label>
+            <input class="input" id="city" type="text" autocomplete="address-level2" placeholder="Sua cidade" />
+
+            <label class="lbl" for="state">Estado</label>
+            <input class="input" id="state" type="text" autocomplete="address-level1" placeholder="SP" />
+
+            <button class="btn btn-primary" id="btnSave" type="button">Salvar</button>
           </div>
-
-          <button class="btn btn-primary" id="btnSave" type="button">Salvar</button>
         </section>
-
-        <p class="helper" id="msg"></p>
       </main>
 
       <footer class="footer">
         <span id="footerCompany">© Sua empresa</span>
       </footer>
+
     </div>
   </div>
 
 <script>
+  // ===== Config + Supabase Client =====
   const CFG = window.APP_CONFIG || {};
-  const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-  const setText = (id, v) => (document.getElementById(id).textContent = v);
-  const msg = document.getElementById('msg');
+  // Este truque evita “supabase is not defined” quando o CDN exporta em window.supabase
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+  // ===== Helpers UI =====
+  const $ = (id) => document.getElementById(id);
+
+  const msgEl = $('msg');
   const setMsg = (t, ok=false) => {
-    msg.textContent = t || '';
-    msg.style.opacity = t ? '1' : '0';
-    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+    msgEl.textContent = t || '';
+    msgEl.style.opacity = t ? '1' : '0';
+    msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
   };
 
+  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
+
+  // Brand
   if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
   setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
 
-  document.getElementById('btnSupport').addEventListener('click', () => {
+  // Suporte WhatsApp
+  $('btnSupport').addEventListener('click', () => {
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
     const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
     if (!phone) return alert('WhatsApp de suporte não configurado.');
     window.location.href = `https://wa.me/${phone}?text=${text}`;
   });
 
-  document.getElementById('btnLogout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
+  // Logout
+  $('btnLogout').addEventListener('click', async () => {
+    await sb.auth.signOut();
     window.location.href = './login.html?v=10';
   });
 
-  const $ = (id) => document.getElementById(id);
-
+  // ===== Auth Guard =====
   async function requireSession() {
-    const { data } = await supabase.auth.getSession();
-    if (!data?.session) { window.location.href = './login.html?v=10'; return null; }
-    setText('loggedAs', `Logado como: ${data.session.user.email}`);
+    const { data, error } = await sb.auth.getSession();
+    if (error) console.warn(error);
+    if (!data?.session) {
+      window.location.href = './login.html?v=10';
+      return null;
+    }
     return data.session;
   }
 
+  // ===== Load profile =====
   async function loadProfile() {
+    setMsg('Carregando seu perfil...');
+
     const session = await requireSession();
     if (!session) return;
 
-    setMsg('Carregando...', true);
+    const user = session.user;
+    setText('loggedAs', `Logado como: ${user.email || ''}`);
 
-    const { data, error } = await supabase
+    // Busca por user_id
+    const { data, error } = await sb
       .from('clients')
-      .select('id, user_id, full_name, birth_date, cpf, phone, cep, address, city, state')
-      .eq('user_id', session.user.id)
+      .select('user_id, full_name, cpf, phone, address, city, state, email, status, notes, birth_date, cep')
+      .eq('user_id', user.id)
       .maybeSingle();
 
-    if (error || !data) {
-      setMsg('Não achei seu perfil. Tente sair e entrar de novo.', false);
+    if (error) {
+      console.error(error);
+      return setMsg('Erro ao carregar perfil: ' + error.message);
+    }
+
+    // Se ainda não existe registro, deixa vazio e permite salvar (vai criar no upsert)
+    if (!data) {
+      setMsg('Complete seus dados e clique em Salvar ✅', true);
       return;
     }
 
-    $('full_name').value = data.full_name || '';
-    $('birth_date').value = data.birth_date || '';
-    $('cpf').value = data.cpf || '';
-    $('phone').value = data.phone || '';
-    $('cep').value = data.cep || '';
-    $('address').value = data.address || '';
-    $('city').value = data.city || '';
-    $('state').value = data.state || '';
+    $('fullName').value = data.full_name || '';
+    $('cpf').value      = data.cpf || '';
+    $('phone').value    = data.phone || '';
+    $('address').value  = data.address || '';
+    $('city').value     = data.city || '';
+    $('state').value    = data.state || '';
+    $('cep').value      = data.cep || '';
 
-    setMsg('Pronto ✅', true);
+    // birth_date:
+    // - Se sua coluna for DATE, o Supabase retorna "YYYY-MM-DD" (combina com input type=date)
+    $('birthDate').value = data.birth_date || '';
+
+    setMsg('Perfil carregado ✅', true);
   }
 
+  // ===== Save profile =====
   async function saveProfile() {
+    setMsg('Salvando...');
+
     const session = await requireSession();
     if (!session) return;
 
-    setMsg('Salvando...', true);
+    const user = session.user;
 
     const payload = {
-      full_name: $('full_name').value.trim(),
-      birth_date: $('birth_date').value || null,
+      user_id: user.id,
+      email: (user.email || '').toLowerCase(),
+
+      full_name: $('fullName').value.trim(),
       cpf: $('cpf').value.trim(),
       phone: $('phone').value.trim(),
       cep: $('cep').value.trim(),
       address: $('address').value.trim(),
       city: $('city').value.trim(),
-      state: $('state').value.trim()
+      state: $('state').value.trim(),
+
+      // Se NÃO existir essas colunas na tabela, apaga essas 2 linhas:
+      birth_date: $('birthDate').value || null,
+
+      // Você pode deixar padrão:
+      status: 'Ativo',
+      notes: 'Cliente'
     };
 
-    const { error } = await supabase
-      .from('clients')
-      .update(payload)
-      .eq('user_id', session.user.id);
+    // Validações simples (opcionais)
+    if (!payload.full_name) return setMsg('Preencha seu nome completo.');
+    if (!payload.cpf) return setMsg('Preencha o CPF.');
 
-    if (error) return setMsg(error.message, false);
-    setMsg('Perfil atualizado ✅', true);
+    // Upsert pelo user_id (precisa de constraint UNIQUE em user_id OU usar onConflict)
+    const { error } = await sb
+      .from('clients')
+      .upsert(payload, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error(error);
+      return setMsg('Erro ao salvar: ' + error.message);
+    }
+
+    setMsg('Dados salvos ✅', true);
   }
 
-  document.getElementById('btnSave').addEventListener('click', saveProfile);
+  $('btnSave').addEventListener('click', (e) => {
+    e.preventDefault();
+    saveProfile();
+  });
+
+  // Carrega ao abrir
   loadProfile();
 </script>
+
 </body>
-  </html>
-const btn = document.getElementById('btnSave') || document.querySelector('button');
-btn?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  console.log('CLIQUEI SALVAR ✅');
-  alert('Clique do salvar pegou ✅');
-
-  const { data: sess } = await supabase.auth.getSession();
-  console.log('session', sess);
-
-  // tenta um update simples só pra testar permissão
-  const { error } = await supabase
-    .from('clients')
-    .update({ full_name: 'Teste Salvando ' + new Date().toISOString() })
-    .eq('user_id', sess.session.user.id);
-
-  if (error) {
-    console.error('ERRO SUPABASE', error);
-    alert('Erro ao salvar: ' + error.message);
-  } else {
-    alert('Salvou ✅');
-  }
-});
+</html>

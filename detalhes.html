@@ -1,49 +1,135 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Detalhes</title>
-  <link rel="stylesheet" href="./app.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Detalhes | Portal do Cliente</title>
+  <link rel="stylesheet" href="./app.css?v=10" />
+  <script src="./config.js?v=10"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js"></script>
 </head>
 <body>
-  <div class="shell">
+  <div class="page">
     <div class="card">
-      <div class="topbar">
+      <header class="topbar">
         <div class="brand">
-          <img id="logoImg" src="" alt="Logo">
-          <div class="title">
-            <strong id="companyName">RR Consultoria</strong>
-            <span id="companyTagline">Detalhes do contrato</span>
+          <img class="brand-logo" src="./logo.png?v=10" alt="Logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-sub">Detalhes do Contrato</div>
+            <div class="brand-sub small" id="loggedAs"></div>
           </div>
         </div>
-        <div class="actions">
-          <a class="btn" href="./index.html">Voltar</a>
-        </div>
-      </div>
 
-      <div class="content">
-        <div class="panel">
-          <h2 style="margin:0 0 10px 0;">Detalhes</h2>
-          <div id="d_txt" style="opacity:.8">Selecione um contrato pelo painel.</div>
+        <div class="top-actions">
+          <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
         </div>
-      </div>
+      </header>
 
-      <div class="footer">© <span id="footerCompany">RR Consultoria</span></div>
+      <main class="content">
+        <a class="link" href="./index.html?v=10">‹ Voltar</a>
+
+        <section class="block">
+          <div class="pill">Contrato</div>
+          <div id="detailsArea" class="mini">Carregando...</div>
+        </section>
+
+        <p class="helper" id="msg"></p>
+      </main>
+
+      <footer class="footer">
+        <span id="footerCompany">© Sua empresa</span>
+      </footer>
     </div>
   </div>
 
-  <script>
-    const cfg = window.APP_CONFIG || {};
-    document.getElementById('logoImg').src = cfg.LOGO_URL || './Logo.png';
-    document.getElementById('companyName').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
-    document.getElementById('footerCompany').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
+<script>
+  const CFG = window.APP_CONFIG || {};
+  const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-    const params = new URLSearchParams(location.search);
-    const id = params.get('id');
-    if (id) document.getElementById('d_txt').textContent = 'Contrato: ' + id + ' (em breve detalhes completos).';
-  </script>
+  const setText = (id, v) => (document.getElementById(id).textContent = v);
+  const msg = document.getElementById('msg');
+  const setMsg = (t, ok=false) => {
+    msg.textContent = t || '';
+    msg.style.opacity = t ? '1' : '0';
+    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
+
+  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+
+  document.getElementById('btnSupport').addEventListener('click', () => {
+    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+    if (!phone) return alert('WhatsApp de suporte não configurado.');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
+  });
+
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = './login.html?v=10';
+  });
+
+  function moneyBR(v){
+    const n = Number(v || 0);
+    return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
+  function dateBR(iso){
+    if (!iso) return '—';
+    const s = String(iso);
+    if (s.includes('T')) iso = s.split('T')[0];
+    const [y,m,d] = String(iso).split('-');
+    if (!y||!m||!d) return iso;
+    return `${d}/${m}/${y}`;
+  }
+
+  async function requireSession() {
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) { window.location.href = './login.html?v=10'; return null; }
+    setText('loggedAs', `Logado como: ${data.session.user.email}`);
+    return data.session;
+  }
+
+  async function loadDetails() {
+    const session = await requireSession();
+    if (!session) return;
+
+    const area = document.getElementById('detailsArea');
+    area.textContent = 'Carregando contrato...';
+
+    // pega o contrato mais recente do cliente (RLS garante que só vem dele)
+    const { data: c, error } = await supabase
+      .from('contracts')
+      .select('id, status, total_value, amount_paid, installments_remaining, due_date, notes, created_at')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) { area.textContent = 'Erro ao carregar contrato.'; return; }
+    if (!c) { area.textContent = 'Nenhum contrato encontrado.'; return; }
+
+    area.innerHTML = `
+      <div class="contract-card">
+        <div class="contract-head">
+          <div class="contract-status">${c.status || '—'}</div>
+          <div class="contract-id">#${String(c.id).slice(0,8)}</div>
+        </div>
+
+        <div class="contract-grid">
+          <div class="kv"><div class="k">Total</div><div class="v">${moneyBR(c.total_value)}</div></div>
+          <div class="kv"><div class="k">Pago</div><div class="v">${moneyBR(c.amount_paid)}</div></div>
+          <div class="kv"><div class="k">Parcelas restantes</div><div class="v">${c.installments_remaining ?? '—'}</div></div>
+          <div class="kv"><div class="k">Vencimento</div><div class="v">${dateBR(c.due_date)}</div></div>
+          <div class="kv wide"><div class="k">Observações</div><div class="v" style="font-weight:600">${c.notes || '—'}</div></div>
+        </div>
+      </div>
+    `;
+
+    setMsg('Detalhes carregados ✅', true);
+  }
+
+  loadDetails();
+</script>
 </body>
 </html>

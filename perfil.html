@@ -1,63 +1,199 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Perfil</title>
-  <link rel="stylesheet" href="./app.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Meu perfil | Portal do Cliente</title>
+
+  <link rel="stylesheet" href="./app.css?v=1" />
+  <script src="./config.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js"></script>
 </head>
+
 <body>
-  <div class="shell">
+  <div class="page">
     <div class="card">
-      <div class="topbar">
+      <header class="topbar">
         <div class="brand">
-          <img id="logoImg" src="" alt="Logo">
-          <div class="title">
-            <strong id="companyName">RR Consultoria</strong>
-            <span id="companyTagline">Perfil</span>
+          <img class="brand-logo" src="./logo.png?v=1" alt="Logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <div class="brand-title" id="companyName">Portal do Cliente</div>
+            <div class="brand-sub">Meu perfil</div>
+            <div class="brand-sub small" id="loggedAs"></div>
           </div>
         </div>
-        <div class="actions">
-          <a class="btn" href="./index.html">Voltar</a>
-        </div>
-      </div>
 
-      <div class="content">
-        <div class="panel">
-          <h2 style="margin:0 0 10px 0;">Seus dados</h2>
-          <div class="contractGrid">
-            <div class="kv">
-              <div class="k">Nome</div>
-              <div class="v" id="p_nome" style="font-size:18px;font-weight:700;">—</div>
-            </div>
-            <div class="kv">
-              <div class="k">Email</div>
-              <div class="v" id="p_email" style="font-size:18px;font-weight:700;">—</div>
-            </div>
+        <div class="top-actions">
+          <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <h1 class="h1">Complete seu cadastro</h1>
+
+        <div class="form grid">
+          <div class="field">
+            <label class="label">Nome completo</label>
+            <input id="full_name" class="input" type="text" placeholder="Seu nome completo" />
           </div>
-        </div>
-      </div>
 
-      <div class="footer">© <span id="footerCompany">RR Consultoria</span></div>
+          <div class="field">
+            <label class="label">Data de nascimento</label>
+            <input id="birth_date" class="input" type="date" />
+          </div>
+
+          <div class="field">
+            <label class="label">CPF</label>
+            <input id="cpf" class="input" type="text" placeholder="000.000.000-00" />
+          </div>
+
+          <div class="field">
+            <label class="label">Telefone</label>
+            <input id="phone" class="input" type="text" placeholder="(11) 99999-9999" />
+          </div>
+
+          <div class="field">
+            <label class="label">CEP</label>
+            <input id="cep" class="input" type="text" placeholder="00000-000" />
+          </div>
+
+          <div class="field">
+            <label class="label">Endereço</label>
+            <input id="address" class="input" type="text" placeholder="Rua, número, bairro" />
+          </div>
+
+          <div class="field">
+            <label class="label">Cidade</label>
+            <input id="city" class="input" type="text" placeholder="Cidade" />
+          </div>
+
+          <div class="field">
+            <label class="label">Estado</label>
+            <input id="state" class="input" type="text" placeholder="UF" />
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="btnSave" type="button">Salvar</button>
+            <a class="link" href="./index.html?v=1">Voltar ao painel</a>
+          </div>
+
+          <p class="helper" id="msg"></p>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <span id="footerCompany">© Sua empresa</span>
+      </footer>
     </div>
   </div>
 
-  <script>
-    const cfg = window.APP_CONFIG || {};
-    document.getElementById('logoImg').src = cfg.LOGO_URL || './Logo.png';
-    document.getElementById('companyName').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
-    document.getElementById('footerCompany').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
+<script>
+  const CFG = window.APP_CONFIG || {};
+  const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-    const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  // UI texts
+  const companyName = document.getElementById('companyName');
+  const footerCompany = document.getElementById('footerCompany');
+  if (CFG.COMPANY_NAME) companyName.textContent = CFG.COMPANY_NAME;
+  footerCompany.textContent = `© ${CFG.COMPANY_NAME || 'Sua empresa'}`;
 
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      document.getElementById('p_email').textContent = user?.email || '—';
-      // Se você tiver tabela profiles com nome, dá pra buscar aqui depois.
-      document.getElementById('p_nome').textContent = '—';
-    })();
-  </script>
+  const msg = document.getElementById('msg');
+  const setMsg = (t, ok=false) => {
+    msg.textContent = t || '';
+    msg.style.opacity = t ? '1' : '0';
+    msg.style.color = ok ? 'rgba(86, 255, 180, .95)' : 'rgba(255,255,255,.80)';
+  };
+
+  // Support
+  document.getElementById('btnSupport').addEventListener('click', () => {
+    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+    if (!phone) return alert('WhatsApp de suporte não configurado.');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
+  });
+
+  // Logout
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = './login.html?v=1';
+  });
+
+  // Helpers
+  const $ = (id) => document.getElementById(id);
+
+  async function requireSession() {
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) {
+      window.location.href = './login.html?v=1';
+      return null;
+    }
+    return data.session;
+  }
+
+  async function loadProfile() {
+    const session = await requireSession();
+    if (!session) return;
+
+    const email = session.user.email || '';
+    document.getElementById('loggedAs').textContent = `Logado como: ${email}`;
+
+    // Busca o perfil do cliente logado
+    const { data, error } = await supabase
+      .from('clients')
+      .select('full_name,birth_date,cpf,phone,cep,address,city,state')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (error) {
+      setMsg('Não consegui carregar seu perfil. (Verifique RLS/trigger)', false);
+      return;
+    }
+
+    // Preenche inputs
+    if (data) {
+      $('full_name').value  = data.full_name || '';
+      $('birth_date').value = data.birth_date || '';
+      $('cpf').value        = data.cpf || '';
+      $('phone').value      = data.phone || '';
+      $('cep').value        = data.cep || '';
+      $('address').value    = data.address || '';
+      $('city').value       = data.city || '';
+      $('state').value      = data.state || '';
+    }
+  }
+
+  async function saveProfile() {
+    const session = await requireSession();
+    if (!session) return;
+
+    setMsg('Salvando...');
+
+    const payload = {
+      full_name: $('full_name').value.trim(),
+      birth_date: $('birth_date').value || null,
+      cpf: $('cpf').value.trim(),
+      phone: $('phone').value.trim(),
+      cep: $('cep').value.trim(),
+      address: $('address').value.trim(),
+      city: $('city').value.trim(),
+      state: $('state').value.trim(),
+    };
+
+    const { error } = await supabase
+      .from('clients')
+      .update(payload)
+      .eq('user_id', session.user.id);
+
+    if (error) return setMsg(error.message, false);
+
+    setMsg('Perfil atualizado com sucesso ✅', true);
+  }
+
+  document.getElementById('btnSave').addEventListener('click', saveProfile);
+
+  loadProfile();
+</script>
+
 </body>
 </html>

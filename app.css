@@ -357,3 +357,50 @@ a, a:visited{
 }
 
 .actionBtn:visited{ color: rgba(255,255,255,.92); }
+/* ===== LISTA DE AÇÕES (botões Pagamentos / Perfil / Detalhes) ===== */
+
+.list{
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.listItem{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-radius: 18px;
+  text-decoration: none;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all .2s ease;
+}
+
+.listItem:hover{
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-2px);
+}
+
+.liText{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.liTitle{
+  font-weight: 600;
+  font-size: 16px;
+  color: rgba(255,255,255,0.95);
+}
+
+.liSub{
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+}
+
+.liArrow{
+  font-size: 22px;
+  color: rgba(255,255,255,0.5);
+}

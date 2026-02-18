@@ -154,7 +154,95 @@ body{
   border:1px solid rgba(39,194,165,0.3);
   color:#27c2a5;
 }
+/* ===========================
+   OVERRIDES FIXOS (NÃO MEXER)
+   - Paleta mais clara (fintech)
+   - Corrige links roxos da seção "Ações"
+   - Mantém o resto do layout intacto
+   =========================== */
 
+:root{
+  /* FUNDO (mais claro) */
+  --bgA: #0f4f73;   /* topo */
+  --bgB: #082a3f;   /* base */
+
+  /* VIDRO / CARDS */
+  --glass: rgba(255,255,255,.08);
+  --glass2: rgba(255,255,255,.06);
+  --stroke: rgba(255,255,255,.14);
+
+  /* TEXTO */
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.68);
+
+  /* DESTAQUE */
+  --accent: #17d6c4;
+  --accent2:#0ea5ff;
+}
+
+/* FUNDO DO SITE (trava na cor mais clara) */
+html, body{
+  background: radial-gradient(1200px 700px at 25% 10%, rgba(255,255,255,.10), transparent 60%),
+              linear-gradient(180deg, var(--bgA) 0%, var(--bgB) 100%) !important;
+  color: var(--text) !important;
+}
+
+/* Se existir algum wrapper do fundo, isso garante a mesma cor */
+.bg, .background, .page, .wrap{
+  background: transparent !important;
+}
+
+/* CORRIGE: links roxos padrão do navegador (principal causa da "bagunça") */
+a, a:visited{
+  color: var(--text) !important;
+  text-decoration: none !important;
+}
+
+/* SEÇÃO "AÇÕES" — transforma os links em botões bonitos */
+.actions a,
+.actions a:visited,
+.actionsLinks a,
+.actionsLinks a:visited{
+  display: block;
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(0,0,0,.12);
+  color: var(--text) !important;
+  text-decoration: none !important;
+  font-weight: 700;
+}
+
+.actions a small,
+.actionsLinks a small{
+  display:block;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.actions a:hover,
+.actionsLinks a:hover{
+  background: rgba(255,255,255,.08);
+}
+
+/* Espaçamento interno dos textos (pra não ficar tudo "colado") */
+.panel, .card, .box{
+  color: var(--text);
+}
+
+.panel p, .panel div, .panel span,
+.card p, .card div, .card span{
+  line-height: 1.35;
+}
+
+/* Se seus “itens” de contrato estiverem colados, isso ajuda */
+.contractItem,
+.contractsList{
+  display: grid;
+  gap: 10px;
+}
 /* ===== RODAPÉ ===== */
 
 .footer{

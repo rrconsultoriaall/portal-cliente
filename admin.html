@@ -4,191 +4,107 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin • Portal</title>
-  <link rel="stylesheet" href="./app.css?v=1" />
-  <script src="./config.js?v=1"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="./style.css?v=99">
 </head>
 <body>
-  <div class="wrap">
-    <div class="shell">
-      <div class="card">
-        <header class="header">
-          <div class="brand">
-            <img id="logoImg" alt="Logo" />
-            <div class="titles">
-              <div class="name" id="companyName">Sua empresa</div>
-              <div class="tag" id="adminAs">Checando admin...</div>
-            </div>
-          </div>
 
-          <div class="top-actions">
-            <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
-            <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
-          </div>
-        </header>
+<div class="wrap">
+  <div class="card">
 
-        <main class="content">
-          <section class="block">
-            <div class="pill">Admin</div>
-            <div id="msg" class="msg" aria-live="polite"></div>
-          </section>
-
-          <section class="block">
-            <h2 class="block-title">Clientes (últimos 10)</h2>
-            <div id="clientsArea" class="mini">Carregando...</div>
-          </section>
-
-          <section class="block">
-            <h2 class="block-title">Contratos (últimos 10)</h2>
-            <div id="contractsArea" class="mini">Carregando...</div>
-          </section>
-        </main>
-
-        <footer class="footer">
-          <span id="footerCompany">© Sua empresa</span>
-        </footer>
+    <header class="brand">
+      <img id="logoImg" class="logo" src="./Logo.png" alt="Logo" />
+      <div class="brand-text">
+        <div id="companyName" class="brand-title">Admin</div>
+        <div class="brand-sub">Gerenciar clientes e contratos</div>
+        <div id="loggedAs" class="brand-sub mini" style="opacity:.9"></div>
       </div>
-    </div>
+
+      <div class="top-actions">
+        <button class="btn btn-secondary" id="btnPortal" type="button">Portal</button>
+        <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <section class="block">
+        <div class="pill">Admin</div>
+        <div id="adminArea" class="mini">Carregando...</div>
+        <div id="msg" class="msg" aria-live="polite"></div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <span id="footerCompany">© Sua empresa</span>
+    </footer>
+
   </div>
+</div>
 
-  <script>
-    const CFG = window.APP_CONFIG || {};
-    const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+<script src="./config.js?v=99"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? ''; };
-    const msgEl = document.getElementById('msg');
-    const setMsg = (t, ok=false) => {
-      msgEl.textContent = t || '';
-      msgEl.style.opacity = t ? '1' : '0';
-      msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,200,200,.95)';
-    };
+<script>
+  const CFG = window.APP_CONFIG || {};
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-    // Brand
-    setText('companyName', CFG.COMPANY_NAME || 'Sua empresa');
-    setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
-    document.getElementById('logoImg').src = (CFG.LOGO_URL || './Logo.png') + '?v=1';
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? ''; };
+  const msg = document.getElementById('msg');
+  const setMsg = (t, ok=false) => {
+    msg.textContent = t || '';
+    msg.style.opacity = t ? '1' : '0';
+    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
 
-    // Botões
-    document.getElementById('btnSupport').addEventListener('click', () => {
-      const phone = (CFG.SUPPORT_WHATSAPP || '').trim();
-      if (!phone) return alert('WhatsApp de suporte não configurado.');
-      const text = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda.');
-      window.location.href = `https://wa.me/${phone}?text=${text}`;
-    });
+  document.getElementById('logoImg').src = CFG.LOGO_URL || './Logo.png';
+  if (CFG.COMPANY_NAME) setText('companyName', `${CFG.COMPANY_NAME} • Admin`);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
 
-    document.getElementById('btnLogout').addEventListener('click', async () => {
-      await sb.auth.signOut();
-      window.location.href = './login.html?v=1';
-    });
+  document.getElementById('btnPortal').addEventListener('click', () => {
+    window.location.href = './index.html?v=99';
+  });
 
-    async function requireSession() {
-      const { data } = await sb.auth.getSession();
-      const session = data?.session;
-      if (!session) {
-        window.location.href = './login.html?v=1';
-        return null;
-      }
-      return session;
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    window.location.href = './login.html?v=99';
+  });
+
+  async function requireAdmin(){
+    const { data } = await sb.auth.getSession();
+    if (!data?.session) { window.location.href = './login.html?v=99'; return null; }
+
+    setText('loggedAs', `Logado como: ${data.session.user.email}`);
+
+    const { data: adm, error } = await sb
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', data.session.user.id)
+      .maybeSingle();
+
+    if (error) { setMsg(error.message); return null; }
+    if (!adm) {
+      document.getElementById('adminArea').textContent = 'Acesso negado. Você não é admin.';
+      return null;
     }
 
-    async function requireAdmin(session){
-      // precisa existir em public.admins a linha com user_id = auth.uid()
-      const { data, error } = await sb
-        .from('admins')
-        .select('user_id')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
+    return data.session;
+  }
 
-      if (error) throw error;
-      return !!data;
-    }
+  (async () => {
+    const session = await requireAdmin();
+    if (!session) return;
 
-    function escapeHtml(s){
-      return String(s ?? '')
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'",'&#039;');
-    }
+    document.getElementById('adminArea').innerHTML = `
+      <div class="mini" style="opacity:.9; line-height:1.5">
+        ✅ Você está como admin.<br/>
+        Agora você pode gerenciar dados diretamente no Supabase (tables) e o portal do cliente vai refletir isso.
+      </div>
+    `;
+    setMsg('Admin carregado ✅', true);
+  })();
+</script>
 
-    async function loadAdmin() {
-      setMsg('');
-      const session = await requireSession();
-      if (!session) return;
-
-      setText('adminAs', `Logado como: ${session.user.email}`);
-
-      let isAdmin = false;
-      try{
-        isAdmin = await requireAdmin(session);
-      }catch(e){
-        setMsg(e.message);
-        return;
-      }
-
-      if (!isAdmin){
-        setMsg('Acesso negado: este usuário não é admin.', false);
-        document.getElementById('clientsArea').textContent = '—';
-        document.getElementById('contractsArea').textContent = '—';
-        return;
-      }
-
-      setMsg('Admin carregado ✅', true);
-
-      const clientsArea = document.getElementById('clientsArea');
-      const contractsArea = document.getElementById('contractsArea');
-
-      // Clientes
-      const { data: clients, error: cErr } = await sb
-        .from('clients')
-        .select('id, full_name, email, is_active, created_at')
-        .order('created_at', { ascending:false })
-        .limit(10);
-
-      if (cErr){
-        clientsArea.textContent = 'Erro ao carregar clientes.';
-        setMsg(cErr.message);
-        return;
-      }
-
-      clientsArea.innerHTML = (clients?.length ? clients : []).map(c => `
-        <div class="contract-card" style="margin-top:10px">
-          <div style="font-weight:900;font-size:18px">${escapeHtml(c.full_name || '—')}</div>
-          <div class="mini">${escapeHtml(c.email || '')}</div>
-          <div class="mini">Ativo: <b>${c.is_active ? 'Sim' : 'Não'}</b></div>
-          <div class="mini">ID: ${escapeHtml(String(c.id).slice(0,8))}</div>
-        </div>
-      `).join('') || `<div class="mini">Nenhum cliente.</div>`;
-
-      // Contratos
-      const { data: contracts, error: kErr } = await sb
-        .from('contracts')
-        .select('id, client_id, status, total_value, amount_paid, due_date, created_at')
-        .order('created_at', { ascending:false })
-        .limit(10);
-
-      if (kErr){
-        contractsArea.textContent = 'Erro ao carregar contratos.';
-        setMsg(kErr.message);
-        return;
-      }
-
-      contractsArea.innerHTML = (contracts?.length ? contracts : []).map(k => `
-        <div class="contract-card" style="margin-top:10px">
-          <div style="display:flex;justify-content:space-between;gap:10px">
-            <div style="font-weight:900">${escapeHtml(k.status || 'Contrato')}</div>
-            <div class="mini">#${escapeHtml(String(k.id).slice(0,8))}</div>
-          </div>
-          <div class="mini">client_id: ${escapeHtml(String(k.client_id).slice(0,8))}</div>
-          <div class="mini">total: ${Number(k.total_value||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-          <div class="mini">pago: ${Number(k.amount_paid||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-          <div class="mini">vencimento: ${escapeHtml(k.due_date || '—')}</div>
-        </div>
-      `).join('') || `<div class="mini">Nenhum contrato.</div>`;
-    }
-
-    loadAdmin();
-  </script>
 </body>
 </html>

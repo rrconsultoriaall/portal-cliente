@@ -251,3 +251,109 @@ a, a:visited{
   color:var(--text-soft);
   margin-top:20px;
 }
+/* ===== Ajustes de layout (sem mudar paleta) ===== */
+
+/* Botões do topo: mais espaçamento e responsivo */
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 14px;
+}
+
+.topbar .actions{
+  display:flex;
+  flex-direction:column;   /* um embaixo do outro (igual seu print) */
+  gap: 12px;               /* AFASTAMENTO entre Suporte e Sair */
+  align-items:flex-end;
+}
+
+/* Se em algum lugar os botões estiverem "colados" */
+.btn, .btnSecondary{
+  margin: 0;
+}
+
+/* CONTRATO: separar e alinhar profissional */
+.contractCard{
+  padding: 18px;
+}
+
+.contractHeader{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.contractStatus{
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.contractId{
+  opacity: .75;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.contractGrid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 12px;               /* espaço entre linhas */
+  margin-top: 10px;
+}
+
+.kv{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+}
+
+.kv .k{
+  opacity: .75;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.kv .v{
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: .2px;
+}
+
+/* Campos menores (tipo data e parcelas) */
+.kv.small .v{
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* AÇÕES: vira botões bonitos e some o roxo/sublinhado */
+.actionsGrid{
+  display:grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.actionBtn{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 14px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.12);
+  text-decoration:none;
+  color: rgba(255,255,255,.92);
+  font-weight: 800;
+}
+
+.actionBtn small{
+  display:block;
+  opacity: .75;
+  font-weight: 600;
+}
+
+.actionBtn:visited{ color: rgba(255,255,255,.92); }

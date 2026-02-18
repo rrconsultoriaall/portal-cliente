@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Perfil | Portal do Cliente</title>
 
-  <link rel="stylesheet" href="./app.css?v=10">
+  <link rel="stylesheet" href="./app.css">
   <script src="./config.js?v=10"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -13,14 +13,13 @@
 <body>
   <div class="page">
     <div class="card">
-
       <header class="topbar">
         <div class="brand">
           <img class="brand-logo" src="./logo.png?v=10" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
             <div class="brand-title" id="companyName">Sua empresa</div>
-            <div class="brand-sub" id="companyTagline">Perfil</div>
-            <div class="brand-mini" id="loggedAs"></div>
+            <div class="brand-sub" id="companyTagline">Acesse suas informações</div>
+            <div class="brand-sub mini" id="loggedAs">Logado como: -</div>
           </div>
         </div>
 
@@ -31,41 +30,59 @@
       </header>
 
       <main class="content">
-        <a class="backlink" href="./index.html?v=10" id="btnBack">‹ Voltar</a>
+        <a class="backlink" href="./index.html?v=10">‹ Voltar</a>
 
         <section class="block">
           <div class="pill">Seus dados</div>
 
           <div id="msg" class="msg" aria-live="polite"></div>
 
-          <div class="form">
+          <div class="field">
+            <label for="full_name">Nome completo</label>
+            <input id="full_name" type="text" placeholder="Seu nome completo" />
+          </div>
 
-            <label class="lbl" for="fullName">Nome completo</label>
-            <input class="input" id="fullName" type="text" autocomplete="name" placeholder="Seu nome completo" />
+          <div class="field">
+            <label for="birth_date">Data de nascimento</label>
+            <input id="birth_date" type="date" />
+          </div>
 
-            <label class="lbl" for="birthDate">Data de nascimento</label>
-            <!-- Se você preferir manter no formato dd/mm/aaaa, pode trocar pra type="text" -->
-            <input class="input" id="birthDate" type="date" />
+          <div class="field">
+            <label for="cpf">CPF</label>
+            <input id="cpf" type="text" inputmode="numeric" placeholder="Somente números" />
+          </div>
 
-            <label class="lbl" for="cpf">CPF</label>
-            <input class="input" id="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" />
+          <div class="field">
+            <label for="phone">Telefone</label>
+            <input id="phone" type="text" inputmode="tel" placeholder="DDD + número" />
+          </div>
 
-            <label class="lbl" for="phone">Telefone</label>
-            <input class="input" id="phone" type="text" inputmode="tel" placeholder="(11) 99999-9999" />
+          <div class="field">
+            <label for="cep">CEP</label>
+            <input id="cep" type="text" inputmode="numeric" placeholder="Somente números" />
+          </div>
 
-            <label class="lbl" for="cep">CEP</label>
-            <input class="input" id="cep" type="text" inputmode="numeric" placeholder="00000-000" />
+          <div class="field">
+            <label for="address">Endereço</label>
+            <input id="address" type="text" placeholder="Rua, número, complemento" />
+          </div>
 
-            <label class="lbl" for="address">Endereço</label>
-            <input class="input" id="address" type="text" autocomplete="street-address" placeholder="Rua, número, bairro" />
+          <div class="field">
+            <label for="city">Cidade</label>
+            <input id="city" type="text" placeholder="Sua cidade" />
+          </div>
 
-            <label class="lbl" for="city">Cidade</label>
-            <input class="input" id="city" type="text" autocomplete="address-level2" placeholder="Sua cidade" />
+          <div class="field">
+            <label for="state">Estado</label>
+            <input id="state" type="text" maxlength="2" placeholder="UF" />
+          </div>
 
-            <label class="lbl" for="state">Estado</label>
-            <input class="input" id="state" type="text" autocomplete="address-level1" placeholder="SP" />
+          <div style="margin-top: 14px;">
+            <button id="btnSave" class="btn btn-primary" type="button">Salvar</button>
+          </div>
 
-            <button class="btn btn-primary" id="btnSave" type="button">Salvar</button>
+          <div class="mini" style="margin-top:10px; opacity:.8;">
+            * Você pode editar apenas seus dados cadastrais.
           </div>
         </section>
       </main>
@@ -73,157 +90,157 @@
       <footer class="footer">
         <span id="footerCompany">© Sua empresa</span>
       </footer>
-
     </div>
   </div>
 
-<script>
-  // ===== Config + Supabase Client =====
-  const CFG = window.APP_CONFIG || {};
+  <script>
+    // ===== Config + Supabase =====
+    const CFG = window.APP_CONFIG || {};
+    const sb = (window.supabase?.createClient ? window.supabase : supabase)
+      .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-  // Este truque evita “supabase is not defined” quando o CDN exporta em window.supabase
-  const sb = (window.supabase?.createClient ? window.supabase : supabase)
-    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
-
-  // ===== Helpers UI =====
-  const $ = (id) => document.getElementById(id);
-
-  const msgEl = $('msg');
-  const setMsg = (t, ok=false) => {
-    msgEl.textContent = t || '';
-    msgEl.style.opacity = t ? '1' : '0';
-    msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
-  };
-
-  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
-
-  // Brand
-  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
-  if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
-  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
-
-  // Suporte WhatsApp
-  $('btnSupport').addEventListener('click', () => {
-    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
-    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
-    if (!phone) return alert('WhatsApp de suporte não configurado.');
-    window.location.href = `https://wa.me/${phone}?text=${text}`;
-  });
-
-  // Logout
-  $('btnLogout').addEventListener('click', async () => {
-    await sb.auth.signOut();
-    window.location.href = './login.html?v=10';
-  });
-
-  // ===== Auth Guard =====
-  async function requireSession() {
-    const { data, error } = await sb.auth.getSession();
-    if (error) console.warn(error);
-    if (!data?.session) {
-      window.location.href = './login.html?v=10';
-      return null;
+    // ===== Helpers UI =====
+    const msgEl = document.getElementById('msg');
+    function setMsg(text, ok=false) {
+      if (!msgEl) return;
+      msgEl.textContent = text || '';
+      msgEl.style.opacity = text ? '1' : '0';
+      msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
     }
-    return data.session;
-  }
-
-  // ===== Load profile =====
-  async function loadProfile() {
-    setMsg('Carregando seu perfil...');
-
-    const session = await requireSession();
-    if (!session) return;
-
-    const user = session.user;
-    setText('loggedAs', `Logado como: ${user.email || ''}`);
-
-    // Busca por user_id
-    const { data, error } = await sb
-      .from('clients')
-      .select('user_id, full_name, cpf, phone, address, city, state, email, status, notes, birth_date, cep')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error(error);
-      return setMsg('Erro ao carregar perfil: ' + error.message);
+    function setSaving(isSaving) {
+      const btn = document.getElementById('btnSave');
+      if (!btn) return;
+      btn.disabled = isSaving;
+      btn.textContent = isSaving ? 'Salvando...' : 'Salvar';
     }
+    const onlyDigits = (s) => (s || '').replace(/\D/g,'');
 
-    // Se ainda não existe registro, deixa vazio e permite salvar (vai criar no upsert)
-    if (!data) {
-      setMsg('Complete seus dados e clique em Salvar ✅', true);
-      return;
-    }
-
-    $('fullName').value = data.full_name || '';
-    $('cpf').value      = data.cpf || '';
-    $('phone').value    = data.phone || '';
-    $('address').value  = data.address || '';
-    $('city').value     = data.city || '';
-    $('state').value    = data.state || '';
-    $('cep').value      = data.cep || '';
-
-    // birth_date:
-    // - Se sua coluna for DATE, o Supabase retorna "YYYY-MM-DD" (combina com input type=date)
-    $('birthDate').value = data.birth_date || '';
-
-    setMsg('Perfil carregado ✅', true);
-  }
-
-  // ===== Save profile =====
-  async function saveProfile() {
-    setMsg('Salvando...');
-
-    const session = await requireSession();
-    if (!session) return;
-
-    const user = session.user;
-
-    const payload = {
-      user_id: user.id,
-      email: (user.email || '').toLowerCase(),
-
-      full_name: $('fullName').value.trim(),
-      cpf: $('cpf').value.trim(),
-      phone: $('phone').value.trim(),
-      cep: $('cep').value.trim(),
-      address: $('address').value.trim(),
-      city: $('city').value.trim(),
-      state: $('state').value.trim(),
-
-      // Se NÃO existir essas colunas na tabela, apaga essas 2 linhas:
-      birth_date: $('birthDate').value || null,
-
-      // Você pode deixar padrão:
-      status: 'Ativo',
-      notes: 'Cliente'
+    // ===== Brand =====
+    const setText = (id, v) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = v ?? '';
     };
+    if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+    if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
+    setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
 
-    // Validações simples (opcionais)
-    if (!payload.full_name) return setMsg('Preencha seu nome completo.');
-    if (!payload.cpf) return setMsg('Preencha o CPF.');
+    // ===== Buttons =====
+    document.getElementById('btnSupport').addEventListener('click', () => {
+      const phone = onlyDigits(CFG.SUPPORT_WHATSAPP || '');
+      const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+      if (!phone) return alert('WhatsApp de suporte não configurado.');
+      window.location.href = `https://wa.me/${phone}?text=${text}`;
+    });
 
-    // Upsert pelo user_id (precisa de constraint UNIQUE em user_id OU usar onConflict)
-    const { error } = await sb
-      .from('clients')
-      .upsert(payload, { onConflict: 'user_id' });
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      window.location.href = './login.html?v=10';
+    });
 
-    if (error) {
-      console.error(error);
-      return setMsg('Erro ao salvar: ' + error.message);
+    // ===== Inputs =====
+    const fullNameEl = document.getElementById('full_name');
+    const birthEl    = document.getElementById('birth_date');
+    const cpfEl      = document.getElementById('cpf');
+    const phoneEl    = document.getElementById('phone');
+    const cepEl      = document.getElementById('cep');
+    const addressEl  = document.getElementById('address');
+    const cityEl     = document.getElementById('city');
+    const stateEl    = document.getElementById('state');
+
+    function readForm() {
+      return {
+        full_name: (fullNameEl.value || '').trim(),
+        birth_date: birthEl.value || null, // date (YYYY-MM-DD)
+        cpf: onlyDigits(cpfEl.value),
+        phone: onlyDigits(phoneEl.value),
+        cep: onlyDigits(cepEl.value),
+        address: (addressEl.value || '').trim(),
+        city: (cityEl.value || '').trim(),
+        state: (stateEl.value || '').trim().toUpperCase()
+      };
     }
 
-    setMsg('Dados salvos ✅', true);
-  }
+    function fillForm(row) {
+      fullNameEl.value = row?.full_name || '';
+      birthEl.value    = row?.birth_date || '';
+      cpfEl.value      = row?.cpf || '';
+      phoneEl.value    = row?.phone || '';
+      cepEl.value      = row?.cep || '';
+      addressEl.value  = row?.address || '';
+      cityEl.value     = row?.city || '';
+      stateEl.value    = row?.state || '';
+    }
 
-  $('btnSave').addEventListener('click', (e) => {
-    e.preventDefault();
-    saveProfile();
-  });
+    async function requireUser() {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      const session = data?.session;
+      if (!session?.user) {
+        window.location.href = './login.html?v=10';
+        throw new Error('Sem sessão');
+      }
+      return session.user;
+    }
 
-  // Carrega ao abrir
-  loadProfile();
-</script>
+    // ===== Load profile =====
+    async function loadProfile() {
+      setMsg('Carregando seu perfil...');
+      const user = await requireUser();
+      setText('loggedAs', `Logado como: ${user.email || '-'}`);
 
+      const { data, error } = await sb
+        .from('clients')
+        .select('user_id, full_name, birth_date, cpf, phone, cep, address, city, state')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        fillForm(data);
+        setMsg('Perfil carregado ✅', true);
+      } else {
+        setMsg('Complete seu cadastro e clique em Salvar.', true);
+      }
+    }
+
+    // ===== Save profile (upsert) =====
+    async function saveProfile() {
+      const user = await requireUser();
+      const payload = readForm();
+
+      // validações leves (pra não travar, mas evitar lixo)
+      if (!payload.full_name) return setMsg('Preencha seu nome completo.');
+      if (payload.state && payload.state.length !== 2) return setMsg('Estado deve ter 2 letras (UF).');
+
+      setSaving(true);
+      setMsg('Salvando...');
+
+      const { error } = await sb
+        .from('clients')
+        .upsert({
+          user_id: user.id,
+          email: user.email || null,
+          is_active: true,
+          status: 'Ativo',
+          ...payload
+        }, { onConflict: 'user_id' });
+
+      if (error) {
+        setSaving(false);
+        return setMsg(error.message || 'Erro ao salvar.');
+      }
+
+      setSaving(false);
+      setMsg('Dados salvos ✅', true);
+    }
+
+    document.getElementById('btnSave').addEventListener('click', () => {
+      saveProfile().catch(err => setMsg(err?.message || String(err)));
+    });
+
+    // init
+    loadProfile().catch(err => setMsg(err?.message || String(err)));
+  </script>
 </body>
 </html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente</title>
 
-  <link rel="stylesheet" href="./app.css?v=1" />
+  <link rel="stylesheet" href="./app.css?v=20260218" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js?v=1"></script>
 </head>
@@ -45,41 +45,35 @@
       </div>
 
       <!-- AÇÕES -->
-      <div class="panel">
-        <h2 class="h1">Ações</h2>
-        <div class="muted">Abra uma seção para ver as informações completas.</div>
+     <div class="panel">
+  <h2>Ações</h2>
 
-        <div class="list">
-          <a class="listItem" id="goPayments" href="./pagamentos.html?v=1">
-            <div class="liText">
-              <div class="liTitle">Pagamentos</div>
-              <div class="liSub">Histórico e comprovantes</div>
-            </div>
-            <div class="liArrow">›</div>
-          </a>
-
-          <a class="listItem" id="goProfile" href="./perfil.html?v=1">
-            <div class="liText">
-              <div class="liTitle">Perfil</div>
-              <div class="liSub">Seus dados cadastrais</div>
-            </div>
-            <div class="liArrow">›</div>
-          </a>
-
-          <a class="listItem" id="goDetails" href="./detalhes.html?v=1">
-            <div class="liText">
-              <div class="liTitle">Detalhes</div>
-              <div class="liSub">Contrato e informações extras</div>
-            </div>
-            <div class="liArrow">›</div>
-          </a>
-        </div>
-
-        <div class="footer">© <span id="footerCompany">Sua empresa</span></div>
+  <div class="list">
+    <a class="listItem" href="./pagamentos.html">
+      <div class="liText">
+        <div class="liTitle">Pagamentos</div>
+        <div class="liSub">Histórico e comprovantes</div>
       </div>
+      <div class="liArrow">›</div>
+    </a>
 
-    </div>
+    <a class="listItem" href="./perfil.html">
+      <div class="liText">
+        <div class="liTitle">Perfil</div>
+        <div class="liSub">Seus dados cadastrais</div>
+      </div>
+      <div class="liArrow">›</div>
+    </a>
+
+    <a class="listItem" href="./detalhes.html">
+      <div class="liText">
+        <div class="liTitle">Detalhes</div>
+        <div class="liSub">Contrato e informações extras</div>
+      </div>
+      <div class="liArrow">›</div>
+    </a>
   </div>
+     </div> 
 
 <script>
 (function () {

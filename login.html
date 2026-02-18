@@ -2,126 +2,115 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal do Cliente — Login</title>
 
-  <link rel="stylesheet" href="./app.css?v=99" />
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="./config.js?v=99"></script>
+  <link rel="stylesheet" href="./app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
 </head>
-
 <body>
+  <div class="bg"></div>
+
   <div class="shell">
-    <div class="card">
-
-      <div class="topbar">
-        <div class="brand">
-          <img id="logoImg" src="./Logo.png" alt="Logo" />
-          <div class="title">
-            <strong id="companyName">Portal do Cliente</strong>
-            <span id="companyTagline">Acesse seus contratos</span>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button class="btn ghost" id="btnSupport" type="button">Suporte</button>
+    <header class="topbar">
+      <div class="brand">
+        <img id="logoImg" class="logo" alt="Logo" />
+        <div class="brandText">
+          <div class="brandName" id="companyName">Portal do Cliente</div>
+          <div class="brandSub" id="companyTagline">Acesse seus contratos</div>
         </div>
       </div>
 
-      <div class="content">
-        <h1 class="h1">Entrar</h1>
+      <div class="topActions">
+        <button type="button" class="btn ghost" id="btnSupport">Suporte</button>
+      </div>
+    </header>
 
-        <div class="panel">
-          <form id="loginForm" autocomplete="on">
-            <label class="label" for="email">Email</label>
-            <input class="input" id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="email" required />
-
-            <label class="label" for="password">Senha</label>
-            <input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
-
-            <button class="btn primary" id="btnLogin" type="submit">Entrar</button>
-          </form>
-
-          <div id="msg" class="msg" style="display:none;margin-top:12px"></div>
+    <main class="content">
+      <section class="card">
+        <div class="cardHead">
+          <span class="dot"></span>
+          <h2>Entrar</h2>
         </div>
 
-      </div>
+        <label class="k" for="email">Email</label>
+        <input id="email" type="email" placeholder="seuemail@dominio.com" class="input" autocomplete="email" />
 
-      <div class="footer">
-        <small>© <span id="footerCompany">Sua empresa</span></small>
-      </div>
+        <div style="height:10px"></div>
 
-    </div>
+        <label class="k" for="password">Senha</label>
+        <input id="password" type="password" placeholder="••••••••" class="input" autocomplete="current-password" />
+
+        <div style="height:12px"></div>
+
+        <button type="button" class="btn" id="btnLogin">Entrar</button>
+
+        <div id="msg" class="muted" style="margin-top:10px;"></div>
+      </section>
+
+      <section class="card">
+        <div class="cardHead">
+          <span class="dot"></span>
+          <h2>Resumo</h2>
+        </div>
+        <div class="hint">Você acessa seu painel com contratos, próximos vencimentos e status.</div>
+      </section>
+    </main>
+
+    <footer class="footer">© <span id="companyFooter">Sua empresa</span></footer>
   </div>
 
   <script>
-    window.addEventListener("load", () => {
-      const msg = document.getElementById("msg");
-      const showMsg = (text, type="error") => {
-        msg.style.display = "block";
-        msg.className = "msg " + type;
-        msg.textContent = text;
-      };
+    const CFG = window.APP_CONFIG || {};
+    const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    const $ = (id) => document.getElementById(id);
 
-      // 🔥 Limpa lixo antigo SEMPRE ao abrir login
-      try {
-        localStorage.removeItem("supabase.auth.token");
-        sessionStorage.clear();
-      } catch (_) {}
+    function openSupport() {
+      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const base = CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda no Portal do Cliente.";
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(base)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
 
-      const cfg = window.APP_CONFIG;
-      if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
-        showMsg("Config não carregou. Verifique config.js.", "error");
+    async function goIfLogged() {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) location.href = "./index.html";
+    }
+
+    async function login() {
+      $("msg").textContent = "";
+      const email = $("email").value.trim();
+      const password = $("password").value;
+
+      if (!email || !password) {
+        $("msg").textContent = "Preencha email e senha.";
         return;
       }
 
-      document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
-      document.getElementById("companyTagline").textContent = cfg.COMPANY_TAGLINE || "Acesse seus contratos";
-      document.getElementById("footerCompany").textContent = cfg.COMPANY_NAME || "Sua empresa";
-      document.getElementById("logoImg").src = (cfg.LOGO_URL || "./Logo.png") + "?v=99";
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        $("msg").textContent = error.message;
+        return;
+      }
+      location.href = "./index.html";
+    }
 
-      const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    document.addEventListener("DOMContentLoaded", () => {
+      $("logoImg").src = CFG.LOGO_URL || "./Logo.png";
+      $("companyName").textContent = CFG.COMPANY_NAME || "Portal do Cliente";
+      $("companyTagline").textContent = CFG.COMPANY_TAGLINE || "Acesse seus contratos";
+      $("companyFooter").textContent = CFG.COMPANY_NAME || "Sua empresa";
 
-      document.getElementById("btnSupport").addEventListener("click", (e) => {
-        e.preventDefault();
-        const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
-        const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o portal.");
-        if (!phone) return showMsg("WhatsApp não configurado no config.js", "error");
-        window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+      $("btnSupport").addEventListener("click", openSupport);
+      $("btnLogin").addEventListener("click", login);
+
+      // Enter no teclado
+      $("password").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") login();
       });
 
-      // ✅ Se já tiver sessão, vai pro index (mas força refresh)
-      supabase.auth.getSession().then(({ data }) => {
-        if (data?.session) {
-          window.location.replace("./index.html?v=99");
-        }
-      });
-
-      document.getElementById("loginForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        msg.style.display = "none";
-
-        const email = document.getElementById("email").value.trim();
-        const password = document.getElementById("password").value;
-
-        const btn = document.getElementById("btnLogin");
-        btn.disabled = true;
-        btn.textContent = "Entrando...";
-
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          if (!data?.session) throw new Error("Sessão não criada.");
-
-          // ✅ Vai pro portal com cache-buster
-          window.location.replace("./index.html?v=99");
-        } catch (err) {
-          showMsg(err.message || "Erro no login.", "error");
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "Entrar";
-        }
-      });
+      goIfLogged();
     });
   </script>
 </body>

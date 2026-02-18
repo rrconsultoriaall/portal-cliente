@@ -2,199 +2,233 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal do Cliente</title>
 
-  <link rel="stylesheet" href="./app.css?v=99" />
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="./config.js?v=99"></script>
+  <link rel="stylesheet" href="./app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
 </head>
-
 <body>
+  <div class="bg"></div>
+
   <div class="shell">
-    <div class="card">
-
-      <div class="topbar">
-        <div class="brand">
-          <img id="logoImg" src="./Logo.png" alt="Logo" />
-          <div class="title">
-            <strong id="companyName">Portal do Cliente</strong>
-            <span id="companyTagline">Carregando sessão...</span>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button class="btn ghost" id="btnSupport" type="button">Suporte</button>
-          <button class="btn danger" id="btnLogout" type="button">Sair</button>
+    <header class="topbar">
+      <div class="brand">
+        <img id="logoImg" class="logo" alt="Logo" />
+        <div class="brandText">
+          <div class="brandName" id="companyName">Portal do Cliente</div>
+          <div class="brandSub" id="whoami">Carregando sessão…</div>
         </div>
       </div>
 
-      <div class="content">
-        <div class="panel">
-          <div class="badge"><span class="dot"></span> Seus contratos</div>
-          <div id="contractsBox" class="contracts">
-            <p class="muted" id="loadingText">Carregando...</p>
+      <div class="topActions">
+        <button type="button" class="btn ghost" id="btnSupport">Suporte</button>
+        <button type="button" class="btn danger" id="btnLogout">Sair</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="card">
+        <div class="cardHead">
+          <span class="dot"></span>
+          <h2>Seus contratos</h2>
+        </div>
+        <div id="contractsWrap" class="contracts"></div>
+        <div id="emptyState" class="muted" style="display:none;">Nenhum contrato encontrado para este usuário.</div>
+      </section>
+
+      <section class="card">
+        <div class="cardHead">
+          <span class="dot"></span>
+          <h2>Resumo</h2>
+        </div>
+
+        <div class="kvGrid">
+          <div class="kv">
+            <div class="k">Status</div>
+            <div class="v" id="sumStatus">—</div>
+          </div>
+          <div class="kv">
+            <div class="k">Próximo vencimento</div>
+            <div class="v" id="sumDue">—</div>
+          </div>
+          <div class="kv">
+            <div class="k">Parcelas restantes</div>
+            <div class="v" id="sumInst">—</div>
+          </div>
+          <div class="kv">
+            <div class="k">Valor pago</div>
+            <div class="v" id="sumPaid">—</div>
           </div>
         </div>
 
-        <div class="panel" style="margin-top:16px">
-          <h2 class="h2">Resumo</h2>
-          <div class="summary">
-            <div class="row"><span class="k">Status</span><span class="v" id="sumStatus">—</span></div>
-            <div class="row"><span class="k">Próximo vencimento</span><span class="v" id="sumDue">—</span></div>
-            <div class="row"><span class="k">Parcelas restantes</span><span class="v" id="sumInst">—</span></div>
-          </div>
+        <div class="hint">💡 Dica: “Em dia / Atrasado / Quitado” é calculado automaticamente pelo vencimento e parcelas.</div>
+      </section>
+    </main>
 
-          <div id="msg" class="msg" style="display:none;margin-top:12px"></div>
-        </div>
-      </div>
+    <nav class="bottomNav">
+      <button type="button" class="navItem active" data-go="./index.html">Painel</button>
+      <button type="button" class="navItem" data-go="./pagamentos.html">Pagamentos</button>
+      <button type="button" class="navItem" data-go="./perfil.html">Perfil</button>
+    </nav>
 
-      <div class="footer">
-        <small>© <span id="footerCompany">Sua empresa</span></small>
-      </div>
-
-    </div>
+    <footer class="footer">© <span id="companyFooter">Sua empresa</span></footer>
   </div>
 
   <script>
-    window.addEventListener("load", async () => {
-      const msg = document.getElementById("msg");
-      const showMsg = (text, type="error") => {
-        msg.style.display = "block";
-        msg.className = "msg " + type;
-        msg.textContent = text;
-      };
+    const CFG = window.APP_CONFIG || {};
+    const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-      const cfg = window.APP_CONFIG;
-      if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
-        showMsg("❌ Config não carregou (config.js).", "error");
-        return;
+    const $ = (id) => document.getElementById(id);
+
+    function moneyBR(v) {
+      const n = Number(v || 0);
+      return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+    function dateBR(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso + "T00:00:00");
+      return d.toLocaleDateString("pt-BR");
+    }
+    function statusContrato(dueISO, instRem) {
+      const inst = Number(instRem ?? 0);
+      if (inst <= 0) return "Quitado";
+      if (!dueISO) return "Em dia";
+      const today = new Date();
+      const due = new Date(dueISO + "T00:00:00");
+      return (due < new Date(today.getFullYear(), today.getMonth(), today.getDate())) ? "Atrasado" : "Em dia";
+    }
+    function badgeClass(status) {
+      if (status === "Quitado") return "badge ok";
+      if (status === "Atrasado") return "badge warn";
+      return "badge";
+    }
+
+    function openSupport(extra) {
+      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+      const base = CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda no Portal do Cliente.";
+      const msg = extra ? `${base}\n\n${extra}` : base;
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    async function requireSession() {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      if (!session) {
+        location.href = "./login.html";
+        return null;
       }
+      return session;
+    }
 
-      document.getElementById("companyName").textContent = cfg.COMPANY_NAME || "Portal do Cliente";
-      document.getElementById("companyTagline").textContent = cfg.COMPANY_TAGLINE || "Acesse seus contratos";
-      document.getElementById("footerCompany").textContent = cfg.COMPANY_NAME || "Sua empresa";
-      document.getElementById("logoImg").src = (cfg.LOGO_URL || "./Logo.png") + "?v=99";
+    async function load() {
+      // Marca
+      $("logoImg").src = CFG.LOGO_URL || "./Logo.png";
+      $("companyName").textContent = CFG.COMPANY_NAME || "Portal do Cliente";
+      $("companyFooter").textContent = CFG.COMPANY_NAME || "Sua empresa";
 
-      const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-
-      // ✅ Botões (amarrados no load — não falha)
-      document.getElementById("btnSupport").addEventListener("click", (e) => {
-        e.preventDefault();
-        const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
-        const text = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de ajuda com o portal.");
-        if (!phone) return showMsg("WhatsApp não configurado.", "error");
-        window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+      // Nav
+      document.querySelectorAll(".navItem").forEach(btn => {
+        btn.addEventListener("click", () => location.href = btn.dataset.go);
       });
 
-      document.getElementById("btnLogout").addEventListener("click", async (e) => {
-        e.preventDefault();
-        try { await supabase.auth.signOut(); } catch (_) {}
-        try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}
-        window.location.replace("./login.html?v=99");
+      // Botões topo
+      $("btnSupport").addEventListener("click", () => openSupport(`Tela: Painel`));
+      $("btnLogout").addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        location.href = "./login.html";
       });
 
-      // ✅ Sessão
-      const { data: sessData, error: sessErr } = await supabase.auth.getSession();
-      if (sessErr) {
-        showMsg("❌ Erro ao ler sessão: " + sessErr.message, "error");
-        window.location.replace("./login.html?v=99");
-        return;
-      }
-      if (!sessData?.session) {
-        showMsg("⚠️ Sem sessão. Voltando pro login...", "warn");
-        window.location.replace("./login.html?v=99");
-        return;
-      }
+      const session = await requireSession();
+      if (!session) return;
 
-      const session = sessData.session;
-      const userId = session.user.id;
-      const email = session.user.email || "";
-      document.getElementById("companyTagline").textContent = "Logado como: " + email;
+      $("whoami").textContent = `Logado como: ${session.user.email}`;
 
-      // 1) clients pelo user_id
-      const { data: client, error: clientErr } = await supabase
+      // Buscar client pelo user_id
+      const { data: client, error: e1 } = await supabase
         .from("clients")
         .select("id, full_name")
-        .eq("user_id", userId)
+        .eq("user_id", session.user.id)
         .maybeSingle();
 
-      if (clientErr) {
-        showMsg("❌ Erro clients: " + clientErr.message, "error");
-        document.getElementById("loadingText").textContent = "Erro ao buscar cliente.";
+      if (e1) {
+        $("contractsWrap").innerHTML = `<div class="error">Erro ao buscar cliente: ${e1.message}</div>`;
         return;
       }
-      if (!client?.id) {
-        showMsg("⚠️ Nenhum cliente vinculado a este usuário (clients.user_id).", "warn");
-        document.getElementById("loadingText").textContent = "Nenhum cliente encontrado.";
+      if (!client) {
+        $("contractsWrap").innerHTML = `<div class="error">Seu usuário não está vinculado a um cliente (tabela clients).</div>`;
         return;
       }
 
-      // 2) contracts pelo client_id
-      const { data: contracts, error: ctrErr } = await supabase
+      // Buscar contratos do client
+      const { data: contracts, error: e2 } = await supabase
         .from("contracts")
         .select("id, amount_paid, installments_remaining, due_date, notes, created_at")
         .eq("client_id", client.id)
         .order("created_at", { ascending: false });
 
-      if (ctrErr) {
-        showMsg("❌ Erro contracts: " + ctrErr.message, "error");
-        document.getElementById("loadingText").textContent = "Erro ao buscar contratos.";
+      if (e2) {
+        $("contractsWrap").innerHTML = `<div class="error">Erro ao buscar contratos: ${e2.message}</div>`;
         return;
       }
-
-      const box = document.getElementById("contractsBox");
-      box.innerHTML = "";
 
       if (!contracts || contracts.length === 0) {
-        box.innerHTML = `<p class="muted">Nenhum contrato encontrado.</p>`;
+        $("emptyState").style.display = "block";
         return;
       }
 
-      for (const c of contracts) {
-        const due = c.due_date ? new Date(c.due_date + "T00:00:00") : null;
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        let status = "Em dia";
-        if (c.installments_remaining === 0) status = "Quitado";
-        else if (due && due < today) status = "Atrasado";
-
-        const amount = (c.amount_paid ?? 0).toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
-
+      // Render lista (cards clicáveis)
+      $("contractsWrap").innerHTML = "";
+      contracts.forEach((c) => {
+        const st = statusContrato(c.due_date, c.installments_remaining);
         const el = document.createElement("div");
-        el.className = "contractItem";
+        el.className = "contractCard";
         el.innerHTML = `
-          <div class="contractTop">
-            <div class="pill ${status === "Atrasado" ? "bad" : status === "Quitado" ? "ok" : "warn"}">${status}</div>
-            <div class="muted small">#${c.id.slice(0,8)}</div>
+          <div class="row">
+            <div class="${badgeClass(st)}">${st}</div>
+            <div class="muted mono">#${String(c.id).slice(0, 8)}</div>
           </div>
 
-          <div class="contractGrid">
-            <div><span class="k">Valor pago</span><span class="v">${amount}</span></div>
-            <div><span class="k">Parcelas restantes</span><span class="v">${c.installments_remaining ?? "—"}</span></div>
-            <div><span class="k">Vencimento</span><span class="v">${c.due_date ?? "—"}</span></div>
+          <div class="kvGrid compact">
+            <div class="kv"><div class="k">Valor pago</div><div class="v">${moneyBR(c.amount_paid)}</div></div>
+            <div class="kv"><div class="k">Parcelas restantes</div><div class="v">${c.installments_remaining ?? "—"}</div></div>
+            <div class="kv"><div class="k">Vencimento</div><div class="v">${dateBR(c.due_date)}</div></div>
           </div>
 
-          ${c.notes ? `<div class="notes"><span class="k">Observações</span><span class="v">${c.notes}</span></div>` : ""}
+          <div class="note">${(c.notes || "").trim() ? c.notes : "— sem observações —"}</div>
+
+          <div class="actionsRow">
+            <button type="button" class="btn small" data-details="${c.id}">Ver detalhes</button>
+            <button type="button" class="btn small ghost" data-support="${c.id}">Falar no suporte</button>
+          </div>
         `;
-        box.appendChild(el);
-      }
+        $("contractsWrap").appendChild(el);
+      });
 
-      const c0 = contracts[0];
-      document.getElementById("sumDue").textContent = c0.due_date || "—";
-      document.getElementById("sumInst").textContent = (c0.installments_remaining ?? "—");
+      // Handlers de botões dentro da lista
+      document.querySelectorAll("[data-details]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          localStorage.setItem("selected_contract_id", btn.dataset.details);
+          location.href = "./detalhes.html";
+        });
+      });
 
-      // status resumo
-      const due0 = c0.due_date ? new Date(c0.due_date + "T00:00:00") : null;
-      const today0 = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-      let status0 = "Em dia";
-      if (c0.installments_remaining === 0) status0 = "Quitado";
-      else if (due0 && due0 < today0) status0 = "Atrasado";
-      document.getElementById("sumStatus").textContent = status0;
+      document.querySelectorAll("[data-support]").forEach(btn => {
+        btn.addEventListener("click", () => openSupport(`Contrato: ${btn.dataset.support}`));
+      });
 
-      showMsg("✅ Portal carregado com sucesso.", "ok");
-    });
+      // Resumo = primeiro contrato da lista
+      const first = contracts[0];
+      const st0 = statusContrato(first.due_date, first.installments_remaining);
+      $("sumStatus").textContent = st0;
+      $("sumDue").textContent = dateBR(first.due_date);
+      $("sumInst").textContent = first.installments_remaining ?? "—";
+      $("sumPaid").textContent = moneyBR(first.amount_paid);
+    }
+
+    document.addEventListener("DOMContentLoaded", load);
   </script>
 </body>
 </html>

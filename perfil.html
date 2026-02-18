@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Perfil | Portal do Cliente</title>
-
-  <link rel="stylesheet" href="./app.css?v=201">
-  <script src="./config.js?v=10"></script>
+  <title>Perfil • Portal do Cliente</title>
+  <link rel="stylesheet" href="./app.css?v=200">
+  <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <div class="page">
     <div class="card">
+
       <header class="topbar">
-        <div class="brand">
-          <img class="brand-logo" src="./logo.png?v=10" alt="Logo" onerror="this.style.display='none'">
+        <div class="brand" style="gap:12px; justify-content:flex-start;">
+          <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
-            <div class="brand-title" id="companyName">Sua empresa</div>
-            <div class="brand-sub" id="companyTagline">Acesse suas informações</div>
-            <div class="brand-sub mini" id="loggedAs">Logado como: -</div>
+            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-sub" id="companyTagline">Área do Cliente</div>
+            <div class="brand-sub mini" id="loggedAs" style="opacity:.9"></div>
           </div>
         </div>
 
@@ -30,217 +30,227 @@
       </header>
 
       <main class="content">
-        <a class="backlink" href="./index.html?v=10">‹ Voltar</a>
+
+        <div style="margin: 4px 0 10px;">
+          <a href="./index.html?v=200" class="mini" style="display:inline-block; font-weight:800;">‹ Voltar</a>
+        </div>
 
         <section class="block">
           <div class="pill">Seus dados</div>
 
-          <div id="msg" class="msg" aria-live="polite"></div>
-
-          <div class="field">
-            <label for="full_name">Nome completo</label>
-            <input id="full_name" type="text" placeholder="Seu nome completo" />
+          <div id="statusArea" class="mini" style="line-height:1.55; margin-bottom:12px;">
+            Carregando seu perfil…
           </div>
 
-          <div class="field">
-            <label for="birth_date">Data de nascimento</label>
-            <input id="birth_date" type="date" />
-          </div>
+          <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
 
-          <div class="field">
+          <form id="formProfile" autocomplete="on" style="margin-top:10px;">
+            <label for="fullName">Nome completo</label>
+            <input id="fullName" name="name" type="text" placeholder="Seu nome completo" />
+
+            <label for="birthDate">Data de nascimento</label>
+            <input id="birthDate" name="bday" type="date" />
+
             <label for="cpf">CPF</label>
-            <input id="cpf" type="text" inputmode="numeric" placeholder="Somente números" />
-          </div>
+            <input id="cpf" name="cpf" inputmode="numeric" placeholder="Somente números" />
 
-          <div class="field">
             <label for="phone">Telefone</label>
-            <input id="phone" type="text" inputmode="tel" placeholder="DDD + número" />
-          </div>
+            <input id="phone" name="tel" inputmode="tel" placeholder="DDD + número" />
 
-          <div class="field">
             <label for="cep">CEP</label>
-            <input id="cep" type="text" inputmode="numeric" placeholder="Somente números" />
-          </div>
+            <input id="cep" name="cep" inputmode="numeric" placeholder="Somente números" />
 
-          <div class="field">
             <label for="address">Endereço</label>
-            <input id="address" type="text" placeholder="Rua, número, complemento" />
-          </div>
+            <input id="address" name="address" type="text" placeholder="Rua, número, bairro, cidade" />
 
-          <div class="field">
-            <label for="city">Cidade</label>
-            <input id="city" type="text" placeholder="Sua cidade" />
-          </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnSave" type="submit">Salvar</button>
+              <button class="btn btn-secondary" id="btnReload" type="button">Recarregar</button>
+            </div>
+          </form>
 
-          <div class="field">
-            <label for="state">Estado</label>
-            <input id="state" type="text" maxlength="2" placeholder="UF" />
-          </div>
-
-          <div style="margin-top: 14px;">
-            <button id="btnSave" class="btn btn-primary" type="button">Salvar</button>
-          </div>
-
-          <div class="mini" style="margin-top:10px; opacity:.8;">
-            * Você pode editar apenas seus dados cadastrais.
+          <div class="mini" style="margin-top:10px; opacity:.75;">
+            Seus dados são usados apenas para cadastro e suporte. Caso algo não bata, fale com o suporte.
           </div>
         </section>
+
       </main>
 
       <footer class="footer">
         <span id="footerCompany">© Sua empresa</span>
       </footer>
+
     </div>
   </div>
 
-  <script>
-    // ===== Config + Supabase =====
-    const CFG = window.APP_CONFIG || {};
-    const sb = (window.supabase?.createClient ? window.supabase : supabase)
-      .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+<script>
+  // ===== Config / Supabase =====
+  const CFG = window.APP_CONFIG || {};
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-    // ===== Helpers UI =====
-    const msgEl = document.getElementById('msg');
-    function setMsg(text, ok=false) {
-      if (!msgEl) return;
-      msgEl.textContent = text || '';
-      msgEl.style.opacity = text ? '1' : '0';
-      msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
-    }
-    function setSaving(isSaving) {
-      const btn = document.getElementById('btnSave');
-      if (!btn) return;
-      btn.disabled = isSaving;
-      btn.textContent = isSaving ? 'Salvando...' : 'Salvar';
-    }
-    const onlyDigits = (s) => (s || '').replace(/\D/g,'');
+  const $ = (id) => document.getElementById(id);
 
-    // ===== Brand =====
-    const setText = (id, v) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = v ?? '';
+  // Branding
+  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
+  if (CFG.COMPANY_NAME) $('companyName').textContent = CFG.COMPANY_NAME;
+  if (CFG.COMPANY_TAGLINE) $('companyTagline').textContent = CFG.COMPANY_TAGLINE;
+  $('footerCompany').textContent = `© ${CFG.COMPANY_NAME || 'Sua empresa'}`;
+
+  // Mensagem
+  const msgEl = $('msg');
+  function setMsg(t, ok=false){
+    if (!msgEl) return;
+    msgEl.textContent = t || '';
+    msgEl.style.opacity = t ? '1' : '0';
+    msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  }
+
+  // Suporte WhatsApp
+  function openSupport(){
+    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+    if (!phone) return alert('WhatsApp de suporte não configurado.');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
+  }
+  $('btnSupport').addEventListener('click', openSupport);
+
+  // Logout
+  async function doLogout(){
+    await sb.auth.signOut();
+    window.location.href = './login.html?v=200';
+  }
+  $('btnLogout').addEventListener('click', doLogout);
+
+  // Helpers
+  function v(id){ return ( $(id)?.value ?? '' ).trim(); }
+  function setVal(id, val){
+    const el = $(id);
+    if (!el) return;
+    el.value = val ?? '';
+  }
+
+  function collectProfile(){
+    return {
+      full_name: v('fullName'),
+      birth_date: v('birthDate') || null,
+      cpf: v('cpf'),
+      phone: v('phone'),
+      cep: v('cep'),
+      address: v('address'),
     };
-    if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
-    if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
-    setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+  }
 
-    // ===== Buttons =====
-    document.getElementById('btnSupport').addEventListener('click', () => {
-      const phone = onlyDigits(CFG.SUPPORT_WHATSAPP || '');
-      const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
-      if (!phone) return alert('WhatsApp de suporte não configurado.');
-      window.location.href = `https://wa.me/${phone}?text=${text}`;
-    });
+  function fillProfile(row){
+    setVal('fullName', row?.full_name || '');
+    setVal('birthDate', row?.birth_date ? String(row.birth_date).slice(0,10) : '');
+    setVal('cpf', row?.cpf || '');
+    setVal('phone', row?.phone || '');
+    setVal('cep', row?.cep || '');
+    setVal('address', row?.address || '');
+  }
 
-    document.getElementById('btnLogout').addEventListener('click', async () => {
-      await sb.auth.signOut();
-      window.location.href = './login.html?v=10';
-    });
+  async function getSessionOrRedirect(){
+    const { data } = await sb.auth.getSession();
+    const session = data?.session;
+    if (!session){
+      window.location.href = './login.html?v=200';
+      return null;
+    }
+    return session;
+  }
 
-    // ===== Inputs =====
-    const fullNameEl = document.getElementById('full_name');
-    const birthEl    = document.getElementById('birth_date');
-    const cpfEl      = document.getElementById('cpf');
-    const phoneEl    = document.getElementById('phone');
-    const cepEl      = document.getElementById('cep');
-    const addressEl  = document.getElementById('address');
-    const cityEl     = document.getElementById('city');
-    const stateEl    = document.getElementById('state');
+  async function loadProfile(){
+    setMsg('');
+    $('statusArea').textContent = 'Carregando seu perfil…';
 
-    function readForm() {
-      return {
-        full_name: (fullNameEl.value || '').trim(),
-        birth_date: birthEl.value || null, // date (YYYY-MM-DD)
-        cpf: onlyDigits(cpfEl.value),
-        phone: onlyDigits(phoneEl.value),
-        cep: onlyDigits(cepEl.value),
-        address: (addressEl.value || '').trim(),
-        city: (cityEl.value || '').trim(),
-        state: (stateEl.value || '').trim().toUpperCase()
-      };
+    const session = await getSessionOrRedirect();
+    if (!session) return;
+
+    const uid = session.user.id;
+    const email = session.user.email;
+    $('loggedAs').textContent = email ? `Logado como: ${email}` : '';
+
+    const { data: client, error } = await sb
+      .from('clients')
+      .select('id, full_name, birth_date, cpf, phone, cep, address')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (error){
+      console.error(error);
+      $('statusArea').textContent = 'Não foi possível carregar agora.';
+      setMsg(`Erro ao carregar: ${error.message}`, false);
+      return;
     }
 
-    function fillForm(row) {
-      fullNameEl.value = row?.full_name || '';
-      birthEl.value    = row?.birth_date || '';
-      cpfEl.value      = row?.cpf || '';
-      phoneEl.value    = row?.phone || '';
-      cepEl.value      = row?.cep || '';
-      addressEl.value  = row?.address || '';
-      cityEl.value     = row?.city || '';
-      stateEl.value    = row?.state || '';
-    }
+    fillProfile(client || {});
+    $('statusArea').innerHTML = client
+      ? 'Perfil carregado ✅'
+      : 'Seu perfil ainda não tem dados. Preencha e clique em <b>Salvar</b>.';
+    if (client) setMsg('', true);
+  }
 
-    async function requireUser() {
-      const { data, error } = await sb.auth.getSession();
-      if (error) throw error;
-      const session = data?.session;
-      if (!session?.user) {
-        window.location.href = './login.html?v=10';
-        throw new Error('Sem sessão');
-      }
-      return session.user;
-    }
+  async function saveProfile(e){
+    e?.preventDefault?.();
+    setMsg('');
 
-    // ===== Load profile =====
-    async function loadProfile() {
-      setMsg('Carregando seu perfil...');
-      const user = await requireUser();
-      setText('loggedAs', `Logado como: ${user.email || '-'}`);
+    const btn = $('btnSave');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
 
-      const { data, error } = await sb
+    try{
+      const session = await getSessionOrRedirect();
+      if (!session) return;
+
+      const uid = session.user.id;
+      const email = session.user.email;
+
+      // tenta achar o client atual
+      const { data: existing, error: findErr } = await sb
         .from('clients')
-        .select('user_id, full_name, birth_date, cpf, phone, cep, address, city, state')
-        .eq('user_id', user.id)
+        .select('id')
+        .eq('user_id', uid)
         .maybeSingle();
 
-      if (error) throw error;
+      if (findErr) throw findErr;
 
-      if (data) {
-        fillForm(data);
-        setMsg('Perfil carregado ✅', true);
+      const payload = collectProfile();
+      payload.user_id = uid;
+      payload.email = email;
+
+      let res;
+      if (existing?.id){
+        res = await sb.from('clients')
+          .update(payload)
+          .eq('id', existing.id)
+          .select('id')
+          .maybeSingle();
       } else {
-        setMsg('Complete seu cadastro e clique em Salvar.', true);
-      }
-    }
-
-    // ===== Save profile (upsert) =====
-    async function saveProfile() {
-      const user = await requireUser();
-      const payload = readForm();
-
-      // validações leves (pra não travar, mas evitar lixo)
-      if (!payload.full_name) return setMsg('Preencha seu nome completo.');
-      if (payload.state && payload.state.length !== 2) return setMsg('Estado deve ter 2 letras (UF).');
-
-      setSaving(true);
-      setMsg('Salvando...');
-
-      const { error } = await sb
-        .from('clients')
-        .upsert({
-          user_id: user.id,
-          email: user.email || null,
-          is_active: true,
-          status: 'Ativo',
-          ...payload
-        }, { onConflict: 'user_id' });
-
-      if (error) {
-        setSaving(false);
-        return setMsg(error.message || 'Erro ao salvar.');
+        res = await sb.from('clients')
+          .insert(payload)
+          .select('id')
+          .maybeSingle();
       }
 
-      setSaving(false);
+      if (res.error) throw res.error;
+
+      $('statusArea').innerHTML = 'Dados salvos ✅';
       setMsg('Dados salvos ✅', true);
+    } catch(err){
+      console.error(err);
+      $('statusArea').textContent = 'Não foi possível salvar.';
+      setMsg(`Não foi possível salvar: ${err?.message || err}`, false);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
     }
+  }
 
-    document.getElementById('btnSave').addEventListener('click', () => {
-      saveProfile().catch(err => setMsg(err?.message || String(err)));
-    });
+  $('formProfile').addEventListener('submit', saveProfile);
+  $('btnReload').addEventListener('click', loadProfile);
 
-    // init
-    loadProfile().catch(err => setMsg(err?.message || String(err)));
-  </script>
+  // boot
+  loadProfile();
+</script>
+
 </body>
-</html>
+  </html>

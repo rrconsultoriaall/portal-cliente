@@ -6,112 +6,152 @@
   <title>Portal do Cliente — Login</title>
 
   <link rel="stylesheet" href="./app.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js"></script>
+
+  <!-- Supabase + Config (nessa ordem) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="./config.js"></script>
+
+  <!-- App -->
+  <script defer>
+    (function () {
+      function $(sel) { return document.querySelector(sel); }
+
+      function buildWhatsappLink() {
+        const cfg = window.APP_CONFIG || {};
+        const phone = (cfg.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+        const msg = encodeURIComponent(cfg.SUPPORT_MESSAGE || "Olá! Preciso de suporte no portal.");
+        if (!phone) return null;
+        return `https://wa.me/${phone}?text=${msg}`;
+      }
+
+      function applyBrand() {
+        const cfg = window.APP_CONFIG || {};
+        const logo = $("#logoImg");
+        const name = $("#companyName");
+        const tag = $("#companyTagline");
+
+        if (name && cfg.COMPANY_NAME) name.textContent = cfg.COMPANY_NAME;
+        if (tag && cfg.COMPANY_TAGLINE) tag.textContent = cfg.COMPANY_TAGLINE;
+
+        if (logo) {
+          const src = cfg.LOGO_URL || "./Logo.png";
+          logo.src = src;
+          logo.alt = cfg.COMPANY_NAME || "Logo";
+        }
+      }
+
+      async function onLogin(e) {
+        e.preventDefault();
+
+        const cfg = window.APP_CONFIG || {};
+        const status = $("#status");
+        const email = ($("#email").value || "").trim();
+        const pass = ($("#password").value || "").trim();
+
+        if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+          status.textContent = "Faltou configurar SUPABASE_URL e SUPABASE_ANON_KEY no config.js";
+          status.className = "status err";
+          return;
+        }
+
+        if (!email || !pass) {
+          status.textContent = "Preencha email e senha.";
+          status.className = "status err";
+          return;
+        }
+
+        status.textContent = "Entrando...";
+        status.className = "status ok";
+
+        try {
+          const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+          const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+
+          if (error) {
+            status.textContent = error.message || "Erro ao fazer login.";
+            status.className = "status err";
+            return;
+          }
+
+          // vai pro portal
+          window.location.href = "./index.html";
+        } catch (err) {
+          status.textContent = "Erro inesperado no login.";
+          status.className = "status err";
+          console.error(err);
+        }
+      }
+
+      function onSupport() {
+        const link = buildWhatsappLink();
+        if (!link) return alert("WhatsApp de suporte não configurado no config.js");
+        window.open(link, "_blank");
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        applyBrand();
+
+        // Botões SEMPRE clicáveis (evita submit escondido)
+        const btnSupport = $("#btnSupport");
+        const form = $("#loginForm");
+
+        if (btnSupport) btnSupport.addEventListener("click", onSupport);
+        if (form) form.addEventListener("submit", onLogin);
+
+        // debug básico
+        console.log("LOGIN OK: scripts carregados");
+      });
+    })();
+  </script>
 </head>
+
 <body>
   <div class="bg"></div>
-
   <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <img id="logoImg" class="logo" alt="Logo" />
-        <div class="brandText">
-          <div class="brandName" id="companyName">Portal do Cliente</div>
-          <div class="brandSub" id="companyTagline">Acesse seus contratos</div>
+    <div class="card">
+      <div class="topbar">
+        <div class="brand">
+          <img id="logoImg" src="./Logo.png" alt="Logo" />
+          <div class="title">
+            <strong id="companyName">Portal do Cliente</strong>
+            <span id="companyTagline">Acesse seus contratos</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn" id="btnSupport">Suporte</button>
         </div>
       </div>
 
-      <div class="topActions">
-        <button type="button" class="btn ghost" id="btnSupport">Suporte</button>
+      <div class="content">
+        <h1 class="h1">Entrar</h1>
+
+        <form id="loginForm" class="panel">
+          <label class="label">Email</label>
+          <input id="email" class="input" type="email" placeholder="seuemail@dominio.com" autocomplete="username" />
+
+          <label class="label" style="margin-top:12px;">Senha</label>
+          <input id="password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" />
+
+          <button type="submit" class="btn primary" style="margin-top:14px;">Entrar</button>
+
+          <div id="status" class="status"></div>
+
+          <p class="hint">
+            Se der “Invalid login credentials”, confira email/senha e se o usuário está confirmado no Supabase.
+          </p>
+        </form>
+
+        <div class="panel" style="margin-top:16px;">
+          <div class="badge"><span class="dot"></span> Acesso seguro</div>
+          <p class="muted" style="margin-top:12px;">
+            Você acessa seu painel com contratos, próximos vencimentos e status.
+          </p>
+        </div>
       </div>
-    </header>
 
-    <main class="content">
-      <section class="card">
-        <div class="cardHead">
-          <span class="dot"></span>
-          <h2>Entrar</h2>
-        </div>
-
-        <label class="k" for="email">Email</label>
-        <input id="email" type="email" placeholder="seuemail@dominio.com" class="input" autocomplete="email" />
-
-        <div style="height:10px"></div>
-
-        <label class="k" for="password">Senha</label>
-        <input id="password" type="password" placeholder="••••••••" class="input" autocomplete="current-password" />
-
-        <div style="height:12px"></div>
-
-        <button type="button" class="btn" id="btnLogin">Entrar</button>
-
-        <div id="msg" class="muted" style="margin-top:10px;"></div>
-      </section>
-
-      <section class="card">
-        <div class="cardHead">
-          <span class="dot"></span>
-          <h2>Resumo</h2>
-        </div>
-        <div class="hint">Você acessa seu painel com contratos, próximos vencimentos e status.</div>
-      </section>
-    </main>
-
-    <footer class="footer">© <span id="companyFooter">Sua empresa</span></footer>
+      <div class="footer">© <span id="companyFooter">Sua empresa</span></div>
+    </div>
   </div>
-
-  <script>
-    const CFG = window.APP_CONFIG || {};
-    const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
-    const $ = (id) => document.getElementById(id);
-
-    function openSupport() {
-      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
-      const base = CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda no Portal do Cliente.";
-      const url = `https://wa.me/${phone}?text=${encodeURIComponent(base)}`;
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-
-    async function goIfLogged() {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) location.href = "./index.html";
-    }
-
-    async function login() {
-      $("msg").textContent = "";
-      const email = $("email").value.trim();
-      const password = $("password").value;
-
-      if (!email || !password) {
-        $("msg").textContent = "Preencha email e senha.";
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        $("msg").textContent = error.message;
-        return;
-      }
-      location.href = "./index.html";
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      $("logoImg").src = CFG.LOGO_URL || "./Logo.png";
-      $("companyName").textContent = CFG.COMPANY_NAME || "Portal do Cliente";
-      $("companyTagline").textContent = CFG.COMPANY_TAGLINE || "Acesse seus contratos";
-      $("companyFooter").textContent = CFG.COMPANY_NAME || "Sua empresa";
-
-      $("btnSupport").addEventListener("click", openSupport);
-      $("btnLogin").addEventListener("click", login);
-
-      // Enter no teclado
-      $("password").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") login();
-      });
-
-      goIfLogged();
-    });
-  </script>
 </body>
 </html>

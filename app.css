@@ -453,3 +453,21 @@ a, a:visited{
   font-size: 22px !important;
   color: rgba(255,255,255,0.55) !important;
 }
+.top-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+.block{margin-top:14px;padding:16px;border-radius:22px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.08)}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.10);opacity:.95}
+.h2{margin:0 0 10px;font-size:28px}
+.action-list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.action-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.10);text-decoration:none;color:inherit}
+.action-title{font-weight:800;font-size:20px}
+.action-sub{opacity:.7;margin-top:2px}
+.chev{opacity:.7;font-size:26px}
+.contract-card{padding:16px;border-radius:22px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.08)}
+.contract-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.contract-status{font-weight:800;font-size:22px}
+.contract-id{opacity:.6}
+.contract-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kv{padding:12px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.10)}
+.k{opacity:.65;font-size:13px}
+.v{font-weight:800;font-size:18px;margin-top:4px}
+.kv.wide{grid-column:1 / -1}

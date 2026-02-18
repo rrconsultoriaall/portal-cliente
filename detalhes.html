@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Detalhes</title>
-  <link rel="stylesheet" href="./app.css" />
+  <link rel="stylesheet" href="./app.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
 </head>
@@ -13,10 +13,10 @@
     <div class="card">
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" src="" alt="Logo" />
+          <img id="logoImg" src="" alt="Logo">
           <div class="title">
             <strong id="companyName">RR Consultoria</strong>
-            <span class="muted">Detalhes</span>
+            <span id="companyTagline">Detalhes do contrato</span>
           </div>
         </div>
         <div class="actions">
@@ -26,56 +26,24 @@
 
       <div class="content">
         <div class="panel">
-          <h2 class="h2">Contrato</h2>
-          <div class="muted">Detalhes completos do seu contrato.</div>
-          <div class="hr"></div>
-
-          <div id="box" class="muted">Carregando...</div>
+          <h2 style="margin:0 0 10px 0;">Detalhes</h2>
+          <div id="d_txt" style="opacity:.8">Selecione um contrato pelo painel.</div>
         </div>
-
-        <div class="footer">© <span id="footerName">RR Consultoria</span></div>
       </div>
+
+      <div class="footer">© <span id="footerCompany">RR Consultoria</span></div>
     </div>
   </div>
 
   <script>
-    const CFG = window.APP_CONFIG || {};
-    const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    const cfg = window.APP_CONFIG || {};
+    document.getElementById('logoImg').src = cfg.LOGO_URL || './Logo.png';
+    document.getElementById('companyName').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
+    document.getElementById('footerCompany').textContent = cfg.COMPANY_NAME || 'RR Consultoria';
 
-    document.getElementById("companyName").textContent = CFG.COMPANY_NAME || "Portal";
-    document.getElementById("footerName").textContent = CFG.COMPANY_NAME || "Sua empresa";
-    document.getElementById("logoImg").src = CFG.LOGO_URL || "./Logo.png";
-
-    function moneyBR(value){ return Number(value||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
-    function formatDateBR(iso){ if(!iso) return "—"; const [y,m,d]=String(iso).split("-"); return (y&&m&&d)?`${d}/${m}/${y}`:String(iso); }
-
-    async function load() {
-      const { data } = await sb.auth.getSession();
-      if (!data?.session) { window.location.href="./login.html"; return; }
-
-      const clientId = localStorage.getItem("client_id");
-      if (!clientId) { document.getElementById("box").textContent = "Cliente não encontrado."; return; }
-
-      const { data: contracts, error } = await sb
-        .from("contracts")
-        .select("id, amount_paid, installments_remaining, due_date, notes")
-        .eq("client_id", clientId)
-        .order("due_date", { ascending: true });
-
-      if (error) { document.getElementById("box").textContent = "Erro ao carregar."; return; }
-      if (!contracts || contracts.length === 0) { document.getElementById("box").textContent = "Nenhum contrato."; return; }
-
-      const c = contracts[0]; // por enquanto mostra o primeiro (próximo venc.)
-      document.getElementById("box").innerHTML = `
-        <div><strong>ID:</strong> ${c.id}</div>
-        <div style="margin-top:10px;"><strong>Valor pago:</strong> ${moneyBR(c.amount_paid)}</div>
-        <div style="margin-top:10px;"><strong>Parcelas restantes:</strong> ${c.installments_remaining ?? "—"}</div>
-        <div style="margin-top:10px;"><strong>Vencimento:</strong> ${formatDateBR(c.due_date)}</div>
-        <div style="margin-top:10px;"><strong>Observações:</strong> ${(c.notes || "—")}</div>
-      `;
-    }
-
-    load();
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (id) document.getElementById('d_txt').textContent = 'Contrato: ' + id + ' (em breve detalhes completos).';
   </script>
 </body>
 </html>

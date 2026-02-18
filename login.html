@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente — Login</title>
-  <link rel="stylesheet" href="./app.css?v=210">
+  <link rel="stylesheet" href="./app.css?v=211">
   <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -38,13 +38,15 @@
 
         <div class="actions">
           <button class="btn btn-primary" id="btnLogin" type="button">Entrar</button>
-          <button class="btn btn-secondary" id="btnSignup" type="button">Criar conta</button>
+          <a class="btn btn-secondary" id="btnGoSignup" href="./cadastro.html?v=211" style="text-align:center; line-height: 22px;">
+            Criar conta
+          </a>
         </div>
 
         <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
 
         <div class="mini" style="margin-top:12px; line-height:1.55">
-          Ao criar conta, você pode precisar confirmar o email (se isso estiver ativado no Supabase).
+          Se ainda não tem conta, toque em <b>Criar conta</b>.
         </div>
       </main>
 
@@ -56,7 +58,6 @@
   </div>
 
 <script>
-  // ===== Config / Supabase =====
   const CFG = window.APP_CONFIG || {};
   const sb = (window.supabase?.createClient ? window.supabase : supabase)
     .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
@@ -86,7 +87,6 @@
   }
   $('btnSupport').addEventListener('click', openSupport);
 
-  // Helpers
   function getCreds(){
     const email = ($('email').value || '').trim();
     const password = $('password').value || '';
@@ -95,12 +95,9 @@
 
   function setLoading(isLoading){
     $('btnLogin').disabled = isLoading;
-    $('btnSignup').disabled = isLoading;
     $('btnLogin').textContent = isLoading ? 'Aguarde…' : 'Entrar';
-    $('btnSignup').textContent = isLoading ? 'Aguarde…' : 'Criar conta';
   }
 
-  // Login
   async function doLogin(){
     setMsg('');
     const { email, password } = getCreds();
@@ -120,58 +117,10 @@
     }
 
     setMsg('Login feito ✅', true);
-    window.location.href = './index.html?v=210';
-  }
-
-  // Cadastro
-  async function doSignup(){
-    setMsg('');
-    const { email, password } = getCreds();
-
-    if (!email || !password){
-      setMsg('Preencha email e senha para criar a conta.');
-      return;
-    }
-    if (password.length < 6){
-      setMsg('A senha precisa ter pelo menos 6 caracteres.');
-      return;
-    }
-
-    setLoading(true);
-
-    // Redirect após confirmar email (se confirmação estiver ligada)
-    const redirectTo = `${window.location.origin}${window.location.pathname.replace(/\/[^\/]*$/, '')}/login.html`;
-
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectTo }
-    });
-
-    setLoading(false);
-
-    if (error){
-      setMsg(error.message);
-      return;
-    }
-
-    // Se confirmação estiver ON, normalmente não loga direto
-    // Se estiver OFF, já loga e você pode ir pro portal
-    const user = data?.user;
-    const session = data?.session;
-
-    if (session){
-      setMsg('Conta criada e login feito ✅', true);
-      window.location.href = './index.html?v=210';
-    } else {
-      setMsg('Conta criada ✅ Verifique seu email para confirmar o cadastro (se solicitado).', true);
-    }
+    window.location.href = './index.html?v=211';
   }
 
   $('btnLogin').addEventListener('click', doLogin);
-  $('btnSignup').addEventListener('click', doSignup);
-
-  // Enter no teclado
   $('password').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') doLogin();
   });
@@ -179,7 +128,7 @@
   // Se já estiver logado, manda pro portal
   (async () => {
     const { data } = await sb.auth.getSession();
-    if (data?.session) window.location.href = './index.html?v=210';
+    if (data?.session) window.location.href = './index.html?v=211';
   })();
 </script>
 </body>

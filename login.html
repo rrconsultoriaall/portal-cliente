@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente — Login</title>
-  <link rel="stylesheet" href="./app.css?v=211">
+  <link rel="stylesheet" href="./app.css?v=212">
   <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -38,15 +38,12 @@
 
         <div class="actions">
           <button class="btn btn-primary" id="btnLogin" type="button">Entrar</button>
-          <a class="btn btn-secondary" id="btnGoSignup" href="./cadastro.html?v=211" style="text-align:center; line-height: 22px;">
-            Criar conta
-          </a>
         </div>
 
         <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
 
         <div class="mini" style="margin-top:12px; line-height:1.55">
-          Se ainda não tem conta, toque em <b>Criar conta</b>.
+          Não tem acesso? Toque em <b>Suporte</b> para solicitar a criação da conta.
         </div>
       </main>
 
@@ -117,7 +114,7 @@
     }
 
     setMsg('Login feito ✅', true);
-    window.location.href = './index.html?v=211';
+    window.location.href = './index.html?v=212';
   }
 
   $('btnLogin').addEventListener('click', doLogin);
@@ -128,7 +125,7 @@
   // Se já estiver logado, manda pro portal
   (async () => {
     const { data } = await sb.auth.getSession();
-    if (data?.session) window.location.href = './index.html?v=211';
+    if (data?.session) window.location.href = './index.html?v=212';
   })();
 </script>
 </body>

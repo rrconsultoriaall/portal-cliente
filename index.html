@@ -4,8 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente</title>
-  <link rel="stylesheet" href="./app.css?v=200">
-  <script src="./config.js?v=99"></script>
+
+  <!-- 🔥 Dica anti-cache: sobe esse número quando publicar -->
+  <link rel="stylesheet" href="./app.css?v=777">
+  <script src="./config.js?v=777"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -31,6 +33,11 @@
 
       <main class="content">
 
+        <!-- ✅ Selo anti-cache / debug visual -->
+        <div class="pill" style="margin:0 0 12px;background:rgba(255,255,0,.12);border-color:rgba(255,255,0,.30);color:#fff;">
+          DEBUG ATIVO — v=777
+        </div>
+
         <!-- STATUS / MENSAGENS -->
         <section class="block" id="statusBlock">
           <div class="pill" id="statusPill">Carregando...</div>
@@ -42,9 +49,12 @@
           </div>
 
           <div id="msg" class="msg" aria-live="polite"></div>
+
+          <!-- Debug técnico (aparece só se CFG.DEBUG=true) -->
+          <div id="debugBox" class="mini" style="display:none;margin-top:10px;opacity:.85;line-height:1.55;"></div>
         </section>
 
-        <!-- CONTRATOS (só aparece quando aprovado) -->
+        <!-- CONTRATO / PLANO -->
         <section class="block" id="contractsBlock" style="display:none;">
           <div class="pill">Seu plano</div>
           <div id="contractsArea" class="mini">Carregando...</div>
@@ -54,22 +64,33 @@
         <section class="block" id="actionsBlock" style="display:none;">
           <h2 style="margin: 4px 0 10px;">Ações</h2>
 
-          <a class="action" href="./pagamentos.html?v=200" id="linkPayments">
-            <div class="action-title">Pagamentos</div>
-            <div class="action-sub">Histórico e comprovantes</div>
-            <div class="action-arrow">›</div>
+          <!-- ⚠️ seu CSS usa .action-link; seu HTML estava .action. Mantive compatível com os dois. -->
+          <a class="action action-link" href="./pagamentos.html?v=777" id="linkPayments">
+            <div>
+              <strong>Pagamentos</strong><br/>
+              <span>Histórico e comprovantes</span>
+            </div>
+            <div class="chev">›</div>
           </a>
 
-          <a class="action" href="./perfil.html?v=200" id="linkProfile">
-            <div class="action-title">Perfil</div>
-            <div class="action-sub">Seus dados cadastrais</div>
-            <div class="action-arrow">›</div>
+          <div style="height:10px"></div>
+
+          <a class="action action-link" href="./perfil.html?v=777" id="linkProfile">
+            <div>
+              <strong>Perfil</strong><br/>
+              <span>Seus dados cadastrais</span>
+            </div>
+            <div class="chev">›</div>
           </a>
 
-          <a class="action" href="./detalhes.html?v=200" id="linkDetails">
-            <div class="action-title">Detalhes</div>
-            <div class="action-sub">Contrato e informações extras</div>
-            <div class="action-arrow">›</div>
+          <div style="height:10px"></div>
+
+          <a class="action action-link" href="./detalhes.html?v=777" id="linkDetails">
+            <div>
+              <strong>Detalhes</strong><br/>
+              <span>Contrato e informações extras</span>
+            </div>
+            <div class="chev">›</div>
           </a>
         </section>
 
@@ -98,6 +119,14 @@
     msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
   };
 
+  const debugBox = $('debugBox');
+  const debugOn = !!CFG.DEBUG;
+  const setDebug = (html) => {
+    if (!debugOn) return;
+    debugBox.style.display = 'block';
+    debugBox.innerHTML = html || '';
+  };
+
   // Branding
   $('logoImg').src = CFG.LOGO_URL || './Logo.png';
   if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
@@ -117,7 +146,7 @@
   // Logout
   async function doLogout(){
     await sb.auth.signOut();
-    window.location.href = './login.html?v=200';
+    window.location.href = './login.html?v=777';
   }
   $('btnLogout').addEventListener('click', doLogout);
   $('btnLogout2').addEventListener('click', doLogout);
@@ -132,7 +161,7 @@
       <div style="margin-top:6px">
         Sua conta foi criada com sucesso ✅<br/>
         Mas ainda precisa ser <b>aprovada pelo administrador</b>.<br/>
-        Assim que for aprovada, você conseguirá acessar seus contratos.
+        Assim que for aprovada, você conseguirá acessar seu painel.
         <div style="opacity:.85; margin-top:10px">Dica: tente novamente mais tarde após a aprovação.</div>
       </div>
     `;
@@ -150,55 +179,43 @@
     if (email) setText('loggedAs', `Logado como: ${email}`);
   }
 
-  // ===== Helpers =====
+  // ===== helpers =====
   const fmtMoney = (v) => {
     const n = Number(v || 0);
     return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   };
-
-  const pct = (paid, total) => total > 0 ? (paid / total) * 100 : 0;
+  const pct = (v) => {
+    const n = Number(v || 0);
+    return (Math.round(n * 100) / 100).toFixed(2);
+  };
 
   // ===== Data loaders =====
+
+  // A) Tenta carregar da tabela contracts (se existir e tiver permissões/colunas)
   async function loadContractsForClient(clientId){
     const area = $('contractsArea');
     area.textContent = 'Carregando...';
 
+    // Tenta em "contracts" com seleção ampla (se alguma coluna não existir, o Supabase retorna erro)
     const { data, error } = await sb
       .from('contracts')
       .select('id,status,total_value,amount_paid,installments_total,installments_paid,due_date,notes,created_at')
       .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (error) {
-  area.textContent = 'Erro ao carregar contratos.';
-  setMsg(`Supabase: ${error.message} (code: ${error.code || '—'})`);
-  console.log('contracts error', error);
-  return;
-      }
-    if (!data || data.length === 0) { area.textContent = 'Nenhum contrato encontrado.'; return; }
+      // deixa pro fallback (B)
+      throw error;
+    }
 
-    // Mostra 1º contrato como “cartão”
+    if (!data || data.length === 0) {
+      // Sem contratos -> ainda assim mostra painel básico
+      area.innerHTML = `<div class="mini">Nenhum contrato encontrado.</div>`;
+      return;
+    }
+
     const c = data[0];
-
-    // ✅ Regra: Entrada sempre 24x 2000 (R$ 48.000)
-    const entryTotal = 48000;
-
-    // Total vem do contrato
-    const planTotal = Number(c.total_value || 0);
-    const paidTotal = Number(c.amount_paid || 0);
-
-    // Distribuição simples: primeiro paga entrada, depois principal
-    const entryPaid = Math.min(paidTotal, entryTotal);
-    const mainPaid  = Math.max(0, paidTotal - entryTotal);
-
-    const mainTotal = Math.max(0, planTotal - entryTotal);
-
-    const entryPct = pct(entryPaid, entryTotal);
-    const mainPct  = pct(mainPaid, mainTotal);
-    const geralPct = pct(paidTotal, planTotal);
-
-    // (Opcional) “Restante”
-    const remainingTotal = Math.max(0, planTotal - paidTotal);
 
     area.innerHTML = `
       <div class="contract-card">
@@ -208,56 +225,92 @@
         </div>
 
         <div class="contract-grid">
-          <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(planTotal)}</div></div>
-          <div class="kv"><div class="k">Pago</div><div class="v">${fmtMoney(paidTotal)}</div></div>
-          <div class="kv"><div class="k">Restante</div><div class="v">${fmtMoney(remainingTotal)}</div></div>
+          <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(c.total_value)}</div></div>
+          <div class="kv"><div class="k">Pago</div><div class="v">${fmtMoney(c.amount_paid)}</div></div>
           <div class="kv"><div class="k">Parcelas</div><div class="v">${(c.installments_paid ?? 0)} / ${(c.installments_total ?? 0)}</div></div>
           <div class="kv"><div class="k">Vencimento</div><div class="v">${c.due_date ? String(c.due_date).slice(0,10) : '—'}</div></div>
           <div class="kv wide"><div class="k">Observações</div><div class="v">${c.notes ? String(c.notes) : '—'}</div></div>
         </div>
 
-        <!-- ✅ Progresso -->
-        <div class="plan-section">
+        <div class="mini" style="margin-top:10px; opacity:.75">
+          Atualiza automaticamente conforme os pagamentos são lançados.
+        </div>
+      </div>
+    `;
+  }
 
-          <div class="phase-card">
-            <div class="phase-title">Entrada — 24x R$ 2.000,00</div>
-            <div class="phase-info">
-              Pago ${fmtMoney(entryPaid)} de ${fmtMoney(entryTotal)}
-              (${entryPct.toFixed(2)}%)
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width:${entryPct}%;"></div>
-            </div>
-          </div>
+  // B) Fallback “à prova de bala”: view client_plan_progress (você já validou que funciona)
+  async function loadPlanProgressByEmail(email){
+    const area = $('contractsArea');
+    area.textContent = 'Carregando...';
 
-          <div class="phase-card">
-            <div class="phase-title">Principal</div>
-            <div class="phase-info">
-              Pago ${fmtMoney(mainPaid)} de ${fmtMoney(mainTotal)}
-              (${mainPct.toFixed(2)}%)
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill secondary" style="width:${mainPct}%;"></div>
-            </div>
-          </div>
+    const { data, error } = await sb
+      .from('client_plan_progress')
+      .select(`
+        email,
+        plan_id,
+        plan_name,
+        entry_months,
+        entry_amount,
+        entry_total,
+        entry_paid,
+        entry_remaining,
+        entry_progress_percent,
+        main_months,
+        main_amount,
+        main_total,
+        main_paid,
+        main_remaining,
+        main_progress_percent,
+        plan_total,
+        paid_total,
+        remaining_total,
+        progress_percent,
+        payments_count
+      `)
+      .eq('email', email)
+      .maybeSingle();
 
-          <div class="summary-card">
-            <div class="phase-title">Geral</div>
-            <div class="phase-info">
-              Pago ${fmtMoney(paidTotal)} de ${fmtMoney(planTotal)}
-              (${geralPct.toFixed(2)}%)
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill total" style="width:${geralPct}%;"></div>
-            </div>
-            <div class="mini" style="margin-top:8px; opacity:.75">
-              Pagamentos lançados: ${(c.installments_paid ?? 0)}
-            </div>
-          </div>
+    if (error) throw error;
+    if (!data) {
+      area.innerHTML = `<div class="mini">Nenhum plano encontrado para este email.</div>`;
+      return;
+    }
 
+    // Barrinhas
+    const bar = (percent) => `
+      <div class="progress"><div class="bar" style="width:${Math.max(0, Math.min(100, Number(percent||0)))}%"></div></div>
+    `;
+
+    area.innerHTML = `
+      <div>
+        <div style="opacity:.92;line-height:1.6">
+          <div><b>${data.plan_name || 'Plano'}</b></div>
+          <div style="opacity:.85">#${data.plan_id ?? '—'}</div>
+
+          <div style="margin-top:10px; opacity:.9"><b>Entrada</b></div>
+          <div>${data.entry_months ?? 0}x ${fmtMoney(data.entry_amount)}</div>
+
+          <div style="margin-top:8px; opacity:.9"><b>Principal</b></div>
+          <div>${data.main_months ?? 0}x ${fmtMoney(data.main_amount)}</div>
+
+          <div style="margin-top:10px;"><b>Total</b> ${fmtMoney(data.plan_total)}</div>
+          <div><b>Restante</b> ${fmtMoney(data.remaining_total)}</div>
         </div>
 
-        <div class="mini" style="margin-top:10px; opacity:.75">
+        <div style="margin-top:14px; opacity:.85">
+          <div><b>Entrada</b> — Pago ${fmtMoney(data.entry_paid)} de ${fmtMoney(data.entry_total)} (${pct(data.entry_progress_percent)}%)</div>
+          ${bar(data.entry_progress_percent)}
+
+          <div style="margin-top:12px"><b>Principal</b> — Pago ${fmtMoney(data.main_paid)} de ${fmtMoney(data.main_total)} (${pct(data.main_progress_percent)}%)</div>
+          ${bar(data.main_progress_percent)}
+
+          <div style="margin-top:12px"><b>Geral</b> — Pago ${fmtMoney(data.paid_total)} de ${fmtMoney(data.plan_total)} (${pct(data.progress_percent)}%)</div>
+          <div class="mini">Pagamentos lançados: ${data.payments_count ?? 0}</div>
+          ${bar(data.progress_percent)}
+        </div>
+
+        <div class="mini" style="margin-top:12px;opacity:.75">
           *Valores informativos. Em caso de divergência, fale com o suporte.
         </div>
       </div>
@@ -271,40 +324,69 @@
     const session = sessData?.session;
 
     if (!session) {
-      window.location.href = './login.html?v=200';
+      window.location.href = './login.html?v=777';
       return;
     }
 
-    // ✅ Busca cliente pelo user_id do usuário logado
     const uid = session.user.id;
     const email = session.user.email;
 
-    const { data: client, error } = await sb
+    setDebug(`
+      <b>DEBUG</b><br/>
+      uid: <code>${uid}</code><br/>
+      email: <code>${email}</code><br/>
+    `);
+
+    // ✅ Regra: busca cliente pelo user_id do usuário logado
+    const { data: client, error: clientErr } = await sb
       .from('clients')
       .select('id,is_active')
       .eq('user_id', uid)
       .maybeSingle();
 
-    if (error) {
+    if (clientErr) {
       showPending(email);
-      setMsg(error.message);
+      setMsg(clientErr.message);
+      setDebug(debugBox.innerHTML + `<br/>clients error: <code>${clientErr.message}</code>`);
       return;
     }
 
-    // Se não tem cliente ou não está ativo -> aguardando
     if (!client || client.is_active !== true) {
       showPending(email);
+      setDebug(debugBox.innerHTML + `<br/>client: <code>${client ? JSON.stringify(client) : 'null'}</code>`);
       return;
     }
 
-    // Aprovado -> mostra portal e carrega contratos
     showApproved(email);
-    await loadContractsForClient(client.id);
-    setMsg('Portal carregado ✅', true);
+
+    // 1) tenta contracts
+    try {
+      setDebug(debugBox.innerHTML + `<br/>client_id: <code>${client.id}</code><br/>Tentando contracts...`);
+      await loadContractsForClient(client.id);
+      setMsg('Portal carregado ✅', true);
+      setDebug(debugBox.innerHTML + `<br/>contracts: OK`);
+      return;
+    } catch (e) {
+      const msg = (e && e.message) ? e.message : String(e);
+      setDebug(debugBox.innerHTML + `<br/>contracts falhou: <code>${msg}</code><br/>Fallback: client_plan_progress...`);
+    }
+
+    // 2) fallback garantido: view client_plan_progress (por email)
+    try {
+      await loadPlanProgressByEmail(email);
+      setMsg('Portal carregado ✅', true);
+      setDebug(debugBox.innerHTML + `<br/>client_plan_progress: OK`);
+    } catch (e2) {
+      const msg2 = (e2 && e2.message) ? e2.message : String(e2);
+      $('contractsArea').textContent = 'Erro ao carregar contratos.';
+      setMsg(msg2);
+      setDebug(debugBox.innerHTML + `<br/>fallback falhou: <code>${msg2}</code>`);
+    }
   }
 
   boot();
 </script>
 
 </body>
-              </html>
+</html>
+```0

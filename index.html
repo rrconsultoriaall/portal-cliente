@@ -3,227 +3,203 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portal do Cliente</title>
-  <link rel="stylesheet" href="./app.css?v=1" />
-  <script src="./config.js?v=1"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Portal • Cliente</title>
+  <link rel="stylesheet" href="./style.css?v=99">
 </head>
 <body>
-  <div class="wrap">
-    <div class="shell">
-      <div class="card">
-        <header class="header">
-          <div class="brand">
-            <img id="logoImg" alt="Logo" />
-            <div class="titles">
-              <div class="name" id="companyName">Sua empresa</div>
-              <div class="tag" id="loggedAs">Carregando sessão...</div>
-            </div>
-          </div>
 
-          <div class="top-actions">
-            <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
-            <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
-          </div>
-        </header>
+<div class="wrap">
+  <div class="card">
 
-        <main class="content">
-          <section class="block">
-            <div class="pill">Seus contratos</div>
-            <div id="contractsArea" class="mini">Carregando...</div>
-            <div id="msg" class="msg" aria-live="polite"></div>
-          </section>
-
-          <section class="block">
-            <h2 class="block-title">Ações</h2>
-
-            <div class="actions-list">
-              <button class="action-btn" id="goPayments" type="button">
-                <div class="left">
-                  <div class="title">Pagamentos</div>
-                  <div class="sub">Histórico e comprovantes</div>
-                </div>
-                <div class="arrow">›</div>
-              </button>
-
-              <button class="action-btn" id="goProfile" type="button">
-                <div class="left">
-                  <div class="title">Perfil</div>
-                  <div class="sub">Seus dados cadastrais</div>
-                </div>
-                <div class="arrow">›</div>
-              </button>
-
-              <button class="action-btn" id="goDetails" type="button">
-                <div class="left">
-                  <div class="title">Detalhes</div>
-                  <div class="sub">Contrato e informações extras</div>
-                </div>
-                <div class="arrow">›</div>
-              </button>
-            </div>
-          </section>
-        </main>
-
-        <footer class="footer">
-          <span id="footerCompany">© Sua empresa</span>
-        </footer>
+    <header class="brand">
+      <img id="logoImg" class="logo" src="./Logo.png" alt="Logo" />
+      <div class="brand-text">
+        <div id="companyName" class="brand-title">Sua empresa</div>
+        <div id="companyTagline" class="brand-sub">Acesse seus contratos</div>
+        <div id="loggedAs" class="brand-sub mini" style="opacity:.9"></div>
       </div>
-    </div>
-  </div>
 
-  <script>
-    const CFG = window.APP_CONFIG || {};
-    const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+      <div class="top-actions">
+        <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+        <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <section class="block">
+        <div class="pill">Seus contratos</div>
+        <div id="contractsArea" class="mini">Carregando...</div>
+      </section>
+
+      <section class="block">
+        <h2 style="margin-bottom:10px">Ações</h2>
+
+        <div class="action-list">
+          <a class="action-item" href="./pagamentos.html?v=99">
+            <div>
+              <div class="action-title">Pagamentos</div>
+              <div class="action-sub">Histórico e comprovantes</div>
+            </div>
+            <div class="chev">›</div>
+          </a>
+
+          <a class="action-item" href="./perfil.html?v=99">
+            <div>
+              <div class="action-title">Perfil</div>
+              <div class="action-sub">Seus dados cadastrais</div>
+            </div>
+            <div class="chev">›</div>
+          </a>
+
+          <a class="action-item" href="./detalhes.html?v=99">
+            <div>
+              <div class="action-title">Detalhes</div>
+              <div class="action-sub">Contrato e informações extras</div>
+            </div>
+            <div class="chev">›</div>
+          </a>
+        </div>
+
+        <div id="msg" class="msg" aria-live="polite"></div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <span id="footerCompany">© Sua empresa</span>
+    </footer>
+
+  </div>
+</div>
+
+<script src="./config.js?v=99"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  const CFG = window.APP_CONFIG || {};
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? ''; };
+  const msg = document.getElementById('msg');
+  const setMsg = (t, ok=false) => {
+    msg.textContent = t || '';
+    msg.style.opacity = t ? '1' : '0';
+    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
+
+  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+  document.getElementById('logoImg').src = CFG.LOGO_URL || './Logo.png';
+
+  document.getElementById('btnSupport').addEventListener('click', () => {
+    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+    if (!phone) return alert('WhatsApp de suporte não configurado.');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
+  });
+
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    window.location.href = './login.html?v=99';
+  });
+
+  function moneyBRL(v){
+    const n = Number(v || 0);
+    return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
+  function dateBR(d){
+    if (!d) return '—';
+    return String(d).split('T')[0].split('-').reverse().join('/');
+  }
+
+  async function requireSession(){
+    const { data } = await sb.auth.getSession();
+    if (!data?.session) {
+      window.location.href = './login.html?v=99';
+      return null;
+    }
+    return data.session;
+  }
+
+  async function loadContracts(){
+    const session = await requireSession();
+    if (!session) return;
+
+    setText('loggedAs', `Logado como: ${session.user.email}`);
 
     const area = document.getElementById('contractsArea');
-    const msgEl = document.getElementById('msg');
 
-    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? ''; };
-    const setMsg = (t, ok=false) => {
-      msgEl.textContent = t || '';
-      msgEl.style.opacity = t ? '1' : '0';
-      msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,200,200,.95)';
-    };
+    // tenta pegar perfil do cliente pelo user_id
+    const { data: clientRow } = await sb
+      .from('clients')
+      .select('id, user_id, full_name')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
 
-    // Brand
-    setText('companyName', CFG.COMPANY_NAME || 'Sua empresa');
-    setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
-    document.getElementById('logoImg').src = (CFG.LOGO_URL || './Logo.png') + '?v=1';
-
-    // Botões
-    document.getElementById('btnSupport').addEventListener('click', () => {
-      const phone = (CFG.SUPPORT_WHATSAPP || '').trim();
-      if (!phone) return alert('WhatsApp de suporte não configurado.');
-      const text = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda.');
-      window.location.href = `https://wa.me/${phone}?text=${text}`;
-    });
-
-    document.getElementById('btnLogout').addEventListener('click', async () => {
-      await sb.auth.signOut();
-      window.location.href = './login.html?v=1';
-    });
-
-    // “Páginas” (por enquanto abre placeholders)
-    document.getElementById('goPayments').addEventListener('click', () => alert('Pagamentos: em breve (ou criamos payments.html)'));
-    document.getElementById('goProfile').addEventListener('click', () => alert('Perfil: em breve (ou criamos profile.html)'));
-    document.getElementById('goDetails').addEventListener('click', () => alert('Detalhes: em breve (ou criamos details.html)'));
-
-    async function requireSession() {
-      const { data } = await sb.auth.getSession();
-      const session = data?.session;
-      if (!session) {
-        window.location.href = './login.html?v=1';
-        return null;
-      }
-      return session;
+    if (!clientRow) {
+      area.textContent = 'Seu perfil ainda não foi criado. Vá em “Perfil” e preencha seus dados.';
+      return;
     }
 
-    function moneyBR(v){
-      const n = Number(v || 0);
-      return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    // pega contratos desse cliente
+    const { data, error } = await sb
+      .from('contracts')
+      .select('id,status,total_value,amount_paid,installments_remaining,due_date,notes')
+      .eq('client_id', clientRow.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      area.textContent = 'Erro ao carregar contratos.';
+      setMsg(error.message);
+      return;
     }
 
-    function dateBR(d){
-      if (!d) return '—';
-      // d pode vir "YYYY-MM-DD"
-      const [y,m,dd] = String(d).split('-');
-      if (!y || !m || !dd) return String(d);
-      return `${dd}/${m}/${y}`;
+    if (!data || data.length === 0) {
+      area.textContent = 'Nenhum contrato encontrado.';
+      return;
     }
 
-    async function loadContracts() {
-      setMsg('');
-      area.textContent = 'Carregando...';
+    const c = data[0];
 
-      const session = await requireSession();
-      if (!session) return;
+    area.innerHTML = `
+      <div class="contract-card">
+        <div class="contract-head">
+          <div class="contract-status">${c.status || '—'}</div>
+          <div class="contract-id">#${String(c.id).slice(0,8)}</div>
+        </div>
 
-      setText('loggedAs', `Logado como: ${session.user.email}`);
-
-      // pega o client do usuário logado (clients.user_id = auth.uid())
-      const { data: client, error: cErr } = await sb
-        .from('clients')
-        .select('id, full_name, is_active')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-
-      if (cErr) {
-        area.textContent = 'Erro ao carregar cliente.';
-        setMsg(cErr.message);
-        return;
-      }
-
-      if (!client) {
-        area.textContent = 'Nenhum cadastro de cliente encontrado para este login.';
-        setMsg('Dica: crie uma linha em clients com user_id = auth.uid() do usuário.', false);
-        return;
-      }
-
-      // pega contratos desse cliente
-      const { data, error } = await sb
-        .from('contracts')
-        .select('id,status,total_value,amount_paid,installments_remaining,due_date,notes')
-        .eq('client_id', client.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        area.textContent = 'Erro ao carregar contratos.';
-        setMsg(error.message);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        area.textContent = 'Nenhum contrato encontrado.';
-        setMsg('Portal carregado com sucesso ✅', true);
-        return;
-      }
-
-      const c = data[0];
-      area.innerHTML = `
-        <div class="contract-card">
-          <div class="contract-head">
-            <div class="contract-status">${c.status || 'Contrato'}</div>
-            <div class="contract-id">#${String(c.id).slice(0,8)}</div>
+        <div class="contract-grid">
+          <div class="kv">
+            <div class="k">Total</div>
+            <div class="v">${moneyBRL(c.total_value)}</div>
           </div>
-
-          <div class="contract-grid">
-            <div class="kv">
-              <div class="k">Total</div>
-              <div class="v">${moneyBR(c.total_value)}</div>
-            </div>
-
-            <div class="kv">
-              <div class="k">Pago</div>
-              <div class="v">${moneyBR(c.amount_paid)}</div>
-            </div>
-
-            <div class="kv">
-              <div class="k">Parcelas restantes</div>
-              <div class="v">${c.installments_remaining ?? '—'}</div>
-            </div>
-
-            <div class="kv">
-              <div class="k">Vencimento</div>
-              <div class="v">${dateBR(c.due_date)}</div>
-            </div>
-
-            <div class="kv wide">
-              <div class="k">Observações</div>
-              <div class="v" style="font-size:16px;font-weight:800">${(c.notes || '—')}</div>
-            </div>
+          <div class="kv">
+            <div class="k">Pago</div>
+            <div class="v">${moneyBRL(c.amount_paid)}</div>
           </div>
-
-          <div class="mini" style="margin-top:12px">
-            Se você tiver vários contratos, depois a gente coloca uma lista/seleção aqui.
+          <div class="kv">
+            <div class="k">Parcelas restantes</div>
+            <div class="v">${c.installments_remaining ?? '—'}</div>
+          </div>
+          <div class="kv">
+            <div class="k">Vencimento</div>
+            <div class="v">${dateBR(c.due_date)}</div>
+          </div>
+          <div class="kv wide">
+            <div class="k">Observações</div>
+            <div class="v">${(c.notes || '—')}</div>
           </div>
         </div>
-      `;
+      </div>
+    `;
 
-      setMsg('Portal carregado com sucesso ✅', true);
-    }
+    setMsg('Portal carregado com sucesso ✅', true);
+  }
 
-    loadContracts();
-  </script>
+  loadContracts();
+</script>
 </body>
 </html>

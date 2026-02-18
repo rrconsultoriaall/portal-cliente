@@ -44,10 +44,21 @@
           <div id="msg" class="msg" aria-live="polite"></div>
         </section>
 
-        <!-- CONTRATOS (só aparece quando aprovado) -->
-        <section class="block" id="contractsBlock" style="display:none;">
-          <div class="pill">Seus contratos</div>
-          <div id="contractsArea" class="mini">Carregando...</div>
+        <!-- PLANO + PROGRESSO (só aparece quando aprovado) -->
+        <section class="block" id="planBlock" style="display:none;">
+          <div class="pill">Seu plano</div>
+          <div id="planArea" class="mini">Carregando...</div>
+        </section>
+
+        <section class="block" id="progressBlock" style="display:none;">
+          <div class="pill">Progresso</div>
+          <div id="progressArea" class="mini">Carregando...</div>
+        </section>
+
+        <!-- PAGAMENTOS (todos) -->
+        <section class="block" id="paymentsBlock" style="display:none;">
+          <div class="pill">Pagamentos</div>
+          <div id="paymentsArea" class="mini">Carregando...</div>
         </section>
 
         <!-- AÇÕES (só aparece quando aprovado) -->
@@ -89,7 +100,6 @@
     .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
   const $ = (id) => document.getElementById(id);
-
   const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
 
   const msgEl = $('msg');
@@ -123,9 +133,23 @@
   $('btnLogout').addEventListener('click', doLogout);
   $('btnLogout2').addEventListener('click', doLogout);
 
+  // Helpers
+  const fmtMoney = (v) => {
+    const n = Number(v || 0);
+    return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  };
+
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    const s = String(d).slice(0,10);
+    return s;
+  };
+
   // ===== UI states =====
   function showPending(email){
-    $('contractsBlock').style.display = 'none';
+    $('planBlock').style.display = 'none';
+    $('progressBlock').style.display = 'none';
+    $('paymentsBlock').style.display = 'none';
     $('actionsBlock').style.display = 'none';
 
     setText('statusPill', 'Aguardando aprovação');
@@ -133,7 +157,7 @@
       <div style="margin-top:6px">
         Sua conta foi criada com sucesso ✅<br/>
         Mas ainda precisa ser <b>aprovada pelo administrador</b>.<br/>
-        Assim que for aprovada, você conseguirá acessar seus contratos.
+        Assim que for aprovada, você conseguirá acessar o portal.
         <div style="opacity:.85; margin-top:10px">Dica: tente novamente mais tarde após a aprovação.</div>
       </div>
     `;
@@ -143,7 +167,9 @@
 
   function showApproved(email){
     $('pendingActions').style.display = 'none';
-    $('contractsBlock').style.display = '';
+    $('planBlock').style.display = '';
+    $('progressBlock').style.display = '';
+    $('paymentsBlock').style.display = '';
     $('actionsBlock').style.display = '';
 
     setText('statusPill', 'Portal');
@@ -151,47 +177,114 @@
     if (email) setText('loggedAs', `Logado como: ${email}`);
   }
 
-  // ===== Data loaders =====
-  async function loadContractsForClient(clientId){
-    const area = $('contractsArea');
-    area.textContent = 'Carregando...';
+  // ===== Loaders =====
+  async function loadPlanAndProgressByEmail(email){
+    const planArea = $('planArea');
+    const progArea = $('progressArea');
+
+    planArea.textContent = 'Carregando...';
+    progArea.textContent = 'Carregando...';
 
     const { data, error } = await sb
-      .from('contracts')
-      .select('id,status,total_value,amount_paid,installments_total,installments_paid,due_date,notes,created_at')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
+      .from('client_plan_progress')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
 
-    if (error) { area.textContent = 'Erro ao carregar contratos.'; setMsg(error.message); return; }
-    if (!data || data.length === 0) { area.textContent = 'Nenhum contrato encontrado.'; return; }
+    if (error) {
+      planArea.textContent = 'Erro ao carregar plano.';
+      progArea.textContent = 'Erro ao carregar progresso.';
+      setMsg(error.message);
+      return null;
+    }
 
-    // Mostra 1º contrato como “cartão”
-    const c = data[0];
-    const fmtMoney = (v) => {
-      const n = Number(v || 0);
-      return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-    };
+    if (!data) {
+      planArea.textContent = 'Plano não encontrado.';
+      progArea.textContent = '—';
+      return null;
+    }
 
-    area.innerHTML = `
+    // Plano
+    planArea.innerHTML = `
       <div class="contract-card">
         <div class="contract-head">
-          <div class="contract-status">${c.status || '—'}</div>
-          <div class="contract-id">#${String(c.id).slice(0,8)}</div>
+          <div class="contract-status">${data.plan_name || 'Plano'}</div>
+          <div class="contract-id">#${String(data.plan_id ?? '').toString()}</div>
         </div>
 
         <div class="contract-grid">
-          <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(c.total_value)}</div></div>
-          <div class="kv"><div class="k">Pago</div><div class="v">${fmtMoney(c.amount_paid)}</div></div>
-          <div class="kv"><div class="k">Parcelas</div><div class="v">${(c.installments_paid ?? 0)} / ${(c.installments_total ?? 0)}</div></div>
-          <div class="kv"><div class="k">Vencimento</div><div class="v">${c.due_date ? String(c.due_date).slice(0,10) : '—'}</div></div>
-          <div class="kv wide"><div class="k">Observações</div><div class="v">${c.notes ? String(c.notes) : '—'}</div></div>
+          <div class="kv"><div class="k">Entrada</div><div class="v">${data.entry_months ?? 0}x ${fmtMoney(data.entry_amount)}</div></div>
+          <div class="kv"><div class="k">Principal</div><div class="v">${data.main_months ?? 0}x ${fmtMoney(data.main_amount)}</div></div>
+          <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(data.plan_total)}</div></div>
+          <div class="kv"><div class="k">Restante</div><div class="v">${fmtMoney(data.remaining_total)}</div></div>
         </div>
 
-        <div class="mini" style="margin-top:10px; opacity:.75">
-          Se você tiver vários contratos, depois a gente coloca uma lista aqui.
+        <div class="mini" style="margin-top:10px; opacity:.8">
+          *Valores informativos. Em caso de divergência, fale com o suporte.
         </div>
       </div>
     `;
+
+    // Progresso
+    const pct = Number(data.progress_percent || 0);
+    const paid = Number(data.paid_total || 0);
+    const total = Number(data.plan_total || 0);
+
+    progArea.innerHTML = `
+      <div class="contract-card">
+        <div class="contract-grid">
+          <div class="kv"><div class="k">Pago</div><div class="v">${fmtMoney(paid)}</div></div>
+          <div class="kv"><div class="k">Total</div><div class="v">${fmtMoney(total)}</div></div>
+          <div class="kv"><div class="k">Pagamentos lançados</div><div class="v">${data.payments_count ?? 0}</div></div>
+          <div class="kv"><div class="k">Progresso</div><div class="v">${pct.toFixed(2)}%</div></div>
+        </div>
+
+        <div style="margin-top:12px; width:100%; height:10px; border-radius:999px; overflow:hidden; background: rgba(255,255,255,.12);">
+          <div style="height:100%; width:${Math.min(100, Math.max(0, pct))}%; background: rgba(255,255,255,.85);"></div>
+        </div>
+
+        <div class="mini" style="margin-top:10px; opacity:.75">
+          Atualiza automaticamente conforme os pagamentos são lançados pelo administrador.
+        </div>
+      </div>
+    `;
+
+    return data;
+  }
+
+  async function loadPaymentsByEmail(email){
+    const area = $('paymentsArea');
+    area.textContent = 'Carregando...';
+
+    const { data, error } = await sb
+      .from('client_payments')
+      .select('id,paid_at,amount,method,notes')
+      .eq('client_email', email)
+      .order('paid_at', { ascending: false });
+
+    if (error) {
+      area.textContent = 'Erro ao carregar pagamentos.';
+      setMsg(error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      area.textContent = 'Nenhum pagamento registrado ainda.';
+      return;
+    }
+
+    const rows = data.map((p) => `
+      <div class="contract-card" style="margin-bottom:10px;">
+        <div class="contract-grid">
+          <div class="kv"><div class="k">Data</div><div class="v">${fmtDate(p.paid_at)}</div></div>
+          <div class="kv"><div class="k">Valor</div><div class="v">${fmtMoney(p.amount)}</div></div>
+          <div class="kv"><div class="k">Método</div><div class="v">${p.method ? String(p.method) : '—'}</div></div>
+          <div class="kv wide"><div class="k">Obs.</div><div class="v">${p.notes ? String(p.notes) : '—'}</div></div>
+        </div>
+      </div>
+    `).join('');
+
+    area.innerHTML = rows;
   }
 
   async function boot(){
@@ -205,7 +298,6 @@
       return;
     }
 
-    // 🔥 Regra correta: busca cliente pelo user_id do usuário logado
     const uid = session.user.id;
     const email = session.user.email;
 
@@ -221,15 +313,17 @@
       return;
     }
 
-    // Se não tem registro do cliente ainda, ou não está ativo -> aguardando
     if (!client || client.is_active !== true) {
       showPending(email);
       return;
     }
 
-    // Aprovado -> mostra portal e carrega contratos
     showApproved(email);
-    await loadContractsForClient(client.id);
+
+    // Carrega painel
+    await loadPlanAndProgressByEmail(email);
+    await loadPaymentsByEmail(email);
+
     setMsg('Portal carregado ✅', true);
   }
 

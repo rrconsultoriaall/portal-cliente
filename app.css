@@ -262,3 +262,24 @@ body{
   .kvGrid.compact{ grid-template-columns: 1fr; }
   .shell{ margin-bottom: 110px; }
   }
+/* ✅ HOTFIX: nada invisível captura clique */
+.bg{
+  pointer-events: none !important;
+}
+
+.shell, .topbar, .content, .card, .bottomNav{
+  position: relative;
+  z-index: 2;
+}
+
+/* ✅ botões sempre clicáveis */
+button, a, .btn, .navItem{
+  position: relative;
+  z-index: 50 !important;
+  pointer-events: auto !important;
+}
+
+/* ✅ se tiver alguma camada por cima, ela não bloqueia */
+*{
+  -webkit-tap-highlight-color: transparent;
+}

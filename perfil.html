@@ -3,22 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Meu perfil | Portal do Cliente</title>
-
-  <link rel="stylesheet" href="./app.css?v=1" />
-  <script src="./config.js?v=1"></script>
+  <title>Perfil | Portal do Cliente</title>
+  <link rel="stylesheet" href="./app.css?v=10" />
+  <script src="./config.js?v=10"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
   <div class="page">
     <div class="card">
       <header class="topbar">
         <div class="brand">
-          <img class="brand-logo" src="./logo.png?v=1" alt="Logo" onerror="this.style.display='none'">
+          <img class="brand-logo" src="./logo.png?v=10" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
-            <div class="brand-title" id="companyName">Portal do Cliente</div>
-            <div class="brand-sub">Meu perfil</div>
+            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-sub">Perfil</div>
             <div class="brand-sub small" id="loggedAs"></div>
           </div>
         </div>
@@ -30,56 +28,57 @@
       </header>
 
       <main class="content">
-        <h1 class="h1">Complete seu cadastro</h1>
+        <a class="link" href="./index.html?v=10">‹ Voltar</a>
 
-        <div class="form grid">
-          <div class="field">
-            <label class="label">Nome completo</label>
-            <input id="full_name" class="input" type="text" placeholder="Seu nome completo" />
+        <section class="block">
+          <div class="pill">Seus dados</div>
+
+          <div class="grid">
+            <div class="field">
+              <label class="label">Nome completo</label>
+              <input id="full_name" class="input" type="text" placeholder="Seu nome" />
+            </div>
+
+            <div class="field">
+              <label class="label">Data de nascimento</label>
+              <input id="birth_date" class="input" type="date" />
+            </div>
+
+            <div class="field">
+              <label class="label">CPF</label>
+              <input id="cpf" class="input" type="text" placeholder="000.000.000-00" />
+            </div>
+
+            <div class="field">
+              <label class="label">Telefone</label>
+              <input id="phone" class="input" type="text" placeholder="(11) 99999-9999" />
+            </div>
+
+            <div class="field">
+              <label class="label">CEP</label>
+              <input id="cep" class="input" type="text" placeholder="00000-000" />
+            </div>
+
+            <div class="field">
+              <label class="label">Endereço</label>
+              <input id="address" class="input" type="text" placeholder="Rua, número" />
+            </div>
+
+            <div class="field">
+              <label class="label">Cidade</label>
+              <input id="city" class="input" type="text" placeholder="Cidade" />
+            </div>
+
+            <div class="field">
+              <label class="label">Estado</label>
+              <input id="state" class="input" type="text" placeholder="SP" />
+            </div>
           </div>
 
-          <div class="field">
-            <label class="label">Data de nascimento</label>
-            <input id="birth_date" class="input" type="date" />
-          </div>
+          <button class="btn btn-primary" id="btnSave" type="button">Salvar</button>
+        </section>
 
-          <div class="field">
-            <label class="label">CPF</label>
-            <input id="cpf" class="input" type="text" placeholder="000.000.000-00" />
-          </div>
-
-          <div class="field">
-            <label class="label">Telefone</label>
-            <input id="phone" class="input" type="text" placeholder="(11) 99999-9999" />
-          </div>
-
-          <div class="field">
-            <label class="label">CEP</label>
-            <input id="cep" class="input" type="text" placeholder="00000-000" />
-          </div>
-
-          <div class="field">
-            <label class="label">Endereço</label>
-            <input id="address" class="input" type="text" placeholder="Rua, número, bairro" />
-          </div>
-
-          <div class="field">
-            <label class="label">Cidade</label>
-            <input id="city" class="input" type="text" placeholder="Cidade" />
-          </div>
-
-          <div class="field">
-            <label class="label">Estado</label>
-            <input id="state" class="input" type="text" placeholder="UF" />
-          </div>
-
-          <div class="actions">
-            <button class="btn btn-primary" id="btnSave" type="button">Salvar</button>
-            <a class="link" href="./index.html?v=1">Voltar ao painel</a>
-          </div>
-
-          <p class="helper" id="msg"></p>
-        </div>
+        <p class="helper" id="msg"></p>
       </main>
 
       <footer class="footer">
@@ -92,20 +91,17 @@
   const CFG = window.APP_CONFIG || {};
   const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-  // UI texts
-  const companyName = document.getElementById('companyName');
-  const footerCompany = document.getElementById('footerCompany');
-  if (CFG.COMPANY_NAME) companyName.textContent = CFG.COMPANY_NAME;
-  footerCompany.textContent = `© ${CFG.COMPANY_NAME || 'Sua empresa'}`;
-
+  const setText = (id, v) => (document.getElementById(id).textContent = v);
   const msg = document.getElementById('msg');
   const setMsg = (t, ok=false) => {
     msg.textContent = t || '';
     msg.style.opacity = t ? '1' : '0';
-    msg.style.color = ok ? 'rgba(86, 255, 180, .95)' : 'rgba(255,255,255,.80)';
+    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
   };
 
-  // Support
+  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+
   document.getElementById('btnSupport').addEventListener('click', () => {
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
     const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
@@ -113,21 +109,17 @@
     window.location.href = `https://wa.me/${phone}?text=${text}`;
   });
 
-  // Logout
   document.getElementById('btnLogout').addEventListener('click', async () => {
     await supabase.auth.signOut();
-    window.location.href = './login.html?v=1';
+    window.location.href = './login.html?v=10';
   });
 
-  // Helpers
   const $ = (id) => document.getElementById(id);
 
   async function requireSession() {
     const { data } = await supabase.auth.getSession();
-    if (!data?.session) {
-      window.location.href = './login.html?v=1';
-      return null;
-    }
+    if (!data?.session) { window.location.href = './login.html?v=10'; return null; }
+    setText('loggedAs', `Logado como: ${data.session.user.email}`);
     return data.session;
   }
 
@@ -135,39 +127,36 @@
     const session = await requireSession();
     if (!session) return;
 
-    const email = session.user.email || '';
-    document.getElementById('loggedAs').textContent = `Logado como: ${email}`;
+    setMsg('Carregando...', true);
 
-    // Busca o perfil do cliente logado
     const { data, error } = await supabase
       .from('clients')
-      .select('full_name,birth_date,cpf,phone,cep,address,city,state')
+      .select('id, user_id, full_name, birth_date, cpf, phone, cep, address, city, state')
       .eq('user_id', session.user.id)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      setMsg('Não consegui carregar seu perfil. (Verifique RLS/trigger)', false);
+    if (error || !data) {
+      setMsg('Não achei seu perfil. Tente sair e entrar de novo.', false);
       return;
     }
 
-    // Preenche inputs
-    if (data) {
-      $('full_name').value  = data.full_name || '';
-      $('birth_date').value = data.birth_date || '';
-      $('cpf').value        = data.cpf || '';
-      $('phone').value      = data.phone || '';
-      $('cep').value        = data.cep || '';
-      $('address').value    = data.address || '';
-      $('city').value       = data.city || '';
-      $('state').value      = data.state || '';
-    }
+    $('full_name').value = data.full_name || '';
+    $('birth_date').value = data.birth_date || '';
+    $('cpf').value = data.cpf || '';
+    $('phone').value = data.phone || '';
+    $('cep').value = data.cep || '';
+    $('address').value = data.address || '';
+    $('city').value = data.city || '';
+    $('state').value = data.state || '';
+
+    setMsg('Pronto ✅', true);
   }
 
   async function saveProfile() {
     const session = await requireSession();
     if (!session) return;
 
-    setMsg('Salvando...');
+    setMsg('Salvando...', true);
 
     const payload = {
       full_name: $('full_name').value.trim(),
@@ -177,7 +166,7 @@
       cep: $('cep').value.trim(),
       address: $('address').value.trim(),
       city: $('city').value.trim(),
-      state: $('state').value.trim(),
+      state: $('state').value.trim()
     };
 
     const { error } = await supabase
@@ -186,14 +175,11 @@
       .eq('user_id', session.user.id);
 
     if (error) return setMsg(error.message, false);
-
-    setMsg('Perfil atualizado com sucesso ✅', true);
+    setMsg('Perfil atualizado ✅', true);
   }
 
   document.getElementById('btnSave').addEventListener('click', saveProfile);
-
   loadProfile();
 </script>
-
 </body>
-</html>
+  </html>

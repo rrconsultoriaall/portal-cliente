@@ -2,295 +2,253 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente</title>
 
-  <link rel="stylesheet" href="./app.css?v=20260218a" />
-
-  <!-- Supabase -->
+  <link rel="stylesheet" href="./app.css?v=1" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Seu config -->
-  <script src="./config.js?v=20260218a"></script>
+  <script src="./config.js?v=1"></script>
 </head>
 
 <body>
   <div class="shell">
     <div class="card">
+
       <!-- TOPBAR -->
       <div class="topbar">
         <div class="brand">
-          <img id="logoImg" src="" alt="Logo" />
+          <img id="logoImg" alt="Logo" />
           <div class="title">
             <strong id="companyName">Sua empresa</strong>
             <span id="companyTagline">Acesse seus contratos</span>
-            <span id="loggedAs" class="muted" style="display:none;"></span>
+            <span id="whoami" class="muted"></span>
           </div>
         </div>
 
         <div class="actions">
           <button class="btn" id="btnSupport" type="button">Suporte</button>
-          <button class="btn btn-ghost" id="btnLogout" type="button">Sair</button>
+          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
         </div>
       </div>
 
-      <!-- CONTENT -->
-      <div class="content">
-
-        <!-- CONTRATOS -->
-        <div class="panel">
-          <div class="panelHead">
-            <span class="pill">Seus contratos</span>
-          </div>
-
-          <div id="contractsBox" class="contractBox">
-            <div id="contractsStatus" class="muted">Carregando seus contratos...</div>
-            <div id="contractsList"></div>
-          </div>
-
-          <div id="errBox" class="err" style="display:none;"></div>
+      <!-- CONTRATOS -->
+      <div class="panel">
+        <div class="panel-hd">
+          <div class="badge"><span class="dot"></span> Seus contratos</div>
         </div>
 
-        <!-- AÇÕES -->
-        <div class="panel">
-          <div class="panelHead">
-            <h2 style="margin:0;">Ações</h2>
-          </div>
+        <div class="hr"></div>
 
-          <div class="menu">
-            <a class="menuItem" href="./pagamentos.html">
-              <div class="miText">
-                <strong>Pagamentos</strong>
-                <span>Histórico e comprovantes</span>
-              </div>
-              <span class="miArrow">›</span>
-            </a>
+        <div id="contractsBox" class="panel-bd">
+          <div class="muted">Carregando seus contratos...</div>
+        </div>
+      </div>
 
-            <a class="menuItem" href="./perfil.html">
-              <div class="miText">
-                <strong>Perfil</strong>
-                <span>Seus dados cadastrais</span>
-              </div>
-              <span class="miArrow">›</span>
-            </a>
+      <!-- AÇÕES -->
+      <div class="panel">
+        <h2 class="h1">Ações</h2>
+        <div class="muted">Abra uma seção para ver as informações completas.</div>
 
-            <a class="menuItem" href="./detalhes.html">
-              <div class="miText">
-                <strong>Detalhes</strong>
-                <span>Contrato e informações extras</span>
-              </div>
-              <span class="miArrow">›</span>
-            </a>
-          </div>
+        <div class="list">
+          <a class="listItem" id="goPayments" href="./pagamentos.html?v=1">
+            <div class="liText">
+              <div class="liTitle">Pagamentos</div>
+              <div class="liSub">Histórico e comprovantes</div>
+            </div>
+            <div class="liArrow">›</div>
+          </a>
+
+          <a class="listItem" id="goProfile" href="./perfil.html?v=1">
+            <div class="liText">
+              <div class="liTitle">Perfil</div>
+              <div class="liSub">Seus dados cadastrais</div>
+            </div>
+            <div class="liArrow">›</div>
+          </a>
+
+          <a class="listItem" id="goDetails" href="./detalhes.html?v=1">
+            <div class="liText">
+              <div class="liTitle">Detalhes</div>
+              <div class="liSub">Contrato e informações extras</div>
+            </div>
+            <div class="liArrow">›</div>
+          </a>
         </div>
 
         <div class="footer">© <span id="footerCompany">Sua empresa</span></div>
       </div>
+
     </div>
   </div>
 
-  <script>
-    // ========= Config + UI =========
-    const CFG = window.APP_CONFIG || {};
-    const $ = (id) => document.getElementById(id);
+<script>
+(function () {
+  const CFG = window.APP_CONFIG || {};
+  const $ = (id) => document.getElementById(id);
 
-    $("companyName").textContent = CFG.COMPANY_NAME || "Sua empresa";
-    $("companyTagline").textContent = CFG.COMPANY_TAGLINE || "Acesse seus contratos";
-    $("footerCompany").textContent = CFG.COMPANY_NAME || "Sua empresa";
+  // 1) Branding seguro (não deixa logo quebrar)
+  function setBrand() {
+    const name = CFG.COMPANY_NAME || "Sua empresa";
+    const tagline = CFG.COMPANY_TAGLINE || "Acesse seus contratos";
+    $("companyName").textContent = name;
+    $("companyTagline").textContent = tagline;
+    $("footerCompany").textContent = name;
 
-    if (CFG.LOGO_URL) $("logoImg").src = CFG.LOGO_URL;
+    const logoEl = $("logoImg");
+    const preferred = (CFG.LOGO_URL || "./Logo.png");
+    const fallback = preferred.includes("Logo.png") ? "./logo.png" : "./Logo.png";
 
-    // ========= Supabase =========
-    const supabase = window.supabase.createClient(
-      CFG.SUPABASE_URL,
-      CFG.SUPABASE_ANON_KEY
-    );
+    logoEl.src = preferred + "?v=1";
+    logoEl.onerror = () => { logoEl.onerror = null; logoEl.src = fallback + "?v=1"; };
+  }
 
-    // ========= Helpers =========
-    function showError(msg) {
-      const box = $("errBox");
-      box.style.display = "block";
-      box.textContent = msg;
-    }
+  // 2) Cliente Supabase
+  function getClient() {
+    const url = CFG.SUPABASE_URL;
+    const key = CFG.SUPABASE_ANON_KEY;
+    if (!url || !key) throw new Error("SUPABASE_URL ou SUPABASE_ANON_KEY ausente no config.js");
+    return window.supabase.createClient(url, key);
+  }
 
-    function moneyBRL(n) {
-      try {
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n || 0));
-      } catch {
-        return `R$ ${n}`;
-      }
-    }
+  // 3) WhatsApp suporte
+  function openSupport() {
+    const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
+    const msg = encodeURIComponent(CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
+    const link = phone
+      ? `https://wa.me/${phone}?text=${msg}`
+      : `https://wa.me/?text=${msg}`;
+    window.open(link, "_blank", "noopener,noreferrer");
+  }
 
-    function dateBR(d) {
-      if (!d) return "—";
-      // aceita YYYY-MM-DD
-      const parts = String(d).slice(0,10).split("-");
-      if (parts.length !== 3) return String(d);
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
+  // 4) Render de contrato (bem separado/profissional)
+  function renderContractRow(c) {
+    // mapeamento tolerante de campos (porque seu banco pode estar com nomes diferentes)
+    const pick = (...keys) => {
+      for (const k of keys) if (c && c[k] !== undefined && c[k] !== null && String(c[k]).trim() !== "") return c[k];
+      return null;
+    };
 
-    function renderContract(c) {
-      // ajuste os nomes abaixo se a sua tabela usa outros campos
-      const status = c.status || "—";
-      const id = c.id ? `#${String(c.id).slice(0,8)}` : "";
-      const paid = moneyBRL(c.valor_pago ?? c.valorPago ?? 0);
-      const rest = (c.parcelas_restantes ?? c.parcelasRestantes ?? "—");
-      const venc = dateBR(c.vencimento);
-      const obs = (c.observacoes ?? c.obs ?? "—");
+    const id = pick("id", "uuid", "codigo", "code");
+    const status = pick("status", "situacao", "estado") || "—";
+    const paid = pick("valor_pago", "valorPago", "paid_amount", "amount_paid", "pago", "valor");
+    const remaining = pick("parcelas_restantes", "parcelasRestantes", "remaining_installments", "restantes");
+    const due = pick("vencimento", "proximo_vencimento", "due_date", "next_due", "data_vencimento");
+    const notes = pick("observacoes", "obs", "notes", "observacao");
 
-      return `
-        <div class="contractCard">
-          <div class="ccTop">
-            <div class="ccStatus">${status}</div>
-            <div class="ccId">${id}</div>
-          </div>
+    const fmtMoney = (v) => {
+      if (v === null || v === undefined || v === "") return "—";
+      const n = Number(String(v).replace(",", "."));
+      if (!Number.isFinite(n)) return String(v);
+      return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    };
 
-          <div class="ccGrid">
-            <div class="ccRow">
-              <span class="ccLabel">Valor pago</span>
-              <strong class="ccValue">${paid}</strong>
-            </div>
+    const fmtDate = (v) => {
+      if (!v) return "—";
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) return d.toLocaleDateString("pt-BR");
+      return String(v);
+    };
 
-            <div class="ccRow">
-              <span class="ccLabel">Parcelas restantes</span>
-              <strong class="ccValue">${rest}</strong>
-            </div>
-
-            <div class="ccRow">
-              <span class="ccLabel">Vencimento</span>
-              <strong class="ccValue">${venc}</strong>
-            </div>
-
-            <div class="ccRow ccFull">
-              <span class="ccLabel">Observações</span>
-              <strong class="ccValue">${obs}</strong>
-            </div>
-          </div>
+    return `
+      <div class="contractCard">
+        <div class="contractTop">
+          <div class="contractStatus">${status}</div>
+          <div class="contractId">${id ? ("#" + String(id).slice(0, 8)) : ""}</div>
         </div>
-      `;
-    }
 
-    // ========= Actions =========
-    $("btnSupport").addEventListener("click", () => {
-      const phone = (CFG.SUPPORT_WHATSAPP || "").replace(/\D/g, "");
-      const msg = encodeURIComponent(CFG.SUPPORT_MESSAGE || "Olá! Preciso de ajuda.");
-      if (!phone) return alert("WhatsApp de suporte não configurado no config.js");
-      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-    });
+        <div class="kv">
+          <div class="k">Valor pago</div>
+          <div class="v">${fmtMoney(paid)}</div>
+        </div>
 
-    $("btnLogout").addEventListener("click", async () => {
-      await supabase.auth.signOut();
-      // joga pro login
-      window.location.href = "./login.html?v=20260218a";
-    });
+        <div class="kv">
+          <div class="k">Parcelas restantes</div>
+          <div class="v">${remaining ?? "—"}</div>
+        </div>
 
-    // ========= Load =========
-    (async function init() {
+        <div class="kv">
+          <div class="k">Vencimento</div>
+          <div class="v">${fmtDate(due)}</div>
+        </div>
+
+        <div class="kv">
+          <div class="k">Observações</div>
+          <div class="v">${notes ? String(notes) : "—"}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadContracts(sb, user) {
+    const box = $("contractsBox");
+    box.innerHTML = `<div class="muted">Carregando seus contratos...</div>`;
+
+    // tenta tabela 1, se falhar tenta tabela 2
+    const tables = ["contracts", "contratos"];
+    let data = null;
+
+    for (const table of tables) {
       try {
-        const { data: sessionData, error: sessErr } = await supabase.auth.getSession();
-        if (sessErr) throw sessErr;
-
-        const session = sessionData?.session;
-        if (!session) {
-          window.location.href = "./login.html?v=20260218a";
-          return;
-        }
-
-        const email = session.user?.email || "";
-        $("loggedAs").style.display = "block";
-        $("loggedAs").textContent = `Logado como: ${email}`;
-
-        // >>>>>>>>>>>> BUSCA DE CONTRATOS <<<<<<<<<<<<
-        // Troque "contracts" pelo nome real da sua tabela se for diferente
-        // E troque "email" pelo campo certo (ex: client_email, user_email, etc.)
-        const { data: rows, error: qErr } = await supabase
-          .from("contracts")
+        const r = await sb
+          .from(table)
           .select("*")
-          .eq("email", email)
+          .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(10);
 
-        if (qErr) throw qErr;
-
-        $("contractsStatus").style.display = "none";
-        const list = $("contractsList");
-
-        if (!rows || rows.length === 0) {
-          list.innerHTML = `<div class="muted">Nenhum contrato encontrado.</div>`;
-          return;
+        if (!r.error && Array.isArray(r.data)) {
+          data = r.data;
+          break;
         }
-
-        list.innerHTML = rows.map(renderContract).join("");
-
       } catch (e) {
-        $("contractsStatus").style.display = "none";
-        showError("Erro ao carregar contratos: " + (e?.message || e));
+        // ignora e tenta próxima
       }
-    })();
-  </script>
-
-  <!-- CSS mínimo local para garantir o botão Sair + cards bonitos (SEM mexer na paleta) -->
-  <style>
-    /* garante alinhamento dos botões no topo */
-    .actions { display:flex; gap:12px; align-items:center; }
-    .btn { cursor:pointer; }
-
-    /* botão Sair “padronizado” sem virar vermelho/estranho */
-    .btn-ghost{
-      opacity:.95;
     }
 
-    /* lista/itens (ações) */
-    .menu { display:flex; flex-direction:column; gap:14px; margin-top:14px; }
-    .menuItem{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:16px 16px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.10);
-      text-decoration:none;
-      color: rgba(255,255,255,.92);
+    if (!data || data.length === 0) {
+      box.innerHTML = `<div class="muted">Nenhum contrato encontrado.</div>`;
+      return;
     }
-    .miText strong{ display:block; font-size:18px; }
-    .miText span{ display:block; margin-top:4px; opacity:.70; }
-    .miArrow{ font-size:26px; opacity:.65; }
 
-    /* contratos mais “fintech” e com espaçamento */
-    .contractCard{
-      margin-top:12px;
-      padding:16px 16px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.10);
-    }
-    .ccTop{
-      display:flex; align-items:baseline; justify-content:space-between;
-      margin-bottom:14px;
-    }
-    .ccStatus{ font-weight:800; font-size:22px; }
-    .ccId{ opacity:.65; font-weight:600; }
+    box.innerHTML = data.map(renderContractRow).join("");
+  }
 
-    .ccGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px 18px;
-    }
-    .ccRow{ display:flex; flex-direction:column; gap:6px; }
-    .ccFull{ grid-column: 1 / -1; }
+  async function main() {
+    setBrand();
 
-    .ccLabel{ opacity:.70; font-size:14px; letter-spacing:.2px; }
-    .ccValue{ font-size:18px; }
+    const sb = getClient();
 
-    .err{
-      margin-top:12px;
-      padding:12px 14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
-      color: rgba(255,255,255,.92);
-      opacity:.95;
+    // Botões SEMPRE depois de DOM pronto
+    $("btnSupport").addEventListener("click", openSupport);
+
+    $("btnLogout").addEventListener("click", async () => {
+      try { await sb.auth.signOut(); } catch (e) {}
+      // cache-buster no redirect
+      window.location.href = "./login.html?v=" + Date.now();
+    });
+
+    // sessão
+    const { data: sessData, error: sessErr } = await sb.auth.getSession();
+    const session = sessData?.session;
+
+    if (!session?.user) {
+      window.location.href = "./login.html?v=" + Date.now();
+      return;
     }
-    .muted{ opacity:.70; }
-  </style>
+
+    $("whoami").textContent = `Logado como: ${session.user.email || ""}`;
+
+    // carrega contratos
+    await loadContracts(sb, session.user);
+  }
+
+  // roda depois do DOM
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => main().catch(console.error));
+  } else {
+    main().catch(console.error);
+  }
+})();
+</script>
 </body>
 </html>

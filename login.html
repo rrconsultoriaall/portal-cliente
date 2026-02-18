@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente — Login</title>
+
   <link rel="stylesheet" href="./app.css?v=212">
   <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -17,7 +18,7 @@
         <div class="brand">
           <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
-            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-title" id="companyName">Sua empresa</div>
             <div class="brand-sub" id="companyTagline">Área do Cliente</div>
           </div>
         </div>
@@ -37,25 +38,24 @@
         <input id="password" type="password" placeholder="Sua senha" autocomplete="current-password" />
 
         <div class="actions">
-          <button class="btn btn-primary" id="btnLogin" type="button">Entrar</button>
+          <button id="btnLogin" class="btn btn-primary" type="button">Entrar</button>
+          <button id="btnGoSignup" class="btn btn-secondary" type="button">Criar conta</button>
         </div>
 
         <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
-
-        <div class="mini" style="margin-top:12px; line-height:1.55">
-          Não tem acesso? Toque em <b>Suporte</b> para solicitar a criação da conta.
-        </div>
       </main>
 
       <footer class="footer">
-        <span id="footerCompany">© RR Consultoria</span>
+        <span id="footerCompany">© Sua empresa</span>
       </footer>
 
     </div>
   </div>
 
 <script>
+  // ===== Configuração =====
   const CFG = window.APP_CONFIG || {};
+
   const sb = (window.supabase?.createClient ? window.supabase : supabase)
     .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
@@ -65,9 +65,9 @@
   $('logoImg').src = CFG.LOGO_URL || './Logo.png';
   if (CFG.COMPANY_NAME) $('companyName').textContent = CFG.COMPANY_NAME;
   if (CFG.COMPANY_TAGLINE) $('companyTagline').textContent = CFG.COMPANY_TAGLINE;
-  $('footerCompany').textContent = `© ${CFG.COMPANY_NAME || 'RR Consultoria'}`;
+  $('footerCompany').textContent = `© ${CFG.COMPANY_NAME || 'Sua empresa'}`;
 
-  // Mensagens
+  // ===== Mensagem =====
   const msgEl = $('msg');
   function setMsg(text, ok=false){
     msgEl.textContent = text || '';
@@ -75,21 +75,16 @@
     msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
   }
 
-  // Suporte WhatsApp
+  // ===== Suporte WhatsApp =====
   function openSupport(){
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
     const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
-    if (!phone) return alert('WhatsApp de suporte não configurado no config.js');
+    if (!phone) return alert('WhatsApp não configurado no config.js');
     window.location.href = `https://wa.me/${phone}?text=${text}`;
   }
   $('btnSupport').addEventListener('click', openSupport);
 
-  function getCreds(){
-    const email = ($('email').value || '').trim();
-    const password = $('password').value || '';
-    return { email, password };
-  }
-
+  // ===== Login =====
   function setLoading(isLoading){
     $('btnLogin').disabled = isLoading;
     $('btnLogin').textContent = isLoading ? 'Aguarde…' : 'Entrar';
@@ -97,7 +92,9 @@
 
   async function doLogin(){
     setMsg('');
-    const { email, password } = getCreds();
+
+    const email = ($('email').value || '').trim();
+    const password = $('password').value || '';
 
     if (!email || !password){
       setMsg('Preencha email e senha.');
@@ -105,7 +102,12 @@
     }
 
     setLoading(true);
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    const { error } = await sb.auth.signInWithPassword({
+      email,
+      password
+    });
+
     setLoading(false);
 
     if (error){
@@ -118,15 +120,24 @@
   }
 
   $('btnLogin').addEventListener('click', doLogin);
+
   $('password').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') doLogin();
   });
 
-  // Se já estiver logado, manda pro portal
+  // ===== Criar Conta → abre signup.html =====
+  $('btnGoSignup').addEventListener('click', () => {
+    window.location.href = './signup.html?v=212';
+  });
+
+  // ===== Se já estiver logado =====
   (async () => {
     const { data } = await sb.auth.getSession();
-    if (data?.session) window.location.href = './index.html?v=212';
+    if (data?.session) {
+      window.location.href = './index.html?v=212';
+    }
   })();
+
 </script>
 </body>
 </html>

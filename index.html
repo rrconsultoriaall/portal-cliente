@@ -1,152 +1,124 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Portal do Cliente</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Portal do Cliente</title>
 
-  <link rel="stylesheet" href="app.css?v=1000"/>
-  <script src="config.js?v=1000"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/portal-cliente/app.css?v=201">
+<script src="/portal-cliente/config.js?v=201"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 <div class="page">
 <div class="card">
 
-  <!-- TOPO -->
-  <div class="topbar">
-    <div class="brand">
-      <img class="brand-logo" id="logoImg" src="Logo.png" alt="Logo">
-      <div class="brand-text">
-        <div class="brand-title" id="companyName">RR Consultoria</div>
-        <div class="brand-sub" id="companyTagline">Assessoria & Consultoria</div>
-        <div class="brand-sub" id="loggedAs"></div>
-      </div>
+<div class="brand">
+  <img class="brand-logo" src="/portal-cliente/Logo.png" />
+  <div class="brand-text">
+    <div class="brand-title">RR Consultoria</div>
+    <div class="brand-sub">Assessoria & Consultoria</div>
+    <div class="brand-sub mini" id="loggedAs"></div>
+  </div>
+</div>
+
+<div class="block">
+  <div class="pill">Portal</div>
+  <div>Bem-vindo! ✅</div>
+</div>
+
+<div class="block">
+  <div class="pill">Seu plano</div>
+  <div id="planArea">Carregando...</div>
+</div>
+
+<div class="block">
+  <h2>Ações</h2>
+
+  <a class="action-link" href="/portal-cliente/pagamentos.html?v=201">
+    <div>
+      <strong>Pagamentos</strong><br>
+      <span>Histórico e comprovantes</span>
     </div>
+    <div class="chev">›</div>
+  </a>
 
-    <div class="top-actions">
-      <button class="btn btn-secondary" id="btnSupport">Suporte</button>
-      <button class="btn btn-danger" id="btnLogout">Sair</button>
+  <br>
+
+  <a class="action-link" href="/portal-cliente/perfil.html?v=201">
+    <div>
+      <strong>Perfil</strong><br>
+      <span>Seus dados cadastrais</span>
     </div>
-  </div>
+    <div class="chev">›</div>
+  </a>
 
-  <!-- PORTAL -->
-  <div class="block">
-    <div class="pill">Portal</div>
-    <div class="msg">Bem-vindo! ✅</div>
-  </div>
+  <br>
 
-  <!-- PLANO -->
-  <div class="block">
-    <div class="pill">Seu plano</div>
-    <div id="planArea" class="mini">Carregando...</div>
-  </div>
+  <a class="action-link" href="/portal-cliente/detalhes.html?v=201">
+    <div>
+      <strong>Detalhes</strong><br>
+      <span>Contrato e informações extras</span>
+    </div>
+    <div class="chev">›</div>
+  </a>
+</div>
 
-  <!-- AÇÕES -->
-  <div class="block">
-    <h2>Ações</h2>
-
-    <a class="action-link" href="pagamentos.html">
-      <div>
-        <strong>Pagamentos</strong><br/>
-        <span>Histórico e comprovantes</span>
-      </div>
-      <div class="chev">›</div>
-    </a>
-
-    <br/>
-
-    <a class="action-link" href="perfil.html">
-      <div>
-        <strong>Perfil</strong><br/>
-        <span>Seus dados cadastrais</span>
-      </div>
-      <div class="chev">›</div>
-    </a>
-
-    <br/>
-
-    <a class="action-link" href="detalhes.html">
-      <div>
-        <strong>Detalhes</strong><br/>
-        <span>Contrato e informações extras</span>
-      </div>
-      <div class="chev">›</div>
-    </a>
-  </div>
-
-  <div class="footer">© RR Consultoria</div>
+<div class="footer">
+© RR Consultoria
+</div>
 
 </div>
 </div>
 
 <script>
-const CFG = window.APP_CONFIG || {};
-const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
-
-function fmt(v){
-  return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-}
+const sb = supabase.createClient(
+  window.APP_CONFIG.SUPABASE_URL,
+  window.APP_CONFIG.SUPABASE_ANON_KEY
+);
 
 async function boot(){
-
-  const { data: sess } = await sb.auth.getSession();
-  if(!sess.session){
-    window.location.href="login.html";
+  const { data } = await sb.auth.getSession();
+  const session = data.session;
+  if(!session){
+    window.location.href="/portal-cliente/login.html?v=201";
     return;
   }
 
-  const user = sess.session.user;
-  document.getElementById("loggedAs").textContent = "Logado como: " + user.email;
+  document.getElementById("loggedAs").textContent =
+    "Logado como: " + session.user.email;
 
-  const { data: client } = await sb
-    .from("clients")
-    .select("id,is_active")
-    .eq("user_id", user.id)
-    .single();
-
-  if(!client || client.is_active !== true){
-    document.getElementById("planArea").innerHTML = "Aguardando aprovação do administrador.";
-    return;
-  }
-
-  const { data } = await sb
+  const { data: plan } = await sb
     .from("client_plan_progress")
     .select("*")
-    .eq("email", user.email)
-    .single();
+    .eq("email", session.user.email)
+    .maybeSingle();
 
-  if(!data){
-    document.getElementById("planArea").innerHTML = "Erro ao carregar plano.";
+  if(!plan){
+    document.getElementById("planArea").textContent =
+      "Nenhum plano encontrado.";
     return;
   }
 
   document.getElementById("planArea").innerHTML = `
-    <strong>${data.plan_name}</strong><br/>
-    <br/>
-    <strong>Entrada</strong><br/>
-    Pago ${fmt(data.entry_paid)} de ${fmt(data.entry_total)} (${data.entry_progress_percent.toFixed(2)}%)
-    <div class="progress"><div class="bar" style="width:${data.entry_progress_percent}%"></div></div>
-    <br/>
-    <strong>Principal</strong><br/>
-    Pago ${fmt(data.main_paid)} de ${fmt(data.main_total)} (${data.main_progress_percent.toFixed(2)}%)
-    <div class="progress"><div class="bar" style="width:${data.main_progress_percent}%"></div></div>
-    <br/>
-    <strong>Geral</strong><br/>
-    Pago ${fmt(data.paid_total)} de ${fmt(data.plan_total)} (${data.progress_percent.toFixed(2)}%)
-    <div class="progress"><div class="bar" style="width:${data.progress_percent}%"></div></div>
+    <strong>${plan.plan_name}</strong><br><br>
+    <b>Entrada</b><br>
+    Pago ${plan.entry_paid.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+    de ${plan.entry_total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+    (${plan.entry_progress_percent}%)<br><br>
+
+    <b>Principal</b><br>
+    Pago ${plan.main_paid.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+    de ${plan.main_total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+    (${plan.main_progress_percent}%)<br><br>
+
+    <b>Geral</b><br>
+    Pago ${plan.paid_total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+    de ${plan.plan_total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+    (${plan.progress_percent}%)
   `;
 }
-
-document.getElementById("btnLogout").onclick = async ()=>{
-  await sb.auth.signOut();
-  window.location.href="login.html";
-};
-
-document.getElementById("btnSupport").onclick = ()=>{
-  window.location.href="https://wa.me/55SEUNUMERO";
-};
 
 boot();
 </script>

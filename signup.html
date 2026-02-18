@@ -3,79 +3,70 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Criar conta | Portal do Cliente</title>
-
-  <link rel="stylesheet" href="./app.css?v=10" />
-  <script src="./config.js?v=10"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Criar conta • Portal do Cliente</title>
+  <link rel="stylesheet" href="./style.css?v=99">
 </head>
-
 <body>
-  <div class="page">
-    <div class="card">
-      <header class="topbar">
-        <div class="brand">
-          <img class="brand-logo" src="./logo.png?v=10" alt="Logo" onerror="this.style.display='none'">
-          <div class="brand-text">
-            <div class="brand-title" id="companyName">Portal do Cliente</div>
-            <div class="brand-sub" id="companyTagline">Crie sua conta</div>
-          </div>
+
+<div class="wrap">
+  <div class="card">
+
+    <header class="brand">
+      <img id="logoImg" class="logo" src="./Logo.png" alt="Logo" />
+      <div class="brand-text">
+        <div id="companyName" class="brand-title">Sua empresa</div>
+        <div id="companyTagline" class="brand-sub">Crie sua conta</div>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <h1>Criar conta</h1>
+
+      <div class="form">
+        <label>Email</label>
+        <input id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="email"/>
+
+        <label>Senha</label>
+        <input id="password" type="password" placeholder="mínimo 6 caracteres" autocomplete="new-password"/>
+
+        <label>Confirmar senha</label>
+        <input id="password2" type="password" placeholder="repita a senha" autocomplete="new-password"/>
+
+        <button id="btnSignup" class="btn btn-primary" type="button">Criar conta</button>
+
+        <div id="msg" class="msg" aria-live="polite"></div>
+
+        <div class="mini" style="margin-top:10px; opacity:.9">
+          Já tem conta? <a href="./login.html?v=99">Entrar</a>
         </div>
+      </div>
+    </main>
 
-        <div class="top-actions">
-          <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
-          <a class="btn btn-secondary" href="./login.html?v=10">Entrar</a>
-        </div>
-      </header>
+    <footer class="footer">
+      <span id="footerCompany">© Sua empresa</span>
+    </footer>
 
-      <main class="content">
-        <h1 class="h1">Criar conta</h1>
-
-        <section class="block">
-          <div class="grid">
-            <div class="field" style="grid-column:1/-1">
-              <label class="label">Email</label>
-              <input id="email" class="input" type="email" placeholder="seuemail@dominio.com" autocomplete="email" />
-            </div>
-
-            <div class="field">
-              <label class="label">Senha</label>
-              <input id="password" class="input" type="password" placeholder="Crie uma senha" autocomplete="new-password" />
-            </div>
-
-            <div class="field">
-              <label class="label">Confirmar senha</label>
-              <input id="password2" class="input" type="password" placeholder="Repita a senha" autocomplete="new-password" />
-            </div>
-          </div>
-
-          <button class="btn btn-primary" id="btnSignup" type="button">Criar conta</button>
-          <p class="helper" id="msg"></p>
-
-          <div class="divider"></div>
-          <div class="mini" style="opacity:.75">
-            Após criar a conta, você vai completar seu perfil (nome, CPF, endereço etc).
-          </div>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <span id="footerCompany">© Sua empresa</span>
-      </footer>
-    </div>
   </div>
+</div>
+
+<script src="./config.js?v=99"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
   const CFG = window.APP_CONFIG || {};
-  const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-  // Branding
-  const setText = (id, v) => (document.getElementById(id).textContent = v);
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? ''; };
+
   if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
   if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
   setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+  document.getElementById('logoImg').src = CFG.LOGO_URL || './Logo.png';
 
-  // Suporte WhatsApp
   document.getElementById('btnSupport').addEventListener('click', () => {
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
     const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
@@ -83,7 +74,6 @@
     window.location.href = `https://wa.me/${phone}?text=${text}`;
   });
 
-  // UI helpers
   const msg = document.getElementById('msg');
   const setMsg = (t, ok=false) => {
     msg.textContent = t || '';
@@ -91,19 +81,15 @@
     msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
   };
 
-  const emailEl = document.getElementById('email');
-  const passEl  = document.getElementById('password');
-  const pass2El = document.getElementById('password2');
-
   function validEmail(email){
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
+  function go(url){ window.location.href = url; }
 
-  // Signup
   document.getElementById('btnSignup').addEventListener('click', async () => {
-    const email = emailEl.value.trim().toLowerCase();
-    const password = passEl.value;
-    const password2 = pass2El.value;
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = document.getElementById('password').value;
+    const password2 = document.getElementById('password2').value;
 
     if (!email || !password || !password2) return setMsg('Preencha email e senha.');
     if (!validEmail(email)) return setMsg('Digite um email válido.');
@@ -112,37 +98,31 @@
 
     setMsg('Criando sua conta...');
 
-    // IMPORTANTE: se você estiver usando convite (Invite), o cliente pode NÃO precisar do signup.
-    // Mas este signup funciona para cadastro livre também.
-    const { error } = await supabase.auth.signUp({
+    const redirectTo = (CFG.SITE_URL || window.location.origin) + '/portal-cliente/perfil.html?v=99';
+
+    const { error } = await sb.auth.signUp({
       email,
       password,
-      options: {
-        // se sua confirmação por e-mail estiver ativa, coloque aqui a URL correta do seu site:
-        emailRedirectTo: (CFG.SITE_URL || window.location.origin) + window.location.pathname.replace('signup.html','perfil.html')
-      }
+      options: { emailRedirectTo: redirectTo }
     });
 
     if (error) return setMsg(error.message);
 
-    // tenta obter sessão (se confirmação de e-mail estiver desligada, já loga)
-    const { data: sess } = await supabase.auth.getSession();
-    if (sess?.session) {
+    // tenta pegar sessão
+    const { data } = await sb.auth.getSession();
+    if (data?.session) {
       setMsg('Conta criada ✅ Indo para o perfil...', true);
-      setTimeout(() => window.location.href = './perfil.html?v=10', 600);
+      setTimeout(() => go('./perfil.html?v=99'), 600);
     } else {
-      // confirmação por e-mail ligada
       setMsg('Conta criada ✅ Verifique seu e-mail para confirmar e depois faça login.', true);
-      setTimeout(() => window.location.href = './login.html?v=10', 1200);
+      setTimeout(() => go('./login.html?v=99'), 1200);
     }
   });
 
-  // Se já estiver logado, manda pro perfil direto
   (async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session) window.location.href = './perfil.html?v=10';
+    const { data } = await sb.auth.getSession();
+    if (data?.session) go('./perfil.html?v=99');
   })();
 </script>
-
 </body>
 </html>

@@ -1,382 +1,165 @@
-/* ============ RESET BÁSICO ============ */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  color: rgba(255,255,255,.92);
-  background: #071423;
-  overflow-x: hidden;
+/* ===== PALETA OFICIAL RR CONSULTORIA ===== */
+
+:root{
+  --bg-gradient: linear-gradient(135deg, #0b1f33 0%, #123a5a 100%);
+  --card-bg: rgba(255,255,255,0.06);
+  --card-border: rgba(255,255,255,0.08);
+  --text-main: rgba(255,255,255,0.92);
+  --text-soft: rgba(255,255,255,0.65);
+  --primary-gradient: linear-gradient(90deg, #1d72f3, #27c2a5);
+  --danger-border: rgba(255,80,80,0.4);
 }
 
-/* ============ FUNDO FINTECH ============ */
-.bg{
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(1000px 700px at 20% 20%, rgba(24,110,255,.30), transparent 55%),
-    radial-gradient(900px 600px at 80% 20%, rgba(0,255,209,.14), transparent 60%),
-    radial-gradient(1000px 700px at 50% 90%, rgba(255,255,255,.06), transparent 60%),
-    linear-gradient(180deg, #06101b 0%, #071a2c 40%, #06121f 100%);
-  pointer-events: none;
+/* ===== BASE ===== */
+
+*{
+  box-sizing:border-box;
 }
 
-/* watermark (logo grande no fundo) */
-.bg::after{
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: url("./Logo.png") no-repeat;
-  background-size: min(560px, 78vw);
-  background-position: 78% 34%;
-  opacity: .18;
-  filter: blur(.2px) saturate(1.2);
-  pointer-events: none;
+body{
+  margin:0;
+  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-main);
 }
 
-/* ============ LAYOUT ============ */
+/* ===== CONTAINER PRINCIPAL ===== */
+
 .shell{
-  min-height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 18px;
+  max-width:420px;
+  margin:40px auto;
+  padding:20px;
 }
 
 .card{
-  width: min(980px, 100%);
-  border-radius: 26px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow:
-    0 20px 80px rgba(0,0,0,.45),
-    inset 0 1px 0 rgba(255,255,255,.08);
-  backdrop-filter: blur(14px);
-  overflow: hidden;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  border:1px solid var(--card-border);
+  border-radius:24px;
+  padding:22px;
+  box-shadow:0 25px 60px rgba(0,0,0,0.35);
 }
 
-/* borda “premium” */
-.card::before{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  border-radius: 26px;
-  background: linear-gradient(135deg,
-    rgba(0,255,209,.25),
-    rgba(24,110,255,.20),
-    rgba(255,255,255,.10)
-  );
-  filter: blur(18px);
-  opacity:.35;
-  pointer-events:none;
-}
-.card{ position: relative; }
+/* ===== TOPO ===== */
 
-/* ============ TOPBAR ============ */
 .topbar{
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px 18px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  background: rgba(0,0,0,.14);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
 }
 
 .brand{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
 
-#logoImg{
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
-  border-radius: 12px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  padding: 6px;
+.brand img{
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  object-fit:cover;
 }
 
-.title{
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
 .title strong{
-  font-size: 16px;
-  letter-spacing: .2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.title span, .title small{
-  font-size: 12px;
-  color: rgba(255,255,255,.66);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display:block;
+  font-size:16px;
 }
 
-.actions{
-  display: flex;
-  gap: 10px;
-  align-items: center;
+.title span{
+  font-size:13px;
+  color: var(--text-soft);
 }
 
-/* ============ CONTEÚDO ============ */
-.content{
-  position: relative;
-  z-index: 1;
-  padding: 18px;
-}
+/* ===== INPUTS ===== */
 
-.grid{
-  display: grid;
-  grid-template-columns: 1.25fr .75fr;
-  gap: 14px;
-}
-
-.h1{
-  margin: 0 0 12px;
-  font-size: 22px;
-  letter-spacing: .2px;
-}
-.h2{
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: .2px;
-}
-
-.panel{
-  border-radius: 22px;
-  padding: 16px;
-  background: rgba(0,0,0,.18);
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-}
-
-.hr{
-  height: 1px;
-  background: rgba(255,255,255,.08);
-  margin: 12px 0;
-}
-
-.muted{ color: rgba(255,255,255,.66); }
-.hint{
-  margin: 10px 0 0;
-  font-size: 12px;
-  color: rgba(255,255,255,.60);
-}
-
-/* ============ INPUTS & LABELS ============ */
-.label{
-  display: block;
-  font-size: 12px;
-  color: rgba(255,255,255,.75);
-  margin: 10px 0 6px;
-}
-
-/* seu estilo está ótimo — mantive e melhorei só o foco */
 .input{
   width:100%;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(0,0,0,.18);
-  color: rgba(255,255,255,.92);
-  outline: none;
-}
-.input::placeholder{ color: rgba(255,255,255,.45); }
-.input:focus{
-  border-color: rgba(0,255,209,.45);
-  box-shadow: 0 0 0 4px rgba(0,255,209,.12);
+  padding:14px 16px;
+  border-radius:18px;
+  border:1px solid var(--card-border);
+  background:rgba(0,0,0,0.25);
+  color:var(--text-main);
+  outline:none;
+  font-size:15px;
+  margin-bottom:14px;
 }
 
-/* ============ BOTÕES ============ */
+.input::placeholder{
+  color:var(--text-soft);
+}
+
+/* ===== BOTÕES ===== */
+
+.btn-primary{
+  padding:12px 20px;
+  border-radius:20px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  background:var(--primary-gradient);
+  color:white;
+  transition:0.2s ease;
+}
+
+.btn-primary:hover{
+  transform:translateY(-2px);
+  opacity:0.95;
+}
+
 .btn{
-  appearance: none;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.92);
-  padding: 10px 14px;
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: transform .08s ease, background .15s ease, border-color .15s ease;
-}
-.btn:active{ transform: translateY(1px); }
-
-.btn.primary{
-  background: linear-gradient(135deg, rgba(24,110,255,.95), rgba(0,255,209,.55));
-  border-color: rgba(255,255,255,.18);
-  color: #06101b;
+  padding:10px 18px;
+  border-radius:20px;
+  border:1px solid var(--card-border);
+  background:rgba(255,255,255,0.05);
+  color:var(--text-main);
+  cursor:pointer;
 }
 
-.btn.danger{
-  background: rgba(255,90,90,.14);
-  border-color: rgba(255,90,90,.30);
+.btn-danger{
+  border:1px solid var(--danger-border);
+  color:#ff8080;
 }
 
-/* ============ BADGES / STATUS ============ */
+/* ===== BLOCOS INTERNOS ===== */
+
+.panel{
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--card-border);
+  border-radius:20px;
+  padding:18px;
+  margin-bottom:18px;
+}
+
+.panel h3{
+  margin:0 0 12px 0;
+}
+
+.panel p{
+  margin:6px 0;
+  color:var(--text-soft);
+}
+
+/* ===== BADGE ===== */
+
 .badge{
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-  font-size: 13px;
-  color: rgba(255,255,255,.85);
-  width: fit-content;
-}
-.dot{
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(0,255,209,.85);
-  box-shadow: 0 0 0 6px rgba(0,255,209,.10);
-}
-
-.status{
-  margin-top: 12px;
-  font-size: 13px;
-  color: rgba(255,255,255,.70);
-}
-.status.ok{ color: rgba(0,255,209,.90); }
-.status.err{ color: rgba(255,110,110,.95); }
-
-/* ============ CONTRATOS (cards bonitos) ============ */
-.contracts{
-  margin-top: 12px;
-  display: grid;
-  gap: 12px;
-}
-
-.contractCard{
-  border-radius: 18px;
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-}
-
-.contractHeader{
-  display:flex;
+  display:inline-flex;
   align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap:8px;
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:13px;
+  background:rgba(39,194,165,0.15);
+  border:1px solid rgba(39,194,165,0.3);
+  color:#27c2a5;
 }
 
-.contractId{
-  font-size: 12px;
-  color: rgba(255,255,255,.60);
-}
+/* ===== RODAPÉ ===== */
 
-.kv{
-  display:flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(0,0,0,.18);
-  border: 1px solid rgba(255,255,255,.08);
-  margin-top: 8px;
-}
-.kv .k{ color: rgba(255,255,255,.68); font-size: 12px; }
-.kv .v{ color: rgba(255,255,255,.92); font-weight: 800; }
-
-/* resumo */
-.summaryRow{
-  display:flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 12px;
-  border-radius: 14px;
-  background: rgba(0,0,0,.18);
-  border: 1px solid rgba(255,255,255,.08);
-  margin-top: 10px;
-}
-.summaryRow .k{ color: rgba(255,255,255,.68); font-size: 12px; }
-.summaryRow .v{ font-weight: 900; }
-
-/* footer */
 .footer{
-  padding: 12px 18px 16px;
-  color: rgba(255,255,255,.55);
-  font-size: 12px;
+  text-align:center;
+  font-size:13px;
+  color:var(--text-soft);
+  margin-top:20px;
 }
-
-/* ============ RESPONSIVO (CELULAR) ============ */
-@media (max-width: 820px){
-  .grid{ grid-template-columns: 1fr; }
-  .topbar{ flex-wrap: wrap; }
-  .actions{ width: 100%; justify-content: flex-end; }
-  .card{ border-radius: 22px; }
-  .content{ padding: 16px; }
-}
-
-/* evita “camada invisível” roubando clique */
-.card::before, .card::after { pointer-events: none; }
-/* ===== Ajustes de espaçamento (SEM mudar cores) ===== */
-.panel { padding: 20px; }
-.h2 { margin: 0 0 6px 0; }
-.muted { line-height: 1.35; }
-
-.contractGrid{
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 18px;
-  margin-top: 14px;
-}
-
-.contractGrid .muted{
-  display: block;
-  margin-bottom: 6px;
-}
-
-.contractHeader{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom: 10px;
-}
-
-.contractItem{
-  padding: 16px;
-  border-radius: 18px;
-}
-
-.contractsList{
-  display: grid;
-  gap: 14px;
-}
-
-/* Botões em forma de “cards” de navegação */
-.navCards{
-  display:grid;
-  gap: 12px;
-  margin-top: 12px;
-}
-.navCard{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  width:100%;
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.12);
-  color: rgba(255,255,255,.92);
-  text-decoration:none;
-}
-.navCard strong{ font-size: 18px; }
-.navCard span{ opacity:.75; font-size: 13px; }
-.navCard .chev{ opacity:.65; font-weight:700; }

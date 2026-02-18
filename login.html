@@ -3,107 +3,64 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Entrar • Portal do Cliente</title>
-  <link rel="stylesheet" href="./app.css?v=200">
-</head>
-<body>
+  <title>Login - Portal do Cliente</title>
 
+  <link rel="stylesheet" href="/portal-cliente/app.css?v=201">
+  <script src="/portal-cliente/config.js?v=201"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
 <div class="page">
   <div class="card">
 
-    <header class="brand">
-      <img id="logoImg" class="logo" src="./Logo.png" alt="Logo" />
+    <div class="brand">
+      <img class="brand-logo" src="/portal-cliente/Logo.png" />
       <div class="brand-text">
-        <div id="companyName" class="brand-title">Sua empresa</div>
-        <div id="companyTagline" class="brand-sub">Acesse seus contratos</div>
+        <div class="brand-title">RR Consultoria</div>
+        <div class="brand-sub">Área do Cliente</div>
       </div>
-      <div class="top-actions">
-        <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
-      </div>
-    </header>
+    </div>
 
-    <main class="content">
-      <h1>Entrar</h1>
+    <h1>Entrar</h1>
 
-      <div class="form">
-        <label>Email</label>
-        <input id="email" type="email" placeholder="seuemail@dominio.com" autocomplete="email"/>
+    <label>Email</label>
+    <input type="email" id="email" placeholder="Seu email">
 
-        <label>Senha</label>
-        <input id="password" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    <label>Senha</label>
+    <input type="password" id="password" placeholder="Sua senha">
 
-        <button id="btnLogin" class="btn btn-primary" type="button">Entrar</button>
+    <div class="actions">
+      <button class="btn btn-primary" id="btnLogin">Entrar</button>
+    </div>
 
-        <div id="msg" class="msg" aria-live="polite"></div>
-
-        <div class="mini" style="margin-top:10px; opacity:.9">
-          Não tem conta? <a href="./signup.html?v=99">Criar conta</a>
-        </div>
-      </div>
-    </main>
-
-    <footer class="footer">
-      <span id="footerCompany">© Sua empresa</span>
-    </footer>
+    <div class="msg" id="msg"></div>
 
   </div>
 </div>
 
-<script src="./config.js?v=99"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-  const CFG = window.APP_CONFIG || {};
+const sb = supabase.createClient(
+  window.APP_CONFIG.SUPABASE_URL,
+  window.APP_CONFIG.SUPABASE_ANON_KEY
+);
 
-  // client seguro (sem conflito)
-  const sb = (window.supabase?.createClient ? window.supabase : supabase)
-    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+const msg = document.getElementById("msg");
 
-  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? ''; };
-
-  // brand
-  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
-  if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
-  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
-  document.getElementById('logoImg').src = CFG.LOGO_URL || './Logo.png';
-
-  // suporte
-  document.getElementById('btnSupport').addEventListener('click', () => {
-    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
-    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
-    if (!phone) return alert('WhatsApp de suporte não configurado.');
-    window.location.href = `https://wa.me/${phone}?text=${text}`;
+document.getElementById("btnLogin").onclick = async () => {
+  msg.textContent = "Entrando...";
+  const { error } = await sb.auth.signInWithPassword({
+    email: email.value,
+    password: password.value
   });
 
-  const msg = document.getElementById('msg');
-  const setMsg = (t, ok=false) => {
-    msg.textContent = t || '';
-    msg.style.opacity = t ? '1' : '0';
-    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
-  };
-
-  function go(url){ window.location.href = url; }
-
-  document.getElementById('btnLogin').addEventListener('click', async () => {
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    const password = document.getElementById('password').value;
-
-    if (!email || !password) return setMsg('Preencha email e senha.');
-
-    setMsg('Entrando...');
-
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) return setMsg(error.message);
-
-    setMsg('Login OK ✅', true);
-    setTimeout(() => go('./index.html?v=99'), 400);
-  });
-
-  // se já logado, manda pro portal
-  (async () => {
-    const { data } = await sb.auth.getSession();
-    if (data?.session) go('./index.html?v=99');
-  })();
+  if (error) {
+    msg.textContent = error.message;
+  } else {
+    window.location.href = "/portal-cliente/index.html?v=201";
+  }
+};
 </script>
+
 </body>
 </html>

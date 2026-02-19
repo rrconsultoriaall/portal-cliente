@@ -1,1 +1,305 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Planos • Área ADM</title>
 
+  <link rel="stylesheet" href="./app.css?v=400">
+  <script src="./config.js?v=400"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <div class="page">
+    <div class="card">
+
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-sub">ADM • Planos</div>
+            <div class="brand-sub mini" id="loggedAs" style="opacity:.9"></div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <a href="./admin.html?v=400" style="display:inline-block; margin: 0 0 10px;">&lsaquo; Voltar</a>
+
+        <section class="block">
+          <div class="pill">Planos</div>
+          <div id="status" class="mini" style="margin-top:10px; line-height:1.5">Carregando…</div>
+          <div id="msg" class="msg" aria-live="polite" style="margin-top:12px; opacity:0"></div>
+        </section>
+
+        <section class="block" style="margin-top:12px;">
+          <div class="pill">Criar / Editar</div>
+          <div class="mini" style="margin-top:10px; opacity:.85">Preencha e salve. (ID vazio = cria novo)</div>
+
+          <div style="margin-top:10px; display:grid; gap:10px;">
+            <input id="p_id" type="number" placeholder="ID (opcional)"
+              style="width:100%; padding:10px; border-radius:12px;" />
+            <input id="p_name" type="text" placeholder="Nome"
+              style="width:100%; padding:10px; border-radius:12px;" />
+            <input id="p_subtitle" type="text" placeholder="Subtítulo (opcional)"
+              style="width:100%; padding:10px; border-radius:12px;" />
+            <input id="p_description" type="text" placeholder="Descrição (opcional)"
+              style="width:100%; padding:10px; border-radius:12px;" />
+            <input id="p_sort" type="number" placeholder="Ordem (sort_order) (opcional)"
+              style="width:100%; padding:10px; border-radius:12px;" />
+
+            <button class="btn btn-primary" id="btnSave" type="button">Salvar</button>
+            <button class="btn btn-secondary" id="btnClear" type="button">Limpar</button>
+            <button class="btn btn-secondary" id="btnReload" type="button">Recarregar</button>
+          </div>
+        </section>
+
+        <section class="block" style="margin-top:12px;">
+          <div class="pill">Lista</div>
+          <div id="plansArea" class="mini" style="margin-top:10px;">Carregando…</div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span id="footerCompany">© RR Consultoria</span>
+      </footer>
+
+    </div>
+  </div>
+
+<script>
+  const CFG = window.APP_CONFIG || {};
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
+
+  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
+  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'RR Consultoria'}`);
+
+  const msgEl = $('msg');
+  const setMsg = (t, ok=false) => {
+    msgEl.textContent = t || '';
+    msgEl.style.opacity = t ? '1' : '0';
+    msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
+
+  function openSupport(){
+    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal.');
+    if (!phone) return alert('WhatsApp de suporte não configurado.');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
+  }
+  $('btnSupport').addEventListener('click', openSupport);
+
+  async function doLogout(){
+    await sb.auth.signOut();
+    window.location.href = './login.html?v=400';
+  }
+  $('btnLogout').addEventListener('click', doLogout);
+
+  function escapeHtml(s){
+    return String(s ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+
+  async function requireAdmin(session){
+    const uid = session.user.id;
+    const { data, error } = await sb
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', uid)
+      .maybeSingle();
+    if (error) throw error;
+    return !!data?.user_id;
+  }
+
+  let PLANS = [];
+
+  async function loadPlans(){
+    const { data, error } = await sb
+      .from('plans')
+      .select('id, name, subtitle, description, sort_order, created_at')
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    PLANS = data || [];
+  }
+
+  function renderPlans(){
+    const area = $('plansArea');
+
+    if (!PLANS.length) {
+      area.innerHTML = `<div style="opacity:.85">Nenhum plano encontrado.</div>`;
+      return;
+    }
+
+    area.innerHTML = PLANS.map(p => `
+      <div class="block" style="margin-top:10px; background: rgba(0,0,0,.10);">
+        <div style="font-weight:900; font-size:16px; margin-bottom:6px;">
+          #${p.id} • ${escapeHtml(p.name || 'Plano')}
+        </div>
+
+        <div class="mini" style="opacity:.85; line-height:1.5">
+          <div><b>subtitle:</b> ${escapeHtml(p.subtitle || '—')}</div>
+          <div><b>description:</b> ${escapeHtml(p.description || '—')}</div>
+          <div><b>sort_order:</b> ${escapeHtml(p.sort_order ?? '—')}</div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <button class="btn btn-secondary" type="button" onclick="fillPlan(${p.id})">Editar</button>
+          <button class="btn btn-danger" type="button" onclick="deletePlan(${p.id})">Excluir</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.fillPlan = function(id){
+    const p = PLANS.find(x => Number(x.id) === Number(id));
+    if (!p) return;
+
+    $('p_id').value = p.id ?? '';
+    $('p_name').value = p.name ?? '';
+    $('p_subtitle').value = p.subtitle ?? '';
+    $('p_description').value = p.description ?? '';
+    $('p_sort').value = p.sort_order ?? '';
+    setMsg('Plano carregado para edição ✅', true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.deletePlan = async function(id){
+    const ok = confirm(`Excluir o plano #${id}?`);
+    if (!ok) return;
+
+    try{
+      setMsg('Excluindo...');
+      const { error } = await sb.from('plans').delete().eq('id', id);
+      if (error) {
+        setMsg('Erro: ' + error.message);
+        return;
+      }
+      await safeReload();
+      setMsg('Plano excluído ✅', true);
+    } catch(e){
+      console.error(e);
+      setMsg(e?.message || 'Erro inesperado.');
+    }
+  };
+
+  async function savePlan(){
+    const id = $('p_id').value ? Number($('p_id').value) : null;
+    const name = ($('p_name').value || '').trim();
+    const subtitle = ($('p_subtitle').value || '').trim() || null;
+    const description = ($('p_description').value || '').trim() || null;
+    const sort_order = $('p_sort').value ? Number($('p_sort').value) : null;
+
+    if (!name) return alert('Nome é obrigatório.');
+
+    setMsg('Salvando...');
+
+    const payload = { name, subtitle, description, sort_order };
+
+    let res;
+    if (id) {
+      res = await sb.from('plans').update(payload).eq('id', id);
+    } else {
+      res = await sb.from('plans').insert([payload]);
+    }
+
+    if (res.error) {
+      setMsg('Erro: ' + res.error.message);
+      return;
+    }
+
+    await safeReload();
+    setMsg('Plano salvo ✅', true);
+    clearForm();
+  }
+
+  function clearForm(){
+    $('p_id').value = '';
+    $('p_name').value = '';
+    $('p_subtitle').value = '';
+    $('p_description').value = '';
+    $('p_sort').value = '';
+  }
+
+  $('btnSave').addEventListener('click', savePlan);
+  $('btnClear').addEventListener('click', clearForm);
+
+  async function safeReload(){
+    setMsg('');
+    setText('status', 'Carregando...');
+    $('plansArea').innerHTML = 'Carregando...';
+
+    try{
+      await loadPlans();
+      renderPlans();
+      setText('status', `OK ✅ • ${PLANS.length} plano(s)`);
+    } catch(e){
+      console.error(e);
+      setText('status', 'Erro ao carregar.');
+      setMsg(e?.message || 'Erro desconhecido.');
+      $('plansArea').innerHTML = `<div style="opacity:.85">Erro ao carregar planos.</div>`;
+    }
+  }
+
+  $('btnReload').addEventListener('click', safeReload);
+
+  async function boot(){
+    setMsg('');
+
+    const { data: sessData, error: sessErr } = await sb.auth.getSession();
+    if (sessErr) {
+      setText('status', 'Erro de sessão.');
+      setMsg(sessErr.message);
+      window.location.href = './login.html?v=400';
+      return;
+    }
+
+    const session = sessData?.session;
+    if (!session) {
+      window.location.href = './login.html?v=400';
+      return;
+    }
+
+    const email = session.user.email;
+    setText('loggedAs', email ? `Logado como: ${email}` : '');
+
+    try{
+      const ok = await requireAdmin(session);
+      if (!ok) {
+        setText('status', 'Você não tem permissão de ADM.');
+        setMsg('Acesso negado.');
+        window.location.href = './index.html?v=400';
+        return;
+      }
+    } catch(e){
+      console.error(e);
+      setText('status', 'Erro ao validar ADM.');
+      setMsg(e.message || 'Erro.');
+      return;
+    }
+
+    await safeReload();
+  }
+
+  boot();
+</script>
+
+</body>
+  </html>

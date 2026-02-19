@@ -1,1 +1,394 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clientes • Área ADM</title>
 
+  <link rel="stylesheet" href="./app.css?v=400">
+  <script src="./config.js?v=400"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <div class="page">
+    <div class="card">
+
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-sub">ADM • Clientes</div>
+            <div class="brand-sub mini" id="loggedAs" style="opacity:.9"></div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
+          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <a href="./admin.html?v=400" style="display:inline-block; margin: 0 0 10px;">&lsaquo; Voltar</a>
+
+        <section class="block">
+          <div class="pill">Clientes</div>
+          <div id="status" class="mini" style="margin-top:10px; line-height:1.5">Carregando…</div>
+          <div id="msg" class="msg" aria-live="polite" style="margin-top:12px; opacity:0"></div>
+
+          <div style="margin-top:12px; display:grid; gap:10px;">
+            <input id="search" type="text" placeholder="Buscar por nome/email..."
+              style="width:100%; padding:10px; border-radius:12px;" />
+            <button class="btn btn-secondary" id="btnReload" type="button">Recarregar</button>
+          </div>
+        </section>
+
+        <section class="block" style="margin-top:12px;">
+          <div class="pill">Lista</div>
+          <div id="clientsArea" class="mini" style="margin-top:10px;">Carregando…</div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span id="footerCompany">© RR Consultoria</span>
+      </footer>
+
+    </div>
+  </div>
+
+<script>
+  const CFG = window.APP_CONFIG || {};
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
+
+  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
+  if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'RR Consultoria'}`);
+
+  const msgEl = $('msg');
+  const setMsg = (t, ok=false) => {
+    msgEl.textContent = t || '';
+    msgEl.style.opacity = t ? '1' : '0';
+    msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
+
+  function openSupport(){
+    const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal.');
+    if (!phone) return alert('WhatsApp de suporte não configurado.');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
+  }
+  $('btnSupport').addEventListener('click', openSupport);
+
+  async function doLogout(){
+    await sb.auth.signOut();
+    window.location.href = './login.html?v=400';
+  }
+  $('btnLogout').addEventListener('click', doLogout);
+
+  function escapeHtml(s){
+    return String(s ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+
+  function statusColor(ok){ return ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)'; }
+  function setClientStatus(clientId, text, ok=false){
+    const el = document.getElementById(`cstatus-${clientId}`);
+    if (!el) return;
+    el.textContent = text || '';
+    el.style.color = statusColor(ok);
+  }
+
+  async function requireAdmin(session){
+    const uid = session.user.id;
+    const { data, error } = await sb
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', uid)
+      .maybeSingle();
+    if (error) throw error;
+    return !!data?.user_id;
+  }
+
+  let CLIENTS = [];
+  let PLANS = [];
+  let PLAN_BY_ID = {};
+
+  async function loadPlans(){
+    const { data, error } = await sb
+      .from('plans')
+      .select('id, name, subtitle, description, sort_order')
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    PLANS = data || [];
+    PLAN_BY_ID = {};
+    for (const p of PLANS) PLAN_BY_ID[p.id] = p;
+  }
+
+  async function loadClients(){
+    const { data, error } = await sb
+      .from('clients')
+      .select('id, user_id, full_name, email, is_active, created_at, plan_id')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    CLIENTS = data || [];
+  }
+
+  function planOptionsHtml(selectedId){
+    const opts = [`<option value="">(sem plano)</option>`];
+    for (const p of PLANS) {
+      const sel = (String(p.id) === String(selectedId)) ? 'selected' : '';
+      opts.push(`<option value="${p.id}" ${sel}>#${p.id} • ${escapeHtml(p.name || 'Plano')}</option>`);
+    }
+    return opts.join('');
+  }
+
+  function renderClients(){
+    const q = ($('search').value || '').trim().toLowerCase();
+    const area = $('clientsArea');
+
+    const list = CLIENTS.filter(c => {
+      if (!q) return true;
+      const n = (c.full_name || '').toLowerCase();
+      const e = (c.email || '').toLowerCase();
+      return n.includes(q) || e.includes(q) || String(c.id).includes(q);
+    });
+
+    if (!list.length) {
+      area.innerHTML = `<div style="opacity:.85">Nenhum cliente encontrado.</div>`;
+      return;
+    }
+
+    area.innerHTML = list.map(c => {
+      const active = (c.is_active === true);
+      const plan = c.plan_id ? PLAN_BY_ID[c.plan_id] : null;
+
+      return `
+        <div class="block" style="margin-top:10px; background: rgba(0,0,0,.10);">
+          <div style="font-weight:900; font-size:16px; margin-bottom:6px;">
+            ${escapeHtml(c.full_name || 'Sem nome')}
+          </div>
+
+          <div class="mini" style="opacity:.85; line-height:1.5">
+            <div><b>Email:</b> ${escapeHtml(c.email || '—')}</div>
+            <div><b>client_id:</b> ${escapeHtml(c.id)}</div>
+            <div><b>user_id:</b> ${escapeHtml(c.user_id || '—')}</div>
+            <div><b>Status:</b> ${active ? 'ATIVO ✅' : 'PENDENTE ⏳'}</div>
+            <div><b>Plano:</b> ${plan ? `#${plan.id} • ${escapeHtml(plan.name)}` : '—'}</div>
+          </div>
+
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn ${active ? 'btn-secondary' : 'btn-primary'}" type="button"
+                onclick="toggleClientActive('${c.id}', ${active ? 'true' : 'false'})">
+                ${active ? 'Desativar' : 'Aprovar'}
+              </button>
+
+              <button class="btn btn-danger" type="button"
+                onclick="deleteClientTotal('${c.id}', '${escapeHtml(c.full_name || '')}')">
+                Excluir cliente
+              </button>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <select id="plan-${c.id}" style="flex:1; min-width:220px; padding:10px; border-radius:12px;">
+                ${planOptionsHtml(c.plan_id)}
+              </select>
+
+              <button class="btn btn-primary" type="button"
+                onclick="saveClientPlan('${c.id}')">
+                Salvar plano
+              </button>
+            </div>
+          </div>
+
+          <div id="cstatus-${c.id}" class="mini" style="margin-top:10px; opacity:.9"></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.toggleClientActive = async function(clientId, isActiveNow){
+    try{
+      setClientStatus(clientId, 'Atualizando...');
+      const { error } = await sb
+        .from('clients')
+        .update({ is_active: !isActiveNow })
+        .eq('id', clientId);
+
+      if (error) {
+        setClientStatus(clientId, 'Erro: ' + error.message);
+        return;
+      }
+
+      CLIENTS = CLIENTS.map(c => c.id === clientId ? { ...c, is_active: !isActiveNow } : c);
+      renderClients();
+      setClientStatus(clientId, (!isActiveNow ? 'Aprovado ✅' : 'Desativado ✅'), true);
+    } catch(e){
+      console.error(e);
+      setClientStatus(clientId, 'Erro inesperado.');
+    }
+  };
+
+  window.saveClientPlan = async function(clientId){
+    try{
+      const sel = document.getElementById(`plan-${clientId}`);
+      const planId = sel?.value ? Number(sel.value) : null;
+
+      setClientStatus(clientId, 'Salvando plano...');
+      const { error } = await sb
+        .from('clients')
+        .update({ plan_id: planId })
+        .eq('id', clientId);
+
+      if (error) {
+        setClientStatus(clientId, 'Erro: ' + error.message);
+        return;
+      }
+
+      CLIENTS = CLIENTS.map(c => c.id === clientId ? { ...c, plan_id: planId } : c);
+      renderClients();
+      setClientStatus(clientId, 'Plano atualizado ✅', true);
+    } catch(e){
+      console.error(e);
+      setClientStatus(clientId, 'Erro inesperado ao salvar plano.');
+    }
+  };
+
+  async function deleteReceiptsFolder(clientId){
+    // apaga tudo que estiver em receipts/{clientId}/...
+    const bucket = sb.storage.from('receipts');
+    const { data: files, error } = await bucket.list(clientId, { limit: 1000 });
+    if (error) throw error;
+
+    const toRemove = (files || [])
+      .filter(f => f?.name)
+      .map(f => `${clientId}/${f.name}`);
+
+    if (!toRemove.length) return 0;
+
+    const { error: remErr } = await bucket.remove(toRemove);
+    if (remErr) throw remErr;
+
+    return toRemove.length;
+  }
+
+  window.deleteClientTotal = async function(clientId, clientName){
+    const nice = clientName ? ` (${clientName})` : '';
+    const ok = confirm(
+      `Excluir cliente${nice}?\n\n` +
+      `Isso vai apagar:\n` +
+      `- cliente\n- pagamentos\n- contratos\n- comprovantes (bucket receipts)\n\n` +
+      `Essa ação não tem volta.`
+    );
+    if (!ok) return;
+
+    try{
+      setClientStatus(clientId, 'Excluindo comprovantes...');
+      let removed = 0;
+
+      // tenta apagar comprovantes, mas se der erro mostra e continua (pra não “travou tudo”)
+      try {
+        removed = await deleteReceiptsFolder(clientId);
+      } catch (e) {
+        console.warn('Falha ao remover recibos:', e);
+        setClientStatus(clientId, 'Aviso: não consegui apagar comprovantes. Vou excluir o cliente mesmo...', false);
+      }
+
+      setClientStatus(clientId, `Excluindo cliente... (${removed} comprovante(s) removido(s))`);
+
+      const { error } = await sb
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
+
+      if (error) {
+        setClientStatus(clientId, 'Erro ao excluir: ' + error.message);
+        return;
+      }
+
+      CLIENTS = CLIENTS.filter(c => c.id !== clientId);
+      renderClients();
+      setMsg('Cliente excluído ✅', true);
+    } catch(e){
+      console.error(e);
+      setClientStatus(clientId, 'Erro inesperado ao excluir.');
+    }
+  };
+
+  async function safeReload(){
+    setMsg('');
+    setText('status', 'Carregando...');
+    $('clientsArea').innerHTML = 'Carregando...';
+
+    try{
+      await loadPlans();
+      await loadClients();
+      renderClients();
+      setText('status', `OK ✅ • ${CLIENTS.length} cliente(s)`);
+    } catch(e){
+      console.error(e);
+      setText('status', 'Erro ao carregar.');
+      setMsg(e?.message || 'Erro desconhecido.');
+      $('clientsArea').innerHTML = `<div style="opacity:.85">Erro ao carregar clientes/planos.</div>`;
+    }
+  }
+
+  $('btnReload').addEventListener('click', safeReload);
+  $('search').addEventListener('input', renderClients);
+
+  async function boot(){
+    setMsg('');
+
+    const { data: sessData, error: sessErr } = await sb.auth.getSession();
+    if (sessErr) {
+      setText('status', 'Erro de sessão.');
+      setMsg(sessErr.message);
+      window.location.href = './login.html?v=400';
+      return;
+    }
+
+    const session = sessData?.session;
+    if (!session) {
+      window.location.href = './login.html?v=400';
+      return;
+    }
+
+    const email = session.user.email;
+    setText('loggedAs', email ? `Logado como: ${email}` : '');
+
+    try{
+      const ok = await requireAdmin(session);
+      if (!ok) {
+        setText('status', 'Você não tem permissão de ADM.');
+        setMsg('Acesso negado.');
+        window.location.href = './index.html?v=400';
+        return;
+      }
+    } catch(e){
+      console.error(e);
+      setText('status', 'Erro ao validar ADM.');
+      setMsg(e.message || 'Erro.');
+      return;
+    }
+
+    await safeReload();
+  }
+
+  boot();
+</script>
+
+</body>
+</html>

@@ -3,21 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pagamentos | Portal do Cliente</title>
-  <link rel="stylesheet" href="./app.css?v=201">
-  <script src="./config.js?v=10"></script>
+  <title>Pagamentos • Portal do Cliente</title>
+  <link rel="stylesheet" href="./app.css?v=202">
+  <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
   <div class="page">
     <div class="card">
+
       <header class="topbar">
         <div class="brand">
-          <img class="brand-logo" src="./logo.png?v=10" alt="Logo" onerror="this.style.display='none'">
+          <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
-            <div class="brand-title" id="companyName">RR Consultoria</div>
-            <div class="brand-sub">Pagamentos</div>
-            <div class="brand-sub small" id="loggedAs"></div>
+            <div class="brand-title" id="companyName">Portal</div>
+            <div class="brand-sub" id="companyTagline">Pagamentos</div>
+            <div class="brand-sub mini" id="loggedAs" style="opacity:.9"></div>
           </div>
         </div>
 
@@ -28,128 +30,157 @@
       </header>
 
       <main class="content">
-        <a class="link" href="./index.html?v=10">‹ Voltar</a>
+        <a href="./index.html?v=202" style="display:inline-block; margin: 0 0 10px;">&lsaquo; Voltar</a>
 
         <section class="block">
           <div class="pill">Histórico</div>
           <div id="paymentsArea" class="mini">Carregando...</div>
+          <div id="msg" class="msg" aria-live="polite" style="margin-top:12px; opacity:0"></div>
         </section>
-
-        <p class="helper" id="msg"></p>
       </main>
 
       <footer class="footer">
         <span id="footerCompany">© Sua empresa</span>
       </footer>
+
     </div>
   </div>
 
 <script>
+  // ===== Config / Supabase =====
   const CFG = window.APP_CONFIG || {};
-  const supabase = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  const sb = (window.supabase?.createClient ? window.supabase : supabase)
+    .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-  const setText = (id, v) => (document.getElementById(id).textContent = v);
-  const msg = document.getElementById('msg');
-  const setMsg = (t, ok=false) => {
-    msg.textContent = t || '';
-    msg.style.opacity = t ? '1' : '0';
-    msg.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
-  };
+  const $ = (id) => document.getElementById(id);
+  const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
 
+  // Branding
+  $('logoImg').src = CFG.LOGO_URL || './Logo.png';
   if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
+  if (CFG.COMPANY_TAGLINE) setText('companyTagline', CFG.COMPANY_TAGLINE);
   setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
 
-  document.getElementById('btnSupport').addEventListener('click', () => {
+  // Mensagens
+  const msgEl = $('msg');
+  const setMsg = (t, ok=false) => {
+    msgEl.textContent = t || '';
+    msgEl.style.opacity = t ? '1' : '0';
+    msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  };
+
+  // Suporte WhatsApp
+  function openSupport(){
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
     const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
     if (!phone) return alert('WhatsApp de suporte não configurado.');
     window.location.href = `https://wa.me/${phone}?text=${text}`;
-  });
+  }
+  $('btnSupport').addEventListener('click', openSupport);
 
-  document.getElementById('btnLogout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = './login.html?v=10';
-  });
+  // Logout
+  async function doLogout(){
+    await sb.auth.signOut();
+    window.location.href = './login.html?v=202';
+  }
+  $('btnLogout').addEventListener('click', doLogout);
 
-  function moneyBR(v){
+  // Helpers
+  const fmtMoney = (v) => {
     const n = Number(v || 0);
     return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-  }
-  function dateBR(iso){
-    if (!iso) return '—';
-    const s = String(iso);
-    if (s.includes('T')) iso = s.split('T')[0];
-    const [y,m,d] = String(iso).split('-');
-    if (!y||!m||!d) return iso;
-    return `${d}/${m}/${y}`;
-  }
+  };
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    // aceita YYYY-MM-DD ou timestamp
+    const s = String(d);
+    return s.slice(0,10);
+  };
 
-  async function requireSession() {
-    const { data } = await supabase.auth.getSession();
-    if (!data?.session) { window.location.href = './login.html?v=10'; return null; }
-    setText('loggedAs', `Logado como: ${data.session.user.email}`);
-    return data.session;
-  }
+  function renderPayments(list){
+    const area = $('paymentsArea');
 
-  async function loadPayments() {
-    const session = await requireSession();
-    if (!session) return;
-
-    const area = document.getElementById('paymentsArea');
-    area.textContent = 'Carregando pagamentos...';
-
-    // pega os contratos do cliente (RLS já limita ao cliente)
-    const { data: contracts, error: cErr } = await supabase
-      .from('contracts')
-      .select('id, due_date, status')
-      .order('created_at', { ascending: false });
-
-    if (cErr) { area.textContent = 'Erro ao carregar contratos.'; return; }
-    if (!contracts || contracts.length === 0) { area.textContent = 'Nenhum contrato encontrado.'; return; }
-
-    // junta pagamentos de todos os contratos
-    const contractIds = contracts.map(c => c.id);
-
-    const { data: payments, error: pErr } = await supabase
-      .from('payments')
-      .select('id, contract_id, amount, paid_at, method, notes, created_at')
-      .in('contract_id', contractIds)
-      .order('paid_at', { ascending: false });
-
-    if (pErr) { area.textContent = 'Erro ao carregar pagamentos.'; return; }
-    if (!payments || payments.length === 0) {
-      area.innerHTML = `<div class="mini">Nenhum pagamento registrado ainda.</div>`;
-      setMsg('Ok ✅', true);
+    if (!list || list.length === 0) {
+      area.innerHTML = `<div style="opacity:.85">Nenhum pagamento encontrado.</div>`;
       return;
     }
 
-    area.innerHTML = payments.map(p => `
-      <div class="contract-card" style="margin-top:12px">
-        <div class="contract-head">
-          <div class="contract-status">${moneyBR(p.amount)}</div>
-          <div class="contract-id">${dateBR(p.paid_at || p.created_at)}</div>
-        </div>
-        <div class="contract-grid">
-          <div class="kv">
-            <div class="k">Método</div>
-            <div class="v">${p.method || '—'}</div>
-          </div>
-          <div class="kv">
-            <div class="k">Contrato</div>
-            <div class="v">#${String(p.contract_id).slice(0,8)}</div>
-          </div>
-          <div class="kv wide">
-            <div class="k">Observações</div>
-            <div class="v" style="font-weight:600">${p.notes || '—'}</div>
-          </div>
-        </div>
+    area.innerHTML = list.map((p) => `
+      <div class="block" style="margin-top:12px; background: rgba(0,0,0,.10);">
+        <div class="mini" style="opacity:.8">Data</div>
+        <div style="font-weight:800; margin-bottom:8px">${fmtDate(p.paid_at)}</div>
+
+        <div class="mini" style="opacity:.8">Valor</div>
+        <div style="font-weight:900; font-size:18px; margin-bottom:8px">${fmtMoney(p.amount)}</div>
+
+        <div class="mini" style="opacity:.8">Método</div>
+        <div style="margin-bottom:8px">${p.method || '—'}</div>
+
+        <div class="mini" style="opacity:.8">Obs.</div>
+        <div style="opacity:.95">${p.notes ? String(p.notes) : '—'}</div>
       </div>
     `).join('');
+  }
 
+  async function boot(){
+    setMsg('');
+
+    // sessão
+    const { data: sessData, error: sessErr } = await sb.auth.getSession();
+    if (sessErr) { setMsg(sessErr.message); $('paymentsArea').textContent = 'Erro.'; return; }
+
+    const session = sessData?.session;
+    if (!session) {
+      window.location.href = './login.html?v=202';
+      return;
+    }
+
+    const uid = session.user.id;
+    const email = session.user.email;
+    setText('loggedAs', email ? `Logado como: ${email}` : '');
+
+    // acha client.id pelo user_id
+    const { data: client, error: cErr } = await sb
+      .from('clients')
+      .select('id')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (cErr) {
+      $('paymentsArea').textContent = 'Erro ao localizar cliente.';
+      setMsg(cErr.message);
+      return;
+    }
+
+    if (!client?.id) {
+      $('paymentsArea').innerHTML = `
+        <div style="opacity:.9">
+          Não encontrei seu cadastro de cliente ainda.<br/>
+          Fale com o suporte para ativar seu acesso.
+        </div>
+      `;
+      return;
+    }
+
+    // busca pagamentos do cliente
+    const { data: payments, error: pErr } = await sb
+      .from('payments')
+      .select('id, amount, paid_at, method, notes, created_at')
+      .eq('client_id', client.id)
+      .order('paid_at', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (pErr) {
+      $('paymentsArea').textContent = 'Erro ao carregar pagamentos.';
+      setMsg(pErr.message);
+      return;
+    }
+
+    renderPayments(payments);
     setMsg('Pagamentos carregados ✅', true);
   }
 
-  loadPayments();
+  boot();
 </script>
 </body>
 </html>

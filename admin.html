@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ADM • Portal do Cliente</title>
+  <title>Área ADM • RR Consultoria</title>
 
-  <link rel="stylesheet" href="./app.css?v=250">
+  <link rel="stylesheet" href="./app.css?v=300">
   <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -18,8 +18,8 @@
         <div class="brand">
           <img class="brand-logo" id="logoImg" src="./Logo.png" alt="Logo" onerror="this.style.display='none'">
           <div class="brand-text">
-            <div class="brand-title" id="companyName">Portal</div>
-            <div class="brand-sub" id="companyTagline">Área ADM</div>
+            <div class="brand-title" id="companyName">RR Consultoria</div>
+            <div class="brand-sub">Área ADM</div>
             <div class="brand-sub mini" id="loggedAs" style="opacity:.9"></div>
           </div>
         </div>
@@ -31,35 +31,53 @@
       </header>
 
       <main class="content">
-        <a href="./index.html?v=250" style="display:inline-block; margin: 0 0 10px;">&lsaquo; Voltar</a>
+        <a href="./index.html?v=300" style="display:inline-block; margin: 0 0 10px;">&lsaquo; Voltar</a>
 
         <section class="block">
           <div class="pill">Painel</div>
-
-          <div id="admArea" class="mini" style="margin-top:10px;">
-            Carregando...
-          </div>
-
+          <div id="status" class="mini" style="margin-top:10px; line-height:1.5">Carregando…</div>
           <div id="msg" class="msg" aria-live="polite" style="margin-top:12px; opacity:0"></div>
         </section>
 
         <section class="block" style="margin-top:12px;">
-          <div class="pill">Atalhos</div>
+          <div class="pill">Clientes</div>
+          <div id="clientsArea" class="mini" style="margin-top:10px;">Carregando…</div>
+        </section>
 
-          <div class="mini" style="margin-top:10px; opacity:.9">
-            Aqui é só um ADM “mínimo viável”: valida admin + mostra status.<br/>
-            Depois a gente coloca: criar pagamento, listar clientes, etc.
+        <section class="block" style="margin-top:12px;">
+          <div class="pill">Criar pagamento</div>
+
+          <div class="mini" style="margin-top:10px; opacity:.85">Selecione o cliente e lance o pagamento.</div>
+
+          <div style="margin-top:10px; display:grid; gap:10px;">
+            <select id="payClient" style="width:100%; padding:10px; border-radius:12px;"></select>
+
+            <input id="payAmount" type="number" step="0.01" placeholder="Valor (ex: 2000)"
+              style="width:100%; padding:10px; border-radius:12px;" />
+
+            <input id="payDate" type="date"
+              style="width:100%; padding:10px; border-radius:12px;" />
+
+            <select id="payMethod" style="width:100%; padding:10px; border-radius:12px;">
+              <option value="manual">manual</option>
+              <option value="pix">pix</option>
+              <option value="boleto">boleto</option>
+              <option value="cartao">cartão</option>
+              <option value="transferencia">transferência</option>
+            </select>
+
+            <input id="payNotes" type="text" placeholder="Obs. (opcional)"
+              style="width:100%; padding:10px; border-radius:12px;" />
+
+            <button class="btn btn-primary" id="btnCreatePayment" type="button">Lançar pagamento</button>
           </div>
 
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-            <button class="btn btn-primary" type="button" id="btnGoSQL">Abrir Supabase (Dashboard)</button>
-            <button class="btn btn-secondary" type="button" id="btnRefresh">Recarregar</button>
-          </div>
+          <div id="paymentsArea" class="mini" style="margin-top:14px; opacity:.9"></div>
         </section>
       </main>
 
       <footer class="footer">
-        <span id="footerCompany">© Sua empresa</span>
+        <span id="footerCompany">© RR Consultoria</span>
       </footer>
 
     </div>
@@ -77,10 +95,9 @@
   // Branding
   $('logoImg').src = CFG.LOGO_URL || './Logo.png';
   if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
-  if (CFG.COMPANY_TAGLINE) setText('companyTagline', 'Área ADM');
-  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'Sua empresa'}`);
+  setText('footerCompany', `© ${CFG.COMPANY_NAME || 'RR Consultoria'}`);
 
-  // Mensagens
+  // Msg
   const msgEl = $('msg');
   const setMsg = (t, ok=false) => {
     msgEl.textContent = t || '';
@@ -91,7 +108,7 @@
   // Suporte WhatsApp
   function openSupport(){
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
-    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal do Cliente.');
+    const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal.');
     if (!phone) return alert('WhatsApp de suporte não configurado.');
     window.location.href = `https://wa.me/${phone}?text=${text}`;
   }
@@ -100,88 +117,316 @@
   // Logout
   async function doLogout(){
     await sb.auth.signOut();
-    window.location.href = './login.html?v=250';
+    window.location.href = './login.html?v=300';
   }
   $('btnLogout').addEventListener('click', doLogout);
 
-  $('btnRefresh').addEventListener('click', () => window.location.reload());
+  const fmtMoney = (v) => Number(v||0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  const fmtDate = (d) => (d ? String(d).slice(0,10) : '—');
 
-  // (Opcional) atalho: você pode colocar no config.js um link do dashboard
-  $('btnGoSQL').addEventListener('click', () => {
-    if (CFG.SUPABASE_DASHBOARD_URL) {
-      window.open(CFG.SUPABASE_DASHBOARD_URL, '_blank');
-    } else {
-      alert('Se quiser, coloque SUPABASE_DASHBOARD_URL no config.js (opcional).');
+  let CLIENTS = [];
+  let SELECTED_CLIENT_ID = null;
+
+  function renderClients(){
+    const area = $('clientsArea');
+    if (!CLIENTS.length) {
+      area.innerHTML = `<div style="opacity:.85">Nenhum cliente encontrado.</div>`;
+      $('payClient').innerHTML = `<option value="">(sem clientes)</option>`;
+      return;
     }
-  });
 
-  function renderAdminOK(email, uid){
-    $('admArea').innerHTML = `
-      <div class="block" style="margin-top:12px; background: rgba(0,0,0,.10);">
-        <div class="mini" style="opacity:.8">Status</div>
-        <div style="font-weight:900; font-size:18px; margin-bottom:10px">Acesso ADM liberado ✅</div>
+    // dropdown
+    $('payClient').innerHTML = CLIENTS.map(c => {
+      const label = `${c.full_name || 'Sem nome'} • ${c.email || c.user_id || c.id}`;
+      return `<option value="${c.id}">${label}</option>`;
+    }).join('');
 
-        <div class="mini" style="opacity:.8">Usuário</div>
-        <div style="margin-bottom:10px">${email || '—'}</div>
+    SELECTED_CLIENT_ID = CLIENTS[0].id;
 
-        <div class="mini" style="opacity:.8">user_id</div>
-        <div style="opacity:.95; word-break:break-all;">${uid}</div>
+    $('payClient').addEventListener('change', async (e) => {
+      SELECTED_CLIENT_ID = e.target.value || null;
+      await loadPaymentsForClient(SELECTED_CLIENT_ID);
+    });
+
+    // cards
+    area.innerHTML = CLIENTS.map(c => {
+      const active = (c.is_active === true);
+      return `
+        <div class="block" style="margin-top:10px; background: rgba(0,0,0,.10);">
+          <div style="font-weight:900; font-size:16px; margin-bottom:6px;">
+            ${c.full_name || 'Sem nome'}
+          </div>
+
+          <div class="mini" style="opacity:.85; line-height:1.5">
+            <div><b>Email:</b> ${c.email || '—'}</div>
+            <div><b>client_id:</b> ${c.id}</div>
+            <div><b>user_id:</b> ${c.user_id || '—'}</div>
+            <div><b>Status:</b> ${active ? 'ATIVO ✅' : 'PENDENTE ⏳'}</div>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+            <button class="btn ${active ? 'btn-secondary' : 'btn-primary'}" type="button"
+              onclick="toggleClientActive('${c.id}', ${active ? 'true' : 'false'})">
+              ${active ? 'Desativar' : 'Aprovar'}
+            </button>
+
+            <button class="btn btn-secondary" type="button"
+              onclick="selectClientForPayments('${c.id}')">
+              Ver pagamentos
+            </button>
+          </div>
+
+          <div id="cstatus-${c.id}" class="mini" style="margin-top:10px; opacity:.9"></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function setClientStatus(clientId, text, ok=false){
+    const el = document.getElementById(`cstatus-${clientId}`);
+    if (!el) return;
+    el.textContent = text || '';
+    el.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  }
+
+  window.selectClientForPayments = async function(clientId){
+    $('payClient').value = clientId;
+    SELECTED_CLIENT_ID = clientId;
+    await loadPaymentsForClient(clientId);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  };
+
+  window.toggleClientActive = async function(clientId, isActiveNow){
+    try{
+      setClientStatus(clientId, 'Atualizando...');
+      const { error } = await sb
+        .from('clients')
+        .update({ is_active: !isActiveNow })
+        .eq('id', clientId);
+
+      if (error) {
+        setClientStatus(clientId, 'Erro: ' + error.message);
+        return;
+      }
+
+      // atualiza cache local
+      CLIENTS = CLIENTS.map(c => c.id === clientId ? { ...c, is_active: !isActiveNow } : c);
+      renderClients();
+      setClientStatus(clientId, (!isActiveNow ? 'Aprovado ✅' : 'Desativado ✅'), true);
+    } catch(e){
+      setClientStatus(clientId, 'Erro inesperado.');
+      console.error(e);
+    }
+  };
+
+  async function loadClients(){
+    const { data, error } = await sb
+      .from('clients')
+      .select('id, user_id, full_name, email, is_active, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    CLIENTS = data || [];
+    renderClients();
+  }
+
+  async function createPayment(){
+    if (!SELECTED_CLIENT_ID) return alert('Selecione um cliente.');
+
+    const amount = Number($('payAmount').value || 0);
+    const paid_at = $('payDate').value;
+    const method = $('payMethod').value || 'manual';
+    const notes = $('payNotes').value || null;
+
+    if (!amount || amount <= 0) return alert('Informe um valor válido.');
+    if (!paid_at) return alert('Informe a data.');
+
+    setMsg('Lançando pagamento...');
+
+    const { error } = await sb
+      .from('payments')
+      .insert([{
+        client_id: SELECTED_CLIENT_ID,
+        amount,
+        paid_at,
+        method,
+        notes
+      }]);
+
+    if (error) {
+      setMsg('Erro: ' + error.message);
+      return;
+    }
+
+    $('payAmount').value = '';
+    $('payNotes').value = '';
+
+    setMsg('Pagamento lançado ✅', true);
+    await loadPaymentsForClient(SELECTED_CLIENT_ID);
+  }
+
+  $('btnCreatePayment').addEventListener('click', createPayment);
+
+  async function findReceiptPath(clientId, paymentId){
+    // padrão: {client_id}/{payment_id}.ext
+    const { data: files, error } = await sb.storage
+      .from('receipts')
+      .list(clientId, { limit: 200 });
+
+    if (error) throw error;
+
+    const found = (files || []).find(f => String(f.name || '').startsWith(paymentId + '.'));
+    return found?.name ? `${clientId}/${found.name}` : null;
+  }
+
+  window.openReceipt = async function(clientId, paymentId){
+    try{
+      setMsg('Procurando comprovante...');
+      const path = await findReceiptPath(clientId, paymentId);
+      if (!path) {
+        setMsg('Nenhum comprovante encontrado para esse pagamento.');
+        return;
+      }
+
+      const { data, error } = await sb.storage
+        .from('receipts')
+        .createSignedUrl(path, 60);
+
+      if (error || !data?.signedUrl) {
+        setMsg('Não consegui gerar link do comprovante.');
+        return;
+      }
+
+      setMsg('Abrindo comprovante ✅', true);
+      window.open(data.signedUrl, '_blank');
+    } catch(e){
+      console.error(e);
+      setMsg('Erro ao abrir comprovante.');
+    }
+  };
+
+  async function loadPaymentsForClient(clientId){
+    if (!clientId) { $('paymentsArea').innerHTML = ''; return; }
+
+    $('paymentsArea').innerHTML = 'Carregando pagamentos...';
+
+    const { data, error } = await sb
+      .from('payments')
+      .select('id, amount, paid_at, method, notes, created_at')
+      .eq('client_id', clientId)
+      .order('paid_at', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      $('paymentsArea').innerHTML = 'Erro: ' + error.message;
+      return;
+    }
+
+    const list = data || [];
+    if (!list.length) {
+      $('paymentsArea').innerHTML = `<div style="opacity:.85">Sem pagamentos para este cliente.</div>`;
+      return;
+    }
+
+    $('paymentsArea').innerHTML = `
+      <div class="mini" style="opacity:.85; margin-bottom:10px;">
+        Pagamentos do cliente selecionado:
       </div>
+      ${list.map(p => `
+        <div class="block" style="margin-top:10px; background: rgba(0,0,0,.10);">
+          <div class="mini" style="opacity:.8">Data</div>
+          <div style="font-weight:800; margin-bottom:8px">${fmtDate(p.paid_at)}</div>
+
+          <div class="mini" style="opacity:.8">Valor</div>
+          <div style="font-weight:900; font-size:18px; margin-bottom:8px">${fmtMoney(p.amount)}</div>
+
+          <div class="mini" style="opacity:.8">Método</div>
+          <div style="margin-bottom:8px">${p.method || '—'}</div>
+
+          <div class="mini" style="opacity:.8">Obs.</div>
+          <div style="margin-bottom:10px">${p.notes ? String(p.notes) : '—'}</div>
+
+          <button class="btn btn-secondary" type="button"
+            onclick="openReceipt('${clientId}', '${p.id}')">
+            Abrir comprovante
+          </button>
+        </div>
+      `).join('')}
     `;
+  }
+
+  async function requireAdmin(session){
+    const uid = session.user.id;
+
+    const { data: adminRow, error } = await sb
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (error) throw error;
+    return !!adminRow?.user_id;
   }
 
   async function boot(){
     setMsg('');
 
-    // sessão
     const { data: sessData, error: sessErr } = await sb.auth.getSession();
     if (sessErr) {
-      $('admArea').textContent = 'Erro.';
+      setText('status', 'Erro de sessão.');
       setMsg(sessErr.message);
+      window.location.href = './login.html?v=300';
       return;
     }
 
     const session = sessData?.session;
     if (!session) {
-      window.location.href = './login.html?v=250';
+      window.location.href = './login.html?v=300';
       return;
     }
 
-    const uid = session.user.id;
     const email = session.user.email;
     setText('loggedAs', email ? `Logado como: ${email}` : '');
 
-    // ===== Checagem ADM (tabela public.admins) =====
-    const { data: admRow, error: aErr } = await sb
-      .from('admins')
-      .select('user_id, created_at')
-      .eq('user_id', uid)
-      .maybeSingle();
-
-    if (aErr) {
-      $('admArea').textContent = 'Erro ao validar ADM.';
-      setMsg(aErr.message);
+    // valida admin (se não for, volta pro portal)
+    try{
+      const ok = await requireAdmin(session);
+      if (!ok) {
+        setText('status', 'Você não tem permissão de ADM.');
+        setMsg('Acesso negado.');
+        window.location.href = './index.html?v=300';
+        return;
+      }
+    } catch(e){
+      console.error(e);
+      setText('status', 'Erro ao validar ADM.');
+      setMsg(e.message || 'Erro.');
       return;
     }
 
-    if (!admRow?.user_id) {
-      $('admArea').innerHTML = `
-        <div style="opacity:.9">
-          Você não tem permissão de ADM.<br/>
-          Volte para o portal.
-        </div>
-      `;
-      setMsg('Acesso negado (não-admin).');
-      setTimeout(() => window.location.href = './index.html?v=250', 900);
-      return;
-    }
-
-    renderAdminOK(email, uid);
+    setText('status', 'Acesso ADM liberado ✅');
     setMsg('ADM validado ✅', true);
+
+    await loadClients();
+
+    // setar data default hoje
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,'0');
+    const dd = String(today.getDate()).padStart(2,'0');
+    $('payDate').value = `${yyyy}-${mm}-${dd}`;
+
+    // carrega pagamentos do primeiro cliente
+    if (CLIENTS[0]?.id) {
+      $('payClient').value = CLIENTS[0].id;
+      SELECTED_CLIENT_ID = CLIENTS[0].id;
+      await loadPaymentsForClient(SELECTED_CLIENT_ID);
+    }
   }
 
   boot();
 </script>
+
 </body>
 </html>
-```0

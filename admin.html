@@ -127,6 +127,48 @@
   let CLIENTS = [];
   let SELECTED_CLIENT_ID = null;
 
+  // ===== Planos (para trocar plano do cliente) =====
+  let PLANS = [];               // [{id, name, ...}]
+  let PLAN_BY_ID = {};          // { [id]: plan }
+  let CLIENT_PLAN = {};         // { [client_id]: {plan_id, start_date} }
+
+  function planLabel(id){
+    if (id === null || id === undefined) return '—';
+    const p = PLAN_BY_ID[id];
+    return p?.name ? `${p.name} (#${id})` : `Plano #${id}`;
+  }
+
+  async function loadPlans(){
+    const { data, error } = await sb
+      .from('plans')
+      .select('id, name, sort_order')
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+
+    PLANS = data || [];
+    PLAN_BY_ID = {};
+    for (const p of PLANS) PLAN_BY_ID[p.id] = p;
+  }
+
+  async function loadClientPlans(clientIds){
+    CLIENT_PLAN = {};
+    if (!clientIds?.length) return;
+
+    // tabela: public.client_plans (client_id uuid, plan_id integer, start_date date, ...)
+    const { data, error } = await sb
+      .from('client_plans')
+      .select('client_id, plan_id, start_date')
+      .in('client_id', clientIds);
+
+    if (error) throw error;
+
+    for (const row of (data || [])) {
+      CLIENT_PLAN[row.client_id] = { plan_id: row.plan_id, start_date: row.start_date };
+    }
+  }
+
   function renderClients(){
     const area = $('clientsArea');
     if (!CLIENTS.length) {
@@ -135,7 +177,7 @@
       return;
     }
 
-    // dropdown
+    // dropdown pagamentos
     $('payClient').innerHTML = CLIENTS.map(c => {
       const label = `${c.full_name || 'Sem nome'} • ${c.email || c.user_id || c.id}`;
       return `<option value="${c.id}">${label}</option>`;
@@ -143,14 +185,27 @@
 
     SELECTED_CLIENT_ID = CLIENTS[0].id;
 
-    $('payClient').addEventListener('change', async (e) => {
+    // garante que não duplica listener
+    $('payClient').onchange = async (e) => {
       SELECTED_CLIENT_ID = e.target.value || null;
       await loadPaymentsForClient(SELECTED_CLIENT_ID);
-    });
+    };
+
+    const plansOptionsHtml = (() => {
+      if (!PLANS.length) return `<option value="">(sem planos)</option>`;
+      return PLANS.map(p => `<option value="${p.id}">${p.name || ('Plano #' + p.id)}</option>`).join('');
+    })();
 
     // cards
     area.innerHTML = CLIENTS.map(c => {
       const active = (c.is_active === true);
+
+      const cp = CLIENT_PLAN[c.id] || null;
+      const currentPlanId = cp?.plan_id ?? null;
+      const currentStart = cp?.start_date ?? null;
+
+      const planSelectId = `plan-${c.id}`;
+
       return `
         <div class="block" style="margin-top:10px; background: rgba(0,0,0,.10);">
           <div style="font-weight:900; font-size:16px; margin-bottom:6px;">
@@ -162,6 +217,7 @@
             <div><b>client_id:</b> ${c.id}</div>
             <div><b>user_id:</b> ${c.user_id || '—'}</div>
             <div><b>Status:</b> ${active ? 'ATIVO ✅' : 'PENDENTE ⏳'}</div>
+            <div><b>Plano atual:</b> ${planLabel(currentPlanId)} ${currentStart ? `• desde ${fmtDate(currentStart)}` : ''}</div>
           </div>
 
           <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
@@ -174,12 +230,43 @@
               onclick="selectClientForPayments('${c.id}')">
               Ver pagamentos
             </button>
+
+            <button class="btn btn-danger" type="button"
+              onclick="deleteClient('${c.id}', '${(c.full_name || '').replace(/'/g, "\\'")}')">
+              Excluir cliente
+            </button>
+          </div>
+
+          <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,.08)">
+            <div class="mini" style="opacity:.8; margin-bottom:8px;"><b>Trocar plano</b></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <select id="${planSelectId}" style="flex:1; min-width: 200px; padding:10px; border-radius:12px;">
+                <option value="">(selecionar plano)</option>
+                ${plansOptionsHtml}
+              </select>
+              <button class="btn btn-primary" type="button"
+                onclick="setClientPlan('${c.id}', '${planSelectId}')">
+                Aplicar plano
+              </button>
+            </div>
+            <div class="mini" style="opacity:.85; margin-top:8px;">
+              Dica: o cliente sempre fica com 1 plano (upsert).
+            </div>
           </div>
 
           <div id="cstatus-${c.id}" class="mini" style="margin-top:10px; opacity:.9"></div>
         </div>
       `;
     }).join('');
+
+    // pré-seleciona o plano atual em cada select (depois do HTML renderizado)
+    for (const c of CLIENTS) {
+      const cp = CLIENT_PLAN[c.id] || null;
+      const sel = document.getElementById(`plan-${c.id}`);
+      if (sel && cp?.plan_id !== null && cp?.plan_id !== undefined) {
+        sel.value = String(cp.plan_id);
+      }
+    }
   }
 
   function setClientStatus(clientId, text, ok=false){
@@ -219,6 +306,82 @@
     }
   };
 
+  // ===== RPC: trocar plano (public.set_client_plan) =====
+  window.setClientPlan = async function(clientId, selectId){
+    try{
+      const sel = document.getElementById(selectId);
+      const planId = sel?.value ? Number(sel.value) : null;
+
+      if (!clientId) return alert('client_id inválido.');
+      if (!planId || Number.isNaN(planId)) return alert('Selecione um plano válido.');
+
+      setClientStatus(clientId, 'Aplicando plano...');
+
+      const { error } = await sb.rpc('set_client_plan', {
+        p_client_id: clientId,
+        p_plan_id: planId
+      });
+
+      if (error) {
+        setClientStatus(clientId, 'Erro: ' + error.message);
+        return;
+      }
+
+      setClientStatus(clientId, `Plano aplicado ✅ (${planLabel(planId)})`, true);
+
+      // recarrega mapa de planos do cliente (pra refletir start_date etc.)
+      await loadClientPlans(CLIENTS.map(x => x.id));
+      renderClients();
+    } catch(e){
+      console.error(e);
+      setClientStatus(clientId, 'Erro inesperado ao aplicar plano.');
+    }
+  };
+
+  // ===== RPC: excluir cliente com cascade (public.delete_client_cascade) =====
+  window.deleteClient = async function(clientId, clientName){
+    try{
+      if (!clientId) return alert('client_id inválido.');
+
+      const label = clientName ? ` (${clientName})` : '';
+      const ok = confirm(
+        `Tem certeza que deseja EXCLUIR este cliente${label}?\n\n` +
+        `Isso vai apagar os dados relacionados (cascade no banco).`
+      );
+      if (!ok) return;
+
+      setClientStatus(clientId, 'Excluindo cliente...');
+
+      const { error } = await sb.rpc('delete_client_cascade', { p_client_id: clientId });
+
+      if (error) {
+        setClientStatus(clientId, 'Erro: ' + error.message);
+        return;
+      }
+
+      setMsg('Cliente excluído ✅', true);
+
+      // remove do cache e re-render
+      CLIENTS = CLIENTS.filter(c => c.id !== clientId);
+      await loadClientPlans(CLIENTS.map(x => x.id));
+      renderClients();
+
+      // se o cliente excluído era o selecionado do pagamento, ajusta
+      if (SELECTED_CLIENT_ID === clientId) {
+        SELECTED_CLIENT_ID = CLIENTS[0]?.id || null;
+        if (SELECTED_CLIENT_ID) {
+          $('payClient').value = SELECTED_CLIENT_ID;
+          await loadPaymentsForClient(SELECTED_CLIENT_ID);
+        } else {
+          $('paymentsArea').innerHTML = '';
+        }
+      }
+    } catch(e){
+      console.error(e);
+      setMsg('Erro inesperado ao excluir cliente.');
+    }
+  };
+
   async function loadClients(){
     const { data, error } = await sb
       .from('clients')
@@ -228,6 +391,11 @@
     if (error) throw error;
 
     CLIENTS = data || [];
+
+    // carrega assignments de plano e lista de planos antes de renderizar
+    await loadPlans();
+    await loadClientPlans(CLIENTS.map(c => c.id));
+
     renderClients();
   }
 
@@ -425,8 +593,4 @@
     }
   }
 
-  boot();
-</script>
-
-</body>
-</html>
+  b

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Área ADM • RR Consultoria</title>
 
-  <link rel="stylesheet" href="./app.css?v=300">
-  <script src="./config.js?v=99"></script>
+  <link rel="stylesheet" href="./app.css?v=400">
+  <script src="./config.js?v=400"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -31,48 +31,28 @@
       </header>
 
       <main class="content">
-        <a href="./index.html?v=300" style="display:inline-block; margin: 0 0 10px;">&lsaquo; Voltar</a>
-
         <section class="block">
           <div class="pill">Painel</div>
           <div id="status" class="mini" style="margin-top:10px; line-height:1.5">Carregando…</div>
           <div id="msg" class="msg" aria-live="polite" style="margin-top:12px; opacity:0"></div>
-        </section>
 
-        <section class="block" style="margin-top:12px;">
-          <div class="pill">Clientes</div>
-          <div id="clientsArea" class="mini" style="margin-top:10px;">Carregando…</div>
-        </section>
+          <div style="margin-top:14px; display:grid; gap:10px;">
+            <a class="btn btn-primary" href="./admin-clients.html?v=400" style="text-decoration:none; text-align:center;">
+              Gerenciar clientes
+            </a>
 
-        <section class="block" style="margin-top:12px;">
-          <div class="pill">Criar pagamento</div>
+            <a class="btn btn-secondary" href="./admin-payments.html?v=400" style="text-decoration:none; text-align:center;">
+              Pagamentos
+            </a>
 
-          <div class="mini" style="margin-top:10px; opacity:.85">Selecione o cliente e lance o pagamento.</div>
+            <a class="btn btn-secondary" href="./admin-plans.html?v=400" style="text-decoration:none; text-align:center;">
+              Gerenciar planos
+            </a>
 
-          <div style="margin-top:10px; display:grid; gap:10px;">
-            <select id="payClient" style="width:100%; padding:10px; border-radius:12px;"></select>
-
-            <input id="payAmount" type="number" step="0.01" placeholder="Valor (ex: 2000)"
-              style="width:100%; padding:10px; border-radius:12px;" />
-
-            <input id="payDate" type="date"
-              style="width:100%; padding:10px; border-radius:12px;" />
-
-            <select id="payMethod" style="width:100%; padding:10px; border-radius:12px;">
-              <option value="manual">manual</option>
-              <option value="pix">pix</option>
-              <option value="boleto">boleto</option>
-              <option value="cartao">cartão</option>
-              <option value="transferencia">transferência</option>
-            </select>
-
-            <input id="payNotes" type="text" placeholder="Obs. (opcional)"
-              style="width:100%; padding:10px; border-radius:12px;" />
-
-            <button class="btn btn-primary" id="btnCreatePayment" type="button">Lançar pagamento</button>
+            <a class="btn btn-secondary" href="./index.html?v=400" style="text-decoration:none; text-align:center;">
+              Voltar pro portal
+            </a>
           </div>
-
-          <div id="paymentsArea" class="mini" style="margin-top:14px; opacity:.9"></div>
         </section>
       </main>
 
@@ -84,7 +64,6 @@
   </div>
 
 <script>
-  // ===== Config / Supabase =====
   const CFG = window.APP_CONFIG || {};
   const sb = (window.supabase?.createClient ? window.supabase : supabase)
     .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
@@ -92,12 +71,10 @@
   const $ = (id) => document.getElementById(id);
   const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
 
-  // Branding
   $('logoImg').src = CFG.LOGO_URL || './Logo.png';
   if (CFG.COMPANY_NAME) setText('companyName', CFG.COMPANY_NAME);
   setText('footerCompany', `© ${CFG.COMPANY_NAME || 'RR Consultoria'}`);
 
-  // Msg
   const msgEl = $('msg');
   const setMsg = (t, ok=false) => {
     msgEl.textContent = t || '';
@@ -105,7 +82,6 @@
     msgEl.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
   };
 
-  // Suporte WhatsApp
   function openSupport(){
     const phone = (CFG.SUPPORT_WHATSAPP || '').replace(/\D/g,'');
     const text  = encodeURIComponent(CFG.SUPPORT_MESSAGE || 'Olá! Preciso de ajuda com o Portal.');
@@ -114,427 +90,21 @@
   }
   $('btnSupport').addEventListener('click', openSupport);
 
-  // Logout
   async function doLogout(){
     await sb.auth.signOut();
-    window.location.href = './login.html?v=300';
+    window.location.href = './login.html?v=400';
   }
   $('btnLogout').addEventListener('click', doLogout);
 
-  const fmtMoney = (v) => Number(v||0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-  const fmtDate = (d) => (d ? String(d).slice(0,10) : '—');
-
-  let CLIENTS = [];
-  let SELECTED_CLIENT_ID = null;
-
-  // ===== Planos (para trocar plano do cliente) =====
-  let PLANS = [];               // [{id, name, ...}]
-  let PLAN_BY_ID = {};          // { [id]: plan }
-  let CLIENT_PLAN = {};         // { [client_id]: {plan_id, start_date} }
-
-  function planLabel(id){
-    if (id === null || id === undefined) return '—';
-    const p = PLAN_BY_ID[id];
-    return p?.name ? `${p.name} (#${id})` : `Plano #${id}`;
-  }
-
-  async function loadPlans(){
-    const { data, error } = await sb
-      .from('plans')
-      .select('id, name, sort_order')
-      .order('sort_order', { ascending: true })
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-
-    PLANS = data || [];
-    PLAN_BY_ID = {};
-    for (const p of PLANS) PLAN_BY_ID[p.id] = p;
-  }
-
-  async function loadClientPlans(clientIds){
-    CLIENT_PLAN = {};
-    if (!clientIds?.length) return;
-
-    // tabela: public.client_plans (client_id uuid, plan_id integer, start_date date, ...)
-    const { data, error } = await sb
-      .from('client_plans')
-      .select('client_id, plan_id, start_date')
-      .in('client_id', clientIds);
-
-    if (error) throw error;
-
-    for (const row of (data || [])) {
-      CLIENT_PLAN[row.client_id] = { plan_id: row.plan_id, start_date: row.start_date };
-    }
-  }
-
-  function renderClients(){
-    const area = $('clientsArea');
-    if (!CLIENTS.length) {
-      area.innerHTML = `<div style="opacity:.85">Nenhum cliente encontrado.</div>`;
-      $('payClient').innerHTML = `<option value="">(sem clientes)</option>`;
-      return;
-    }
-
-    // dropdown pagamentos
-    $('payClient').innerHTML = CLIENTS.map(c => {
-      const label = `${c.full_name || 'Sem nome'} • ${c.email || c.user_id || c.id}`;
-      return `<option value="${c.id}">${label}</option>`;
-    }).join('');
-
-    SELECTED_CLIENT_ID = CLIENTS[0].id;
-
-    // garante que não duplica listener
-    $('payClient').onchange = async (e) => {
-      SELECTED_CLIENT_ID = e.target.value || null;
-      await loadPaymentsForClient(SELECTED_CLIENT_ID);
-    };
-
-    const plansOptionsHtml = (() => {
-      if (!PLANS.length) return `<option value="">(sem planos)</option>`;
-      return PLANS.map(p => `<option value="${p.id}">${p.name || ('Plano #' + p.id)}</option>`).join('');
-    })();
-
-    // cards
-    area.innerHTML = CLIENTS.map(c => {
-      const active = (c.is_active === true);
-
-      const cp = CLIENT_PLAN[c.id] || null;
-      const currentPlanId = cp?.plan_id ?? null;
-      const currentStart = cp?.start_date ?? null;
-
-      const planSelectId = `plan-${c.id}`;
-
-      return `
-        <div class="block" style="margin-top:10px; background: rgba(0,0,0,.10);">
-          <div style="font-weight:900; font-size:16px; margin-bottom:6px;">
-            ${c.full_name || 'Sem nome'}
-          </div>
-
-          <div class="mini" style="opacity:.85; line-height:1.5">
-            <div><b>Email:</b> ${c.email || '—'}</div>
-            <div><b>client_id:</b> ${c.id}</div>
-            <div><b>user_id:</b> ${c.user_id || '—'}</div>
-            <div><b>Status:</b> ${active ? 'ATIVO ✅' : 'PENDENTE ⏳'}</div>
-            <div><b>Plano atual:</b> ${planLabel(currentPlanId)} ${currentStart ? `• desde ${fmtDate(currentStart)}` : ''}</div>
-          </div>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-            <button class="btn ${active ? 'btn-secondary' : 'btn-primary'}" type="button"
-              onclick="toggleClientActive('${c.id}', ${active ? 'true' : 'false'})">
-              ${active ? 'Desativar' : 'Aprovar'}
-            </button>
-
-            <button class="btn btn-secondary" type="button"
-              onclick="selectClientForPayments('${c.id}')">
-              Ver pagamentos
-            </button>
-
-            <button class="btn btn-danger" type="button"
-              onclick="deleteClient('${c.id}', '${(c.full_name || '').replace(/'/g, "\\'")}')">
-              Excluir cliente
-            </button>
-          </div>
-
-          <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,.08)">
-            <div class="mini" style="opacity:.8; margin-bottom:8px;"><b>Trocar plano</b></div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-              <select id="${planSelectId}" style="flex:1; min-width: 200px; padding:10px; border-radius:12px;">
-                <option value="">(selecionar plano)</option>
-                ${plansOptionsHtml}
-              </select>
-              <button class="btn btn-primary" type="button"
-                onclick="setClientPlan('${c.id}', '${planSelectId}')">
-                Aplicar plano
-              </button>
-            </div>
-            <div class="mini" style="opacity:.85; margin-top:8px;">
-              Dica: o cliente sempre fica com 1 plano (upsert).
-            </div>
-          </div>
-
-          <div id="cstatus-${c.id}" class="mini" style="margin-top:10px; opacity:.9"></div>
-        </div>
-      `;
-    }).join('');
-
-    // pré-seleciona o plano atual em cada select (depois do HTML renderizado)
-    for (const c of CLIENTS) {
-      const cp = CLIENT_PLAN[c.id] || null;
-      const sel = document.getElementById(`plan-${c.id}`);
-      if (sel && cp?.plan_id !== null && cp?.plan_id !== undefined) {
-        sel.value = String(cp.plan_id);
-      }
-    }
-  }
-
-  function setClientStatus(clientId, text, ok=false){
-    const el = document.getElementById(`cstatus-${clientId}`);
-    if (!el) return;
-    el.textContent = text || '';
-    el.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
-  }
-
-  window.selectClientForPayments = async function(clientId){
-    $('payClient').value = clientId;
-    SELECTED_CLIENT_ID = clientId;
-    await loadPaymentsForClient(clientId);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  };
-
-  window.toggleClientActive = async function(clientId, isActiveNow){
-    try{
-      setClientStatus(clientId, 'Atualizando...');
-      const { error } = await sb
-        .from('clients')
-        .update({ is_active: !isActiveNow })
-        .eq('id', clientId);
-
-      if (error) {
-        setClientStatus(clientId, 'Erro: ' + error.message);
-        return;
-      }
-
-      // atualiza cache local
-      CLIENTS = CLIENTS.map(c => c.id === clientId ? { ...c, is_active: !isActiveNow } : c);
-      renderClients();
-      setClientStatus(clientId, (!isActiveNow ? 'Aprovado ✅' : 'Desativado ✅'), true);
-    } catch(e){
-      setClientStatus(clientId, 'Erro inesperado.');
-      console.error(e);
-    }
-  };
-
-  // ===== RPC: trocar plano (public.set_client_plan) =====
-  window.setClientPlan = async function(clientId, selectId){
-    try{
-      const sel = document.getElementById(selectId);
-      const planId = sel?.value ? Number(sel.value) : null;
-
-      if (!clientId) return alert('client_id inválido.');
-      if (!planId || Number.isNaN(planId)) return alert('Selecione um plano válido.');
-
-      setClientStatus(clientId, 'Aplicando plano...');
-
-      const { error } = await sb.rpc('set_client_plan', {
-        p_client_id: clientId,
-        p_plan_id: planId
-      });
-
-      if (error) {
-        setClientStatus(clientId, 'Erro: ' + error.message);
-        return;
-      }
-
-      setClientStatus(clientId, `Plano aplicado ✅ (${planLabel(planId)})`, true);
-
-      // recarrega mapa de planos do cliente (pra refletir start_date etc.)
-      await loadClientPlans(CLIENTS.map(x => x.id));
-      renderClients();
-    } catch(e){
-      console.error(e);
-      setClientStatus(clientId, 'Erro inesperado ao aplicar plano.');
-    }
-  };
-
-  // ===== RPC: excluir cliente com cascade (public.delete_client_cascade) =====
-  window.deleteClient = async function(clientId, clientName){
-    try{
-      if (!clientId) return alert('client_id inválido.');
-
-      const label = clientName ? ` (${clientName})` : '';
-      const ok = confirm(
-        `Tem certeza que deseja EXCLUIR este cliente${label}?\n\n` +
-        `Isso vai apagar os dados relacionados (cascade no banco).`
-      );
-      if (!ok) return;
-
-      setClientStatus(clientId, 'Excluindo cliente...');
-
-      const { error } = await sb.rpc('delete_client_cascade', { p_client_id: clientId });
-
-      if (error) {
-        setClientStatus(clientId, 'Erro: ' + error.message);
-        return;
-      }
-
-      setMsg('Cliente excluído ✅', true);
-
-      // remove do cache e re-render
-      CLIENTS = CLIENTS.filter(c => c.id !== clientId);
-      await loadClientPlans(CLIENTS.map(x => x.id));
-      renderClients();
-
-      // se o cliente excluído era o selecionado do pagamento, ajusta
-      if (SELECTED_CLIENT_ID === clientId) {
-        SELECTED_CLIENT_ID = CLIENTS[0]?.id || null;
-        if (SELECTED_CLIENT_ID) {
-          $('payClient').value = SELECTED_CLIENT_ID;
-          await loadPaymentsForClient(SELECTED_CLIENT_ID);
-        } else {
-          $('paymentsArea').innerHTML = '';
-        }
-      }
-    } catch(e){
-      console.error(e);
-      setMsg('Erro inesperado ao excluir cliente.');
-    }
-  };
-
-  async function loadClients(){
-    const { data, error } = await sb
-      .from('clients')
-      .select('id, user_id, full_name, email, is_active, created_at')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    CLIENTS = data || [];
-
-    // carrega assignments de plano e lista de planos antes de renderizar
-    await loadPlans();
-    await loadClientPlans(CLIENTS.map(c => c.id));
-
-    renderClients();
-  }
-
-  async function createPayment(){
-    if (!SELECTED_CLIENT_ID) return alert('Selecione um cliente.');
-
-    const amount = Number($('payAmount').value || 0);
-    const paid_at = $('payDate').value;
-    const method = $('payMethod').value || 'manual';
-    const notes = $('payNotes').value || null;
-
-    if (!amount || amount <= 0) return alert('Informe um valor válido.');
-    if (!paid_at) return alert('Informe a data.');
-
-    setMsg('Lançando pagamento...');
-
-    const { error } = await sb
-      .from('payments')
-      .insert([{
-        client_id: SELECTED_CLIENT_ID,
-        amount,
-        paid_at,
-        method,
-        notes
-      }]);
-
-    if (error) {
-      setMsg('Erro: ' + error.message);
-      return;
-    }
-
-    $('payAmount').value = '';
-    $('payNotes').value = '';
-
-    setMsg('Pagamento lançado ✅', true);
-    await loadPaymentsForClient(SELECTED_CLIENT_ID);
-  }
-
-  $('btnCreatePayment').addEventListener('click', createPayment);
-
-  async function findReceiptPath(clientId, paymentId){
-    // padrão: {client_id}/{payment_id}.ext
-    const { data: files, error } = await sb.storage
-      .from('receipts')
-      .list(clientId, { limit: 200 });
-
-    if (error) throw error;
-
-    const found = (files || []).find(f => String(f.name || '').startsWith(paymentId + '.'));
-    return found?.name ? `${clientId}/${found.name}` : null;
-  }
-
-  window.openReceipt = async function(clientId, paymentId){
-    try{
-      setMsg('Procurando comprovante...');
-      const path = await findReceiptPath(clientId, paymentId);
-      if (!path) {
-        setMsg('Nenhum comprovante encontrado para esse pagamento.');
-        return;
-      }
-
-      const { data, error } = await sb.storage
-        .from('receipts')
-        .createSignedUrl(path, 60);
-
-      if (error || !data?.signedUrl) {
-        setMsg('Não consegui gerar link do comprovante.');
-        return;
-      }
-
-      setMsg('Abrindo comprovante ✅', true);
-      window.open(data.signedUrl, '_blank');
-    } catch(e){
-      console.error(e);
-      setMsg('Erro ao abrir comprovante.');
-    }
-  };
-
-  async function loadPaymentsForClient(clientId){
-    if (!clientId) { $('paymentsArea').innerHTML = ''; return; }
-
-    $('paymentsArea').innerHTML = 'Carregando pagamentos...';
-
-    const { data, error } = await sb
-      .from('payments')
-      .select('id, amount, paid_at, method, notes, created_at')
-      .eq('client_id', clientId)
-      .order('paid_at', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      $('paymentsArea').innerHTML = 'Erro: ' + error.message;
-      return;
-    }
-
-    const list = data || [];
-    if (!list.length) {
-      $('paymentsArea').innerHTML = `<div style="opacity:.85">Sem pagamentos para este cliente.</div>`;
-      return;
-    }
-
-    $('paymentsArea').innerHTML = `
-      <div class="mini" style="opacity:.85; margin-bottom:10px;">
-        Pagamentos do cliente selecionado:
-      </div>
-      ${list.map(p => `
-        <div class="block" style="margin-top:10px; background: rgba(0,0,0,.10);">
-          <div class="mini" style="opacity:.8">Data</div>
-          <div style="font-weight:800; margin-bottom:8px">${fmtDate(p.paid_at)}</div>
-
-          <div class="mini" style="opacity:.8">Valor</div>
-          <div style="font-weight:900; font-size:18px; margin-bottom:8px">${fmtMoney(p.amount)}</div>
-
-          <div class="mini" style="opacity:.8">Método</div>
-          <div style="margin-bottom:8px">${p.method || '—'}</div>
-
-          <div class="mini" style="opacity:.8">Obs.</div>
-          <div style="margin-bottom:10px">${p.notes ? String(p.notes) : '—'}</div>
-
-          <button class="btn btn-secondary" type="button"
-            onclick="openReceipt('${clientId}', '${p.id}')">
-            Abrir comprovante
-          </button>
-        </div>
-      `).join('')}
-    `;
-  }
-
   async function requireAdmin(session){
     const uid = session.user.id;
-
-    const { data: adminRow, error } = await sb
+    const { data, error } = await sb
       .from('admins')
       .select('user_id')
       .eq('user_id', uid)
       .maybeSingle();
-
     if (error) throw error;
-    return !!adminRow?.user_id;
+    return !!data?.user_id;
   }
 
   async function boot(){
@@ -544,26 +114,25 @@
     if (sessErr) {
       setText('status', 'Erro de sessão.');
       setMsg(sessErr.message);
-      window.location.href = './login.html?v=300';
+      window.location.href = './login.html?v=400';
       return;
     }
 
     const session = sessData?.session;
     if (!session) {
-      window.location.href = './login.html?v=300';
+      window.location.href = './login.html?v=400';
       return;
     }
 
     const email = session.user.email;
     setText('loggedAs', email ? `Logado como: ${email}` : '');
 
-    // valida admin (se não for, volta pro portal)
     try{
       const ok = await requireAdmin(session);
       if (!ok) {
         setText('status', 'Você não tem permissão de ADM.');
         setMsg('Acesso negado.');
-        window.location.href = './index.html?v=300';
+        window.location.href = './index.html?v=400';
         return;
       }
     } catch(e){
@@ -574,23 +143,11 @@
     }
 
     setText('status', 'Acesso ADM liberado ✅');
-    setMsg('ADM validado ✅', true);
-
-    await loadClients();
-
-    // setar data default hoje
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth()+1).padStart(2,'0');
-    const dd = String(today.getDate()).padStart(2,'0');
-    $('payDate').value = `${yyyy}-${mm}-${dd}`;
-
-    // carrega pagamentos do primeiro cliente
-    if (CLIENTS[0]?.id) {
-      $('payClient').value = CLIENTS[0].id;
-      SELECTED_CLIENT_ID = CLIENTS[0].id;
-      await loadPaymentsForClient(SELECTED_CLIENT_ID);
-    }
+    setMsg('Tudo certo. Escolha um atalho abaixo 👇', true);
   }
 
-  b
+  boot();
+</script>
+
+</body>
+</html>

@@ -103,12 +103,92 @@
   // Vamos guardar o client_id em memória (pra não consultar 10x)
   let CURRENT_CLIENT_ID = null;
 
+  // cache: paymentId -> { name, fullPath }
+  const RECEIPT_CACHE = new Map();
+
   function setCardStatus(paymentId, text, ok=false){
     const el = document.getElementById(`status-${paymentId}`);
     if (!el) return;
     el.textContent = text || '';
     el.style.opacity = text ? '1' : '0';
     el.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  }
+
+  function setUploadBtnLabel(paymentId, hasReceipt){
+    const btn = document.getElementById(`btnUpload-${paymentId}`);
+    if (!btn) return;
+    btn.textContent = hasReceipt ? 'Trocar comprovante' : 'Enviar comprovante';
+  }
+
+  function setDownloadBtnEnabled(paymentId, enabled){
+    const btn = document.getElementById(`btnDownload-${paymentId}`);
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? '1' : '.55';
+    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+  }
+
+  // ===== Storage helpers =====
+  function safeExtFromFile(file){
+    const mime = (file?.type || '').toLowerCase();
+    const name = (file?.name || '').toLowerCase();
+
+    // tenta pelo mime
+    if (mime === 'application/pdf') return 'pdf';
+    if (mime === 'image/png') return 'png';
+    if (mime === 'image/webp') return 'webp';
+    if (mime === 'image/jpeg') return 'jpg';
+
+    // tenta pelo nome
+    const parts = name.split('.');
+    const ext = (parts.length > 1 ? parts.pop() : '').replace(/[^a-z0-9]/g,'');
+    if (['pdf','png','jpg','jpeg','webp'].includes(ext)) return (ext === 'jpeg' ? 'jpg' : ext);
+
+    // fallback
+    return 'jpg';
+  }
+
+  async function findReceiptForPayment(paymentId){
+    if (!CURRENT_CLIENT_ID) throw new Error('Cliente não carregado.');
+
+    // cache hit
+    if (RECEIPT_CACHE.has(paymentId)) return RECEIPT_CACHE.get(paymentId);
+
+    const folder = `${CURRENT_CLIENT_ID}`;
+    const exts = ['pdf','png','jpg','jpeg','webp'];
+
+    const { data: files, error } = await sb.storage
+      .from('receipts')
+      .list(folder, { limit: 200 });
+
+    if (error) throw error;
+
+    const found = files?.find(f => {
+      const n = String(f.name || '');
+      if (!n.startsWith(paymentId + '.')) return false;
+      const e = n.split('.').pop().toLowerCase();
+      return exts.includes(e);
+    });
+
+    if (!found?.name) return null;
+
+    const info = { name: found.name, fullPath: `${folder}/${found.name}` };
+    RECEIPT_CACHE.set(paymentId, info);
+    return info;
+  }
+
+  async function refreshReceiptStatus(paymentId){
+    try{
+      const info = await findReceiptForPayment(paymentId);
+      const has = !!info;
+      setUploadBtnLabel(paymentId, has);
+      setDownloadBtnEnabled(paymentId, has);
+    }catch(e){
+      // se falhar, não trava a tela
+      console.warn('refreshReceiptStatus:', e);
+      setUploadBtnLabel(paymentId, false);
+      setDownloadBtnEnabled(paymentId, false);
+    }
   }
 
   function renderPayments(list){
@@ -144,11 +224,11 @@
         />
 
         <div style="display:flex; gap:10px; flex-wrap:wrap">
-          <button class="btn btn-primary" type="button" onclick="uploadReceipt('${p.id}')">
+          <button class="btn btn-primary" id="btnUpload-${p.id}" type="button" onclick="uploadReceipt('${p.id}')">
             Enviar comprovante
           </button>
 
-          <button class="btn btn-secondary" type="button" onclick="downloadReceipt('${p.id}')">
+          <button class="btn btn-secondary" id="btnDownload-${p.id}" type="button" onclick="downloadReceipt('${p.id}')" disabled style="opacity:.55; cursor:not-allowed">
             Baixar comprovante
           </button>
         </div>
@@ -156,11 +236,16 @@
         <div id="status-${p.id}" class="mini" style="margin-top:10px; opacity:0"></div>
       </div>
     `).join('');
+
+    // depois de renderizar, checa quais já têm comprovante e ajusta UI
+    setTimeout(() => {
+      list.forEach(p => refreshReceiptStatus(p.id));
+    }, 0);
   }
 
   // ===== Upload / Download (Storage: bucket "receipts") =====
 
-  // upload salva: receipts/{client_id}/{payment_id}.{ext}
+  // upload salva: receipts/{client_id}/{payment_id}.{ext}  (com upsert: true)
   window.uploadReceipt = async function(paymentId){
     try{
       if (!CURRENT_CLIENT_ID) return alert('Cliente não carregado.');
@@ -170,33 +255,37 @@
 
       const file = input.files[0];
 
-      // limita tamanho (opcional, mas evita bomba)
+      // limita tamanho
       const MAX_MB = 8;
       if (file.size > MAX_MB * 1024 * 1024) {
         return alert(`Arquivo muito grande. Máximo ${MAX_MB}MB.`);
       }
 
-      const name = file.name || 'comprovante';
-      const ext = (name.includes('.') ? name.split('.').pop() : '').toLowerCase();
-
-      // fallback se vier sem ext
-      const safeExt =
-        ext || (file.type === 'application/pdf' ? 'pdf' : 'jpg');
-
-      const path = `${CURRENT_CLIENT_ID}/${paymentId}.${safeExt}`;
+      // tenta manter padrão: sempre um único path por pagamento
+      const ext = safeExtFromFile(file);
+      const path = `${CURRENT_CLIENT_ID}/${paymentId}.${ext}`;
 
       setCardStatus(paymentId, 'Enviando comprovante...');
 
       const { error } = await sb.storage
         .from('receipts')
-        .upload(path, file, { upsert: true });
+        .upload(path, file, {
+          upsert: true,
+          cacheControl: '3600',
+          contentType: file.type || undefined
+        });
 
       if (error) {
         setCardStatus(paymentId, 'Erro ao enviar: ' + error.message);
         return;
       }
 
-      setCardStatus(paymentId, 'Comprovante enviado ✅', true);
+      // atualiza cache e UI
+      RECEIPT_CACHE.set(paymentId, { name: `${paymentId}.${ext}`, fullPath: path });
+      setUploadBtnLabel(paymentId, true);
+      setDownloadBtnEnabled(paymentId, true);
+
+      setCardStatus(paymentId, 'Comprovante atualizado ✅', true);
       input.value = '';
     } catch(e){
       setCardStatus(paymentId, 'Erro inesperado no upload.');
@@ -204,50 +293,53 @@
     }
   };
 
-  // download: tenta achar por extensão (pdf/jpg/png/jpeg/webp)
+  // download profissional:
+  // - cria signed url
+  // - abre em nova aba (preview)
+  // - e dispara download com nome limpo
   window.downloadReceipt = async function(paymentId){
     try{
       if (!CURRENT_CLIENT_ID) return alert('Cliente não carregado.');
 
       setCardStatus(paymentId, 'Procurando comprovante...');
 
-      const exts = ['pdf','png','jpg','jpeg','webp'];
-      const folder = `${CURRENT_CLIENT_ID}`;
+      const info = await findReceiptForPayment(paymentId);
 
-      const { data: files, error: listErr } = await sb.storage
-        .from('receipts')
-        .list(folder, { limit: 200 });
-
-      if (listErr) {
-        setCardStatus(paymentId, 'Erro: ' + listErr.message);
-        return;
-      }
-
-      const found = files?.find(f => {
-        const n = String(f.name || '');
-        if (!n.startsWith(paymentId + '.')) return false;
-        const e = n.split('.').pop().toLowerCase();
-        return exts.includes(e);
-      });
-
-      if (!found?.name) {
+      if (!info?.fullPath) {
         setCardStatus(paymentId, 'Nenhum comprovante encontrado.');
+        setDownloadBtnEnabled(paymentId, false);
+        setUploadBtnLabel(paymentId, false);
         return;
       }
-
-      const fullPath = `${folder}/${found.name}`;
 
       const { data, error } = await sb.storage
         .from('receipts')
-        .createSignedUrl(fullPath, 60);
+        .createSignedUrl(info.fullPath, 120);
 
       if (error || !data?.signedUrl) {
         setCardStatus(paymentId, 'Não consegui gerar link do arquivo.');
         return;
       }
 
-      setCardStatus(paymentId, 'Abrindo comprovante ✅', true);
-      window.open(data.signedUrl, '_blank');
+      const signedUrl = data.signedUrl;
+
+      // 1) Preview em nova aba (bom pra PDF e imagem)
+      window.open(signedUrl, '_blank');
+
+      // 2) Download automático com nome “comprovante_<data>_<paymentId>.ext”
+      //    (se o navegador bloquear, pelo menos a aba abriu)
+      const ext = (info.name.split('.').pop() || 'pdf').toLowerCase();
+      const niceName = `comprovante_${paymentId}.${ext}`;
+
+      const a = document.createElement('a');
+      a.href = signedUrl;
+      a.download = niceName;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setCardStatus(paymentId, 'Abrindo e baixando ✅', true);
     } catch(e){
       setCardStatus(paymentId, 'Erro inesperado no download.');
       console.error(e);

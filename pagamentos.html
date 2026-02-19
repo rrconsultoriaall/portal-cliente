@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pagamentos • Portal do Cliente</title>
+
   <link rel="stylesheet" href="./app.css?v=202">
   <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -34,7 +35,9 @@
 
         <section class="block">
           <div class="pill">Histórico</div>
-          <div id="paymentsArea" class="mini">Carregando...</div>
+
+          <div id="paymentsArea" class="mini" style="margin-top:10px;">Carregando...</div>
+
           <div id="msg" class="msg" aria-live="polite" style="margin-top:12px; opacity:0"></div>
         </section>
       </main>
@@ -90,12 +93,23 @@
     const n = Number(v || 0);
     return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   };
+
   const fmtDate = (d) => {
     if (!d) return '—';
-    // aceita YYYY-MM-DD ou timestamp
     const s = String(d);
     return s.slice(0,10);
   };
+
+  // Vamos guardar o client_id em memória (pra não consultar 10x)
+  let CURRENT_CLIENT_ID = null;
+
+  function setCardStatus(paymentId, text, ok=false){
+    const el = document.getElementById(`status-${paymentId}`);
+    if (!el) return;
+    el.textContent = text || '';
+    el.style.opacity = text ? '1' : '0';
+    el.style.color = ok ? 'rgba(86,255,180,.95)' : 'rgba(255,255,255,.82)';
+  }
 
   function renderPayments(list){
     const area = $('paymentsArea');
@@ -107,6 +121,7 @@
 
     area.innerHTML = list.map((p) => `
       <div class="block" style="margin-top:12px; background: rgba(0,0,0,.10);">
+
         <div class="mini" style="opacity:.8">Data</div>
         <div style="font-weight:800; margin-bottom:8px">${fmtDate(p.paid_at)}</div>
 
@@ -117,10 +132,127 @@
         <div style="margin-bottom:8px">${p.method || '—'}</div>
 
         <div class="mini" style="opacity:.8">Obs.</div>
-        <div style="opacity:.95">${p.notes ? String(p.notes) : '—'}</div>
+        <div style="margin-bottom:12px">${p.notes ? String(p.notes) : '—'}</div>
+
+        <div class="mini" style="opacity:.8; margin-bottom:6px;">Comprovante</div>
+
+        <input
+          type="file"
+          id="file-${p.id}"
+          accept="image/*,application/pdf"
+          style="width:100%; margin-bottom:10px;"
+        />
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <button class="btn btn-primary" type="button" onclick="uploadReceipt('${p.id}')">
+            Enviar comprovante
+          </button>
+
+          <button class="btn btn-secondary" type="button" onclick="downloadReceipt('${p.id}')">
+            Baixar comprovante
+          </button>
+        </div>
+
+        <div id="status-${p.id}" class="mini" style="margin-top:10px; opacity:0"></div>
       </div>
     `).join('');
   }
+
+  // ===== Upload / Download (Storage: bucket "receipts") =====
+
+  // upload salva: receipts/{client_id}/{payment_id}.{ext}
+  window.uploadReceipt = async function(paymentId){
+    try{
+      if (!CURRENT_CLIENT_ID) return alert('Cliente não carregado.');
+
+      const input = document.getElementById(`file-${paymentId}`);
+      if (!input || !input.files || !input.files.length) return alert('Selecione um arquivo.');
+
+      const file = input.files[0];
+
+      // limita tamanho (opcional, mas evita bomba)
+      const MAX_MB = 8;
+      if (file.size > MAX_MB * 1024 * 1024) {
+        return alert(`Arquivo muito grande. Máximo ${MAX_MB}MB.`);
+      }
+
+      const name = file.name || 'comprovante';
+      const ext = (name.includes('.') ? name.split('.').pop() : '').toLowerCase();
+
+      // fallback se vier sem ext
+      const safeExt =
+        ext || (file.type === 'application/pdf' ? 'pdf' : 'jpg');
+
+      const path = `${CURRENT_CLIENT_ID}/${paymentId}.${safeExt}`;
+
+      setCardStatus(paymentId, 'Enviando comprovante...');
+
+      const { error } = await sb.storage
+        .from('receipts')
+        .upload(path, file, { upsert: true });
+
+      if (error) {
+        setCardStatus(paymentId, 'Erro ao enviar: ' + error.message);
+        return;
+      }
+
+      setCardStatus(paymentId, 'Comprovante enviado ✅', true);
+      input.value = '';
+    } catch(e){
+      setCardStatus(paymentId, 'Erro inesperado no upload.');
+      console.error(e);
+    }
+  };
+
+  // download: tenta achar por extensão (pdf/jpg/png/jpeg/webp)
+  window.downloadReceipt = async function(paymentId){
+    try{
+      if (!CURRENT_CLIENT_ID) return alert('Cliente não carregado.');
+
+      setCardStatus(paymentId, 'Procurando comprovante...');
+
+      const exts = ['pdf','png','jpg','jpeg','webp'];
+      const folder = `${CURRENT_CLIENT_ID}`;
+
+      const { data: files, error: listErr } = await sb.storage
+        .from('receipts')
+        .list(folder, { limit: 200 });
+
+      if (listErr) {
+        setCardStatus(paymentId, 'Erro: ' + listErr.message);
+        return;
+      }
+
+      const found = files?.find(f => {
+        const n = String(f.name || '');
+        if (!n.startsWith(paymentId + '.')) return false;
+        const e = n.split('.').pop().toLowerCase();
+        return exts.includes(e);
+      });
+
+      if (!found?.name) {
+        setCardStatus(paymentId, 'Nenhum comprovante encontrado.');
+        return;
+      }
+
+      const fullPath = `${folder}/${found.name}`;
+
+      const { data, error } = await sb.storage
+        .from('receipts')
+        .createSignedUrl(fullPath, 60);
+
+      if (error || !data?.signedUrl) {
+        setCardStatus(paymentId, 'Não consegui gerar link do arquivo.');
+        return;
+      }
+
+      setCardStatus(paymentId, 'Abrindo comprovante ✅', true);
+      window.open(data.signedUrl, '_blank');
+    } catch(e){
+      setCardStatus(paymentId, 'Erro inesperado no download.');
+      console.error(e);
+    }
+  };
 
   async function boot(){
     setMsg('');
@@ -161,6 +293,8 @@
       `;
       return;
     }
+
+    CURRENT_CLIENT_ID = client.id;
 
     // busca pagamentos do cliente
     const { data: payments, error: pErr } = await sb

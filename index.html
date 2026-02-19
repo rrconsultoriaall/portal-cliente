@@ -23,7 +23,6 @@
           </div>
         </div>
 
-        <!-- ✅ BOTÕES FIXOS NO TOPO -->
         <div class="top-actions">
           <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
           <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
@@ -32,7 +31,6 @@
 
       <main class="content">
 
-        <!-- STATUS / MENSAGENS -->
         <section class="block" id="statusBlock">
           <div class="pill" id="statusPill">Carregando...</div>
           <div id="statusArea" class="mini" style="line-height:1.55">Aguarde…</div>
@@ -45,13 +43,11 @@
           <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
         </section>
 
-        <!-- PLANO (aparece quando aprovado) -->
         <section class="block" id="planBlock" style="display:none;">
           <div class="pill">Seu plano</div>
           <div id="planArea" class="mini">Carregando...</div>
         </section>
 
-        <!-- AÇÕES (aparece quando aprovado) -->
         <section class="block" id="actionsBlock" style="display:none;">
           <h2 style="margin: 4px 0 10px;">Ações</h2>
 
@@ -100,9 +96,9 @@
     .createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
   const $ = (id) => document.getElementById(id);
-
   const setText = (id, v) => { const el = $(id); if (el) el.textContent = v ?? ''; };
 
+  // Mensagens
   const msgEl = $('msg');
   const setMsg = (t, ok=false) => {
     msgEl.textContent = t || '';
@@ -238,12 +234,49 @@
     `;
   }
 
+  function isOnAdminPage(){
+    const p = (window.location.pathname || '').toLowerCase();
+    return p.endsWith('/admin.html') || p.endsWith('admin.html');
+  }
+
+  async function maybeRedirectAdmin(uid){
+    // se já estiver no admin.html, não faz nada
+    if (isOnAdminPage()) return false;
+
+    // Se a policy de admins estiver errada, isso pode dar erro.
+    // A gente trata e NÃO quebra o portal do cliente.
+    const { data: adminRow, error: aErr } = await sb
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (aErr) {
+      // não quebra o portal; só loga (e você corrige a policy com o SQL que mandei abaixo)
+      console.warn('Admin check error:', aErr.message);
+      return false;
+    }
+
+    if (adminRow?.user_id) {
+      // replace evita o botão "voltar" cair no index e ficar "piscando"
+      window.location.replace('./admin.html?v=200');
+      return true;
+    }
+
+    return false;
+  }
+
   async function boot(){
     setMsg('');
 
-    const { data: sessData } = await sb.auth.getSession();
-    const session = sessData?.session;
+    const { data: sessData, error: sessErr } = await sb.auth.getSession();
+    if (sessErr) {
+      setMsg(sessErr.message);
+      $('statusArea').textContent = 'Erro ao validar sessão.';
+      return;
+    }
 
+    const session = sessData?.session;
     if (!session) {
       window.location.href = './login.html?v=200';
       return;
@@ -251,8 +284,13 @@
 
     const uid = session.user.id;
     const email = session.user.email;
+    if (email) setText('loggedAs', `Logado como: ${email}`);
 
-    // Busca cliente pelo user_id (regra correta)
+    // ✅ redirect admin (antes de carregar dados do cliente)
+    const redirected = await maybeRedirectAdmin(uid);
+    if (redirected) return;
+
+    // Busca cliente pelo user_id
     const { data: client, error } = await sb
       .from('clients')
       .select('id,is_active')
@@ -272,7 +310,7 @@
 
     showApproved(email);
 
-    // ✅ carrega plano + barras
+    // carrega plano
     await loadPlanByEmail(email);
 
     setMsg('Portal carregado ✅', true);

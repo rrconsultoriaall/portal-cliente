@@ -266,13 +266,17 @@
     return false;
   }
 
+  <script>
+  // ... (todo o resto do seu código fica igual)
+
   async function boot(){
     setMsg('');
 
+    // 1) sessão primeiro (senão quebra o check admin)
     const { data: sessData, error: sessErr } = await sb.auth.getSession();
     if (sessErr) {
       setMsg(sessErr.message);
-      $('statusArea').textContent = 'Erro ao validar sessão.';
+      window.location.href = './login.html?v=200';
       return;
     }
 
@@ -286,11 +290,27 @@
     const email = session.user.email;
     if (email) setText('loggedAs', `Logado como: ${email}`);
 
-    // ✅ redirect admin (antes de carregar dados do cliente)
-    const redirected = await maybeRedirectAdmin(uid);
-    if (redirected) return;
+    // 2) CHECK ADMIN (antes de qualquer coisa de client)
+    try {
+      const { data: adminRow, error: aErr } = await sb
+        .from('admins')
+        .select('user_id')
+        .eq('user_id', uid)
+        .maybeSingle();
 
-    // Busca cliente pelo user_id
+      if (!aErr && adminRow?.user_id) {
+        const here = (window.location.pathname || '').toLowerCase();
+        if (!here.endsWith('/admin.html') && !here.endsWith('admin.html')) {
+          window.location.href = './admin.html?v=202';
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Admin check failed:', e);
+      // Se falhar, segue como cliente (não derruba o portal)
+    }
+
+    // 3) fluxo normal do cliente
     const { data: client, error } = await sb
       .from('clients')
       .select('id,is_active')
@@ -309,14 +329,15 @@
     }
 
     showApproved(email);
-
-    // carrega plano
     await loadPlanByEmail(email);
-
     setMsg('Portal carregado ✅', true);
   }
 
   boot();
+</script>
+    }
+
+    if (!client || client.is_active
 </script>
 
 </body>

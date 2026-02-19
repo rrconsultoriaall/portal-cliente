@@ -240,11 +240,10 @@
   }
 
   async function maybeRedirectAdmin(uid){
-    // se já estiver no admin.html, não faz nada
     if (isOnAdminPage()) return false;
 
-    // Se a policy de admins estiver errada, isso pode dar erro.
-    // A gente trata e NÃO quebra o portal do cliente.
+    // Se policy de admins estiver errada, pode dar erro.
+    // NÃO quebra o portal; só não redireciona.
     const { data: adminRow, error: aErr } = await sb
       .from('admins')
       .select('user_id')
@@ -252,13 +251,12 @@
       .maybeSingle();
 
     if (aErr) {
-      // não quebra o portal; só loga (e você corrige a policy com o SQL que mandei abaixo)
       console.warn('Admin check error:', aErr.message);
       return false;
     }
 
     if (adminRow?.user_id) {
-      // replace evita o botão "voltar" cair no index e ficar "piscando"
+      // replace evita o botão "voltar" cair no index
       window.location.replace('./admin.html?v=200');
       return true;
     }
@@ -266,13 +264,10 @@
     return false;
   }
 
-  <script>
-  // ... (todo o resto do seu código fica igual)
-
   async function boot(){
     setMsg('');
 
-    // 1) sessão primeiro (senão quebra o check admin)
+    // 1) sessão primeiro
     const { data: sessData, error: sessErr } = await sb.auth.getSession();
     if (sessErr) {
       setMsg(sessErr.message);
@@ -290,24 +285,12 @@
     const email = session.user.email;
     if (email) setText('loggedAs', `Logado como: ${email}`);
 
-    // 2) CHECK ADMIN (antes de qualquer coisa de client)
+    // 2) tenta redirecionar admin (se der erro, segue como cliente)
     try {
-      const { data: adminRow, error: aErr } = await sb
-        .from('admins')
-        .select('user_id')
-        .eq('user_id', uid)
-        .maybeSingle();
-
-      if (!aErr && adminRow?.user_id) {
-        const here = (window.location.pathname || '').toLowerCase();
-        if (!here.endsWith('/admin.html') && !here.endsWith('admin.html')) {
-          window.location.href = './admin.html?v=202';
-          return;
-        }
-      }
+      const redirected = await maybeRedirectAdmin(uid);
+      if (redirected) return;
     } catch (e) {
-      console.warn('Admin check failed:', e);
-      // Se falhar, segue como cliente (não derruba o portal)
+      console.warn('Admin redirect failed:', e);
     }
 
     // 3) fluxo normal do cliente
@@ -333,12 +316,12 @@
     setMsg('Portal carregado ✅', true);
   }
 
-  boot();
-</script>
-    }
-
-    if (!client || client.is_active
+  boot().catch((e) => {
+    setText('statusPill', 'Erro');
+    $('statusArea').textContent = 'Falha no boot: ' + (e?.message || e);
+    setMsg('Falha no boot: ' + (e?.message || e));
+  });
 </script>
 
 </body>
-</html>
+  </html>

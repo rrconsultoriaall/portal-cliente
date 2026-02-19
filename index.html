@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal do Cliente</title>
+
   <link rel="stylesheet" href="./app.css?v=200">
   <script src="./config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -24,8 +25,9 @@
         </div>
 
         <div class="top-actions">
+          <!-- fallback: onclick direto + addEventListener (redundância boa) -->
           <button class="btn btn-secondary" id="btnSupport" type="button">Suporte</button>
-          <button class="btn btn-danger" id="btnLogout" type="button">Sair</button>
+          <button class="btn btn-danger" id="btnLogout" type="button" onclick="window.__doLogout?.()">Sair</button>
         </div>
       </header>
 
@@ -37,7 +39,7 @@
 
           <div class="row" style="gap:10px; margin-top:14px; display:none;" id="pendingActions">
             <button class="btn btn-secondary" id="btnSupport2" type="button">Falar no suporte</button>
-            <button class="btn btn-danger" id="btnLogout2" type="button">Sair</button>
+            <button class="btn btn-danger" id="btnLogout2" type="button" onclick="window.__doLogout?.()">Sair</button>
           </div>
 
           <div id="msg" class="msg" aria-live="polite" style="opacity:0"></div>
@@ -119,16 +121,24 @@
     if (!phone) return alert('WhatsApp de suporte não configurado.');
     window.location.href = `https://wa.me/${phone}?text=${text}`;
   }
-  $('btnSupport').addEventListener('click', openSupport);
-  $('btnSupport2').addEventListener('click', openSupport);
 
-  // Logout
+  // Logout (exposto globalmente pro onclick fallback)
   async function doLogout(){
-    await sb.auth.signOut();
+    try {
+      await sb.auth.signOut();
+    } catch(e) {
+      console.warn('signOut error:', e);
+    }
+    // sempre manda pro login
     window.location.href = './login.html?v=200';
   }
-  $('btnLogout').addEventListener('click', doLogout);
-  $('btnLogout2').addEventListener('click', doLogout);
+  window.__doLogout = doLogout;
+
+  // bind normal também
+  $('btnSupport')?.addEventListener('click', openSupport);
+  $('btnSupport2')?.addEventListener('click', openSupport);
+  $('btnLogout')?.addEventListener('click', doLogout);
+  $('btnLogout2')?.addEventListener('click', doLogout);
 
   // ===== UI states =====
   function showPending(email){
@@ -159,17 +169,10 @@
   }
 
   // ===== Helpers =====
-  const fmtMoney = (v) => {
-    const n = Number(v || 0);
-    return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-  };
+  const fmtMoney = (v) => Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  const fmtPct = (v) => `${Number(v || 0).toFixed(2)}%`;
 
-  const fmtPct = (v) => {
-    const n = Number(v || 0);
-    return `${n.toFixed(2)}%`;
-  };
-
-  // ===== Data loader: VIEW client_plan_progress =====
+  // ===== Carrega plano =====
   async function loadPlanByEmail(email){
     const area = $('planArea');
     area.textContent = 'Carregando...';
@@ -234,63 +237,56 @@
     `;
   }
 
-  function isOnAdminPage(){
-    const p = (window.location.pathname || '').toLowerCase();
-    return p.endsWith('/admin.html') || p.endsWith('admin.html');
-  }
-
-  async function maybeRedirectAdmin(uid){
-    if (isOnAdminPage()) return false;
-
-    // Se policy de admins estiver errada, pode dar erro.
-    // NÃO quebra o portal; só não redireciona.
-    const { data: adminRow, error: aErr } = await sb
-      .from('admins')
-      .select('user_id')
-      .eq('user_id', uid)
-      .maybeSingle();
-
-    if (aErr) {
-      console.warn('Admin check error:', aErr.message);
-      return false;
-    }
-
-    if (adminRow?.user_id) {
-      // replace evita o botão "voltar" cair no index
-      window.location.replace('./admin.html?v=200');
-      return true;
-    }
-
-    return false;
+  // base URL correto (funciona em /portal-cliente/ e em /)
+  function baseUrl(){
+    return new URL('./', window.location.href).toString();
   }
 
   async function boot(){
     setMsg('');
 
-    // 1) sessão primeiro
+    // watchdog: se travar por qualquer motivo, mostra algo em 6s
+    const t = setTimeout(() => {
+      setText('statusPill', 'Travou 😅');
+      $('statusArea').innerHTML = `
+        Algo impediu o carregamento.<br/>
+        Toque em <b>Sair</b> e entre de novo.
+      `;
+      $('pendingActions').style.display = 'flex';
+    }, 6000);
+
+    // 1) sessão
     const { data: sessData, error: sessErr } = await sb.auth.getSession();
-    if (sessErr) {
-      setMsg(sessErr.message);
-      window.location.href = './login.html?v=200';
-      return;
-    }
+    if (sessErr) { clearTimeout(t); setMsg(sessErr.message); return doLogout(); }
 
     const session = sessData?.session;
-    if (!session) {
-      window.location.href = './login.html?v=200';
-      return;
-    }
+    if (!session) { clearTimeout(t); window.location.href = './login.html?v=200'; return; }
 
     const uid = session.user.id;
     const email = session.user.email;
     if (email) setText('loggedAs', `Logado como: ${email}`);
 
-    // 2) tenta redirecionar admin (se der erro, segue como cliente)
+    // 2) redirect admin (antes do fluxo de cliente)
     try {
-      const redirected = await maybeRedirectAdmin(uid);
-      if (redirected) return;
+      const { data: adminRow, error: aErr } = await sb
+        .from('admins')
+        .select('user_id')
+        .eq('user_id', uid)
+        .maybeSingle();
+
+      if (!aErr && adminRow?.user_id) {
+        clearTimeout(t);
+        window.location.replace(baseUrl() + 'admin.html?v=200');
+        return;
+      }
+
+      if (aErr) {
+        // não quebra o portal do cliente
+        console.warn('Admin check error:', aErr.message);
+      }
     } catch (e) {
-      console.warn('Admin redirect failed:', e);
+      console.warn('Admin check crashed:', e);
+      // segue como cliente
     }
 
     // 3) fluxo normal do cliente
@@ -299,6 +295,8 @@
       .select('id,is_active')
       .eq('user_id', uid)
       .maybeSingle();
+
+    clearTimeout(t);
 
     if (error) {
       showPending(email);
@@ -316,11 +314,16 @@
     setMsg('Portal carregado ✅', true);
   }
 
-  boot().catch((e) => {
-    setText('statusPill', 'Erro');
-    $('statusArea').textContent = 'Falha no boot: ' + (e?.message || e);
-    setMsg('Falha no boot: ' + (e?.message || e));
+  // se der erro JS, mostra na tela (pra não ficar “Carregando…” infinito)
+  window.addEventListener('error', (ev) => {
+    try {
+      setText('statusPill', 'Erro');
+      $('statusArea').textContent = String(ev?.message || 'Erro no script');
+      $('pendingActions').style.display = 'flex';
+    } catch {}
   });
+
+  boot();
 </script>
 
 </body>
